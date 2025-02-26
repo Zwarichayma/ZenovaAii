@@ -222,7 +222,7 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
       <ScrollView>
         <View style={styles.heroSection}>
           <Image
-            source={{ uri: `http://192.168.100.9:1337${recipe.image[0].formats.small.url}` }}
+            source={{ uri: `http://192.168.100.24:1337${recipe.image[0].formats.small.url}` }}
             style={styles.heroImage}
           />
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>

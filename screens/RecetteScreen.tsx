@@ -104,7 +104,7 @@ export default function RecetteScreen({ navigation, route }: RecetteScreenProps)
             source={{
               uri:
                 recipe.image && recipe.image.length > 0
-                  ? `http://192.168.100.9:1337${recipe.image[0].formats.small.url}`
+                  ? `http://192.168.100.24:1337${recipe.image[0].formats.small.url}`
                   : "https://via.placeholder.com/300x200?text=No+Image",
             }}
             style={styles.image}

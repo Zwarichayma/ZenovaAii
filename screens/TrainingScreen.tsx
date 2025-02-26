@@ -132,11 +132,11 @@ export default function App() {
   }, [])
 
   const getDayName = (date: Date) => {
-    return date.toLocaleDateString("fr-FR", { weekday: "long" })
+    return date.toLocaleDateString("en-US", { weekday: "long" })
   }
 
   const getMonthName = (date: Date) => {
-    return date.toLocaleDateString("fr-FR", { month: "long", year: "numeric" })
+    return date.toLocaleDateString("en-US", { month: "long", year: "numeric" })
   }
 
   const getDaysInMonth = (month: Date) => {
@@ -357,21 +357,12 @@ export default function App() {
         />
       )}
 
-      {currentScreen === "training" ? (
-        <TrainingScreen />
-      ) : (
-        <>
           <View style={styles.header}>
             <Text style={styles.headerTitle}>
               {getDayName(selectedDate)}, {selectedDate.getDate()}
             </Text>
             <View style={styles.headerButtons}>
-              <TouchableOpacity
-                onPress={() => setCurrentScreen(currentScreen === "health" ? "training" : "health")}
-                style={styles.navButton}
-              >
-                <Text style={styles.navButtonText}>{currentScreen === "health" ? "Training" : "Health"}</Text>
-              </TouchableOpacity>
+              
               <TouchableOpacity onPress={handleSettingsPress} style={styles.settingsButton}>
                 <Settings size={24} color="#666" />
               </TouchableOpacity>
@@ -436,7 +427,7 @@ export default function App() {
                           isToday(date) && styles.todayText,
                         ]}
                       >
-                        {date.toLocaleDateString("fr-FR", { weekday: "short" })}
+                        {date.toLocaleDateString("en-US", { weekday: "short" })}
                       </Text>
                       <Text
                         style={[
@@ -509,8 +500,8 @@ export default function App() {
               </ScrollView>
             </>
           )}
-        </>
-      )}
+  
+  
     
       
     

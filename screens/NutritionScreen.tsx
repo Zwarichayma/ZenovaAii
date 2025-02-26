@@ -208,18 +208,6 @@ export default function HomeScreen() {
               </ScrollView>
             </View>
 
-            {/* Section des nouvelles recettes */}
-<View style={styles.section}>
-  <Text style={styles.sectionTitle}>New Recipe</Text>
-  <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-    <Animated.View style={{ flexDirection: "row" }}>
-      {recipes.map((recipe, index) => (
-        <View key={index}>{renderCard(recipe, "RecipeDetail")}</View>
-      ))}
-    </Animated.View>
-  </ScrollView>
-</View>
-
             {/* Section des catégories */}
             <View style={styles.section}>
               <Text style={styles.sectionTitle}>All categories</Text>
