@@ -12,7 +12,6 @@ import MentalHealthScreen from "./MentalHealthScreen"
 import BotScreen from "./BotScreen"
 import NutritionScreen from "./NutritionScreen"
 import RecetteScreen from "./RecetteScreen" // Recette Screen
-import ExerciceScreen from "./ExerciceScreen"
 import ProfileScreen from "./ProfileScreen"
 import { RootStackParamList } from "../types/navigation"
 import SignUpScreen from "./SignUpScreen"
@@ -70,21 +69,13 @@ function AnimatedBotButton({ color, size }: AnimatedBotButtonProps) {
 }
 
 // Stack Navigator pour Recette et Exercice
-function RecetteExerciceStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="Recette" component={RecetteScreen} />
-      <Stack.Screen name="Exercice" component={ExerciceScreen} />
-    </Stack.Navigator>
-  )
-}
+
 
 
 export default function RootNavigation() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="MainTabs" component={MainTabNavigator} />
-      <Stack.Screen name="RecetteExercice" component={RecetteExerciceStack} />
       <Stack.Screen name="Profile" component={ProfileScreen} />
       <Stack.Screen name="Home" component={HomeScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />

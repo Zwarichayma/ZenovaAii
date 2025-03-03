@@ -9,16 +9,12 @@ export type MainTabParamList = {
   'Mental Health': undefined;
 };
 
-export type RecetteExerciceParamList = {
-  Recette: undefined;
-  Exercice: undefined;
-};
+
 
   
 export type RootStackParamList = {
     Home: undefined;
     MainTabs: NavigatorScreenParams<MainTabParamList>; 
-    RecetteExercice: NavigatorScreenParams<RecetteExerciceParamList>;
     Profile: undefined;
     Auth: undefined;
     SignUp: undefined;
