@@ -1,0 +1,29 @@
+{
+  "kind": "collectionType",
+  "collectionName": "anonymous_users",
+  "info": {
+    "singularName": "anonymous-user",
+    "pluralName": "anonymous-users",
+    "displayName": "AnonymousUser"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "anonymousId": {
+      "type": "string"
+    },
+    "lastActivity": {
+      "type": "datetime"
+    },
+    "convertedToUser": {
+      "type": "boolean"
+    },
+    "users_permissions_user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "anonymous_user"
+    }
+  }
+}

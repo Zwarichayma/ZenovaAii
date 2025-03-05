@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "results",
+  "info": {
+    "singularName": "result",
+    "pluralName": "results",
+    "displayName": "Result",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "score": {
+      "type": "integer"
+    },
+    "date": {
+      "type": "date"
+    },
+    "teste": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teste.teste",
+      "inversedBy": "results"
+    },
+    "interpretation": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::interpretation.interpretation",
+      "inversedBy": "results"
+    },
+    "users_permissions_user": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "results"
+    }
+  }
+}

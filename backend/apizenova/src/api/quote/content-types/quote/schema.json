@@ -1,0 +1,23 @@
+{
+  "kind": "collectionType",
+  "collectionName": "quotes",
+  "info": {
+    "singularName": "quote",
+    "pluralName": "quotes",
+    "displayName": "Quote"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "mental": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::mental.mental",
+      "inversedBy": "quotes"
+    }
+  }
+}

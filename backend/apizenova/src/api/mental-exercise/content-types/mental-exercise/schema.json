@@ -1,0 +1,49 @@
+{
+  "kind": "collectionType",
+  "collectionName": "mental_exercises",
+  "info": {
+    "singularName": "mental-exercise",
+    "pluralName": "mental-exercises",
+    "displayName": "Mental Exercise"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "blocks"
+    },
+    "image": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": false
+    },
+    "audio_url": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": false
+    },
+    "duration": {
+      "type": "integer"
+    },
+    "mental": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::mental.mental",
+      "inversedBy": "mental_exercises"
+    }
+  }
+}
