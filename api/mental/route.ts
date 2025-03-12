@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://192.168.100.24:1337/api/mentals?populate=image";
-const TOKEN = "3bf5dd63e926b8274c69d0725cbcb58fff0557c122389deb3b1b05c891c62c9fc18917cfa1b913ea60731cc1687426d8d1b1df629e479c783ade7bdc261e025fb2189a84daf3c0fc38a7acc07aae9c809464955f0a1d68c7fd3d9d17c4855986c632f756cfd3a73c9ac714f84e484db0f547ccdf84613e6bdb9b5d1e36e7b2b9";
+const API_URL = "http://4301-197-26-47-92.ngrok-free.app/api/mentals?populate=image";
+const TOKEN = "48887ddc9babdd10b4141628ae273f8ca303c6f8f24173d649fe9f02310f876153cb98a4fd21efb57cbcf1d2290a2b70a334377e260aa5120146bfb28366aca01eb23f25b446edded92ebd39a16419064d76bc211132b89d785d7152048942489f737164321b0f79bfefab795a9d5adaca30318fcc3e37d121e76106a484f61a";
 
 export const getMental = async () => {
   try {

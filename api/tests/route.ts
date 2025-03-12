@@ -1,8 +1,8 @@
 import axios from "axios"
 
-const API_URL = "http://192.168.100.24:1337/api"
+const API_URL = "http://4301-197-26-47-92.ngrok-free.app/api"
 const TOKEN =
-  "3bf5dd63e926b8274c69d0725cbcb58fff0557c122389deb3b1b05c891c62c9fc18917cfa1b913ea60731cc1687426d8d1b1df629e479c783ade7bdc261e025fb2189a84daf3c0fc38a7acc07aae9c809464955f0a1d68c7fd3d9d17c4855986c632f756cfd3a73c9ac714f84e484db0f547ccdf84613e6bdb9b5d1e36e7b2b9"
+  "48887ddc9babdd10b4141628ae273f8ca303c6f8f24173d649fe9f02310f876153cb98a4fd21efb57cbcf1d2290a2b70a334377e260aa5120146bfb28366aca01eb23f25b446edded92ebd39a16419064d76bc211132b89d785d7152048942489f737164321b0f79bfefab795a9d5adaca30318fcc3e37d121e76106a484f61a"
 
 export interface ImageFormat {
   name: string
@@ -96,7 +96,7 @@ const axiosInstance = axios.create({
 
 export const getTests = async (): Promise<Test[]> => {
   try {
-    const response = await axiosInstance.get<ApiResponse<Test[]>>("/tests?populate=*")
+    const response = await axiosInstance.get<ApiResponse<Test[]>>("/testes?populate=*")
     console.log("API Response:", JSON.stringify(response.data, null, 2))
     return response.data.data
   } catch (error) {
@@ -110,37 +110,118 @@ export const getTests = async (): Promise<Test[]> => {
   }
 }
 
-export const getTestById = async (id: number): Promise<Test> => {
+export const getTestById = async (id: number): Promise<Test | null> => {
   try {
-    const response = await axiosInstance.get<ApiResponse<Test>>(`/tests/${id}?populate=image`)
+    console.log(`Fetching test with ID: ${id}`)
+    const response = await axiosInstance.get<ApiResponse<Test>>(`/testes/${id}?populate=image`)
+    console.log(`API Response for test ${id}:`, JSON.stringify(response.data, null, 2))
     return response.data.data
   } catch (error) {
     if (axios.isAxiosError(error)) {
+      if (error.response?.status === 404) {
+        console.log(`Test with ID ${id} not found`)
+        return null
+      }
       console.error("API Error:", {
         status: error.response?.status,
         data: error.response?.data,
       })
+    } else {
+      console.error("Unexpected error:", error)
     }
     throw error
   }
 }
 
-export const calculateTestScore = async (testId: number, answers: string[]): Promise<{
-  totalScore: number;
-  interpretation: string;
-  maxPossibleScore: number;
-  numberOfQuestions: number;
-}> => {
+// Get all questions
+export const getQuestions = async () => {
   try {
-    const response = await axiosInstance.post(`/tests/${testId}/calculate-score`, { answers });
-    return response.data;
+    const response = await axiosInstance.get("/questions")
+    return response.data.data
   } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error("API Error:", {
-        status: error.response?.status,
-        data: error.response?.data,
-      });
-    }
-    throw error;
+    console.error("Error fetching questions:", error)
+    throw error
   }
-};
+}
+
+// Calculate test score
+export const calculateScore = async (testTitle: string, userResponses: Record<string, string>) => {
+  try {
+    const response = await axiosInstance.post("/teste/calculate-score", {
+      testTitle,
+      userResponses,
+    })
+    return response.data.data
+  } catch (error) {
+    console.error("Error calculating score:", error)
+    throw error
+  }
+}
+
+// Get questions by test ID
+export const getQuestionsByTestId = async (testId: string) => {
+  try {
+    console.log(`Fetching questions for test ID: ${testId}`)
+
+    // Get all questions first
+    const response = await axiosInstance.get("/questions")
+    console.log(`Got ${response.data.data.length} total questions`)
+
+    // Extract the test prefix from the testId (first 5-8 characters usually identify the test)
+    const testPrefix = testId.slice(0, 6)
+    console.log(`Using test prefix for filtering: ${testPrefix}`)
+
+    // Filter questions that belong to this test based on documentId prefix
+    const filteredQuestions = response.data.data.filter((q: any) => {
+      const questionId = q.attributes.documentId
+      const isMatch = questionId.startsWith(testPrefix)
+      if (isMatch) {
+        console.log(`Question match found: ${questionId}`)
+      }
+      return isMatch
+    })
+
+    console.log(`Filtered to ${filteredQuestions.length} questions for test ${testId}`)
+
+    // Transform the data to a simpler format
+    return filteredQuestions.map((item: any) => ({
+      id: item.id,
+      documentId: item.attributes.documentId,
+      texte: item.attributes.texte,
+    }))
+  } catch (error) {
+    console.error(`Error fetching questions for test ${testId}:`, error)
+    throw error
+  }
+}
+
+// Get all responses
+export const getResponses = async () => {
+  try {
+    console.log("Fetching all responses")
+    const response = await axiosInstance.get("/reponses?pagination[limit]=500")
+    console.log(`Fetched ${response.data.data.length} responses`)
+    console.log("Sample responses:", JSON.stringify(response.data.data.slice(0, 2), null, 2)) // Log first 2 responses
+
+    // Transform the data to a simpler format
+    return response.data.data.map((item: any) => ({
+      id: item.id,
+      documentId: item.attributes.documentId,
+      texte: item.attributes.texte,
+      coefficient: item.attributes.coefficient,
+    }))
+  } catch (error) {
+    console.error("Error fetching responses:", error)
+    throw error
+  }
+}
+
+export const getTestWithQuestions = async (testId: string) => {
+  try {
+    const response = await axiosInstance.get(`/testes?populate[questions][populate]=*`)
+    return response.data
+  } catch (error) {
+    console.error("API Error:", error)
+    throw error
+  }
+}

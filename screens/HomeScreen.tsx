@@ -167,11 +167,11 @@ export default function HomeScreen() {
       title = item.attributes.title;
       documentId = item.id.toString(); // Convertir en string si nécessaire
       if (item.attributes.image?.data?.attributes?.formats?.small?.url) {
-        imageUrl = "http://192.168.100.24:1337" + item.attributes.image.data.attributes.formats.small.url;
+        imageUrl = "http://4301-197-26-47-92.ngrok-free.app" + item.attributes.image.data.attributes.formats.small.url;
       }
     } else if ("image" in item && Array.isArray(item.image) && item.image.length > 0) {
       if ("formats" in item.image[0]) {
-        imageUrl = "http://192.168.100.24:1337" + (item.image[0].formats?.small?.url || item.image[0].url);
+        imageUrl = "http://4301-197-26-47-92.ngrok-free.app" + (item.image[0].formats?.small?.url || item.image[0].url);
       }
       title = item.title;
       documentId = item.documentId;

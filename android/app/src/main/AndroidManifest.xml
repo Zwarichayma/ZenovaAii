@@ -22,8 +22,18 @@
 <uses-permission android:name="android.permission.health.READ_RESPIRATORY_RATE"/>
 <uses-permission android:name="android.permission.health.READ_SLEEP"/>
 <uses-permission android:name="android.permission.health.READ_ACTIVE_CALORIES_BURNED"/>
-
-
+<uses-permission android:name="android.permission.CAMERA" />
+<uses-feature android:name="android.hardware.camera" />
+<!-- No permission is needed to add files to shared storage on Android 10 (API level 29) or higher  -->
+<uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+<uses-permission android:name="android.permission.READ_MEDIA_VISUAL_USER_SELECTED" />
+<!-- Pour Android 12 et versions antérieures -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    
+    <!-- Pour Android 13+ -->
+    <uses-permission android:name="android.permission.READ_MEDIA_IMAGES" />
+    <!-- Optionnel si vous voulez aussi accéder aux vidéos -->
+    <!-- <uses-permission android:name="android.permission.READ_MEDIA_VIDEO" /> -->
 <queries>
 <intent>
 <action android:name="android.intent.action.VIEW"/>
