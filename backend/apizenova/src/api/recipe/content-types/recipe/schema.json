@@ -1,0 +1,104 @@
+{
+  "kind": "collectionType",
+  "collectionName": "recipes",
+  "info": {
+    "singularName": "recipe",
+    "pluralName": "recipes",
+    "displayName": "Recipe",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "text"
+    },
+    "ingredients": {
+      "type": "json"
+    },
+    "instructions": {
+      "type": "blocks"
+    },
+    "image": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "preparation_time": {
+      "type": "integer"
+    },
+    "cooking_time": {
+      "type": "integer"
+    },
+    "total_time": {
+      "type": "integer"
+    },
+    "category": {
+      "type": "enumeration",
+      "enum": [
+        "Asian",
+        "Italian",
+        "French",
+        "South American",
+        "Gourmet Mediterranean",
+        "Winter",
+        "Autumn ",
+        "Spring",
+        "Summer",
+        "American Soup",
+        "Drink ",
+        "Dish",
+        "Breakfast",
+        "Snack",
+        "Dessert",
+        "Brunch",
+        "Appetizer & Starter",
+        "Preparation",
+        "Quick Meals ",
+        "Protein-rich ",
+        "Light"
+      ]
+    },
+    "difficulty": {
+      "type": "enumeration",
+      "enum": [
+        "Easy",
+        "Medium",
+        "Hard"
+      ]
+    },
+    "nutrition": {
+      "type": "json"
+    },
+    "dietary_tags": {
+      "type": "enumeration",
+      "enum": [
+        "Protein",
+        "Gluten Free",
+        "Vegetarian",
+        "Vegan",
+        "Low Carb",
+        "Dairy Free",
+        "Nut Free",
+        "Keto",
+        "Paleo"
+      ]
+    },
+    "categories": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::category.category",
+      "inversedBy": "recipes"
+    }
+  }
+}

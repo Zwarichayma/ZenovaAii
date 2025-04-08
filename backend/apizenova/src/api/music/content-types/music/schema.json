@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "musics",
+  "info": {
+    "singularName": "music",
+    "pluralName": "musics",
+    "displayName": "Music",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "blocks"
+    },
+    "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "duration": {
+      "type": "integer"
+    },
+    "mental": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::mental.mental",
+      "inversedBy": "music"
+    },
+    "url_youtube": {
+      "type": "text"
+    },
+    "url_spotify": {
+      "type": "text"
+    }
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "kind": "collectionType",
+  "collectionName": "exercises",
+  "info": {
+    "singularName": "exercise",
+    "pluralName": "exercises",
+    "displayName": "Exercise"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "name": {
+      "type": "string"
+    },
+    "description": {
+      "type": "blocks"
+    },
+    "image": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": false
+    },
+    "video_url": {
+      "type": "string"
+    },
+    "type": {
+      "type": "string"
+    },
+    "duration": {
+      "type": "integer"
+    },
+    "reps": {
+      "type": "integer"
+    },
+    "sets": {
+      "type": "integer"
+    },
+    "fitness_plan": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::fitness-plan.fitness-plan",
+      "inversedBy": "exercises"
+    }
+  }
+}
