@@ -404,6 +404,31 @@ export interface ApiAnonymousUserAnonymousUser
   };
 }
 
+export interface ApiAuthAuth extends Struct.CollectionTypeSchema {
+  collectionName: 'auths';
+  info: {
+    description: '';
+    displayName: 'auth';
+    pluralName: 'auths';
+    singularName: 'auth';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<'oneToMany', 'api::auth.auth'> &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
   collectionName: 'categories';
   info: {
@@ -676,6 +701,7 @@ export interface ApiMentalMental extends Struct.CollectionTypeSchema {
 export interface ApiMusicMusic extends Struct.CollectionTypeSchema {
   collectionName: 'musics';
   info: {
+    description: '';
     displayName: 'Music';
     pluralName: 'musics';
     singularName: 'music';
@@ -684,7 +710,6 @@ export interface ApiMusicMusic extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
-    audio_url: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -700,6 +725,8 @@ export interface ApiMusicMusic extends Struct.CollectionTypeSchema {
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    url_spotify: Schema.Attribute.Text;
+    url_youtube: Schema.Attribute.Text;
   };
 }
 
@@ -778,6 +805,7 @@ export interface ApiQuestionQuestion extends Struct.CollectionTypeSchema {
 export interface ApiQuoteQuote extends Struct.CollectionTypeSchema {
   collectionName: 'quotes';
   info: {
+    description: '';
     displayName: 'Quote';
     pluralName: 'quotes';
     singularName: 'quote';
@@ -789,6 +817,10 @@ export interface ApiQuoteQuote extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    image: Schema.Attribute.Media<
+      'images' | 'files' | 'videos' | 'audios',
+      true
+    >;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::quote.quote'> &
       Schema.Attribute.Private;
@@ -1557,6 +1589,7 @@ declare module '@strapi/strapi' {
       'admin::transfer-token-permission': AdminTransferTokenPermission;
       'admin::user': AdminUser;
       'api::anonymous-user.anonymous-user': ApiAnonymousUserAnonymousUser;
+      'api::auth.auth': ApiAuthAuth;
       'api::category.category': ApiCategoryCategory;
       'api::chatbot-conversation.chatbot-conversation': ApiChatbotConversationChatbotConversation;
       'api::exercise.exercise': ApiExerciseExercise;
