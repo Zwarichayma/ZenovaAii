@@ -1,0 +1,37 @@
+{
+  "kind": "collectionType",
+  "collectionName": "personalized_diets",
+  "info": {
+    "singularName": "personalized-diet",
+    "pluralName": "personalized-diets",
+    "displayName": "Personalized Diet",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "diet_plan": {
+      "type": "json"
+    },
+    "date": {
+      "type": "date"
+    },
+    "users_permissions_user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "personalized_diet"
+    },
+    "image": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": true
+    }
+  }
+}

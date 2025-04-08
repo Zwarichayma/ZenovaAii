@@ -1,0 +1,27 @@
+{
+  "kind": "collectionType",
+  "collectionName": "reponses",
+  "info": {
+    "singularName": "reponse",
+    "pluralName": "reponses",
+    "displayName": "reponse",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "texte": {
+      "type": "string"
+    },
+    "coefficient": {
+      "type": "integer"
+    },
+    "questions": {
+      "type": "relation",
+      "relation": "manyToMany",
+      "target": "api::question.question",
+      "inversedBy": "reponses"
+    }
+  }
+}

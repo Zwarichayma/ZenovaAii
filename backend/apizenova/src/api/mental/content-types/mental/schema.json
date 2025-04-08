@@ -1,0 +1,47 @@
+{
+  "kind": "collectionType",
+  "collectionName": "mentals",
+  "info": {
+    "singularName": "mental",
+    "pluralName": "mentals",
+    "displayName": "mental",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "image": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "mental_exercises": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::mental-exercise.mental-exercise",
+      "mappedBy": "mental"
+    },
+    "music": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::music.music",
+      "mappedBy": "mental"
+    },
+    "quotes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::quote.quote",
+      "mappedBy": "mental"
+    }
+  }
+}

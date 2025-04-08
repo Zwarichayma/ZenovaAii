@@ -1,0 +1,60 @@
+{
+  "kind": "collectionType",
+  "collectionName": "fitness_plans",
+  "info": {
+    "singularName": "fitness-plan",
+    "pluralName": "fitness-plans",
+    "displayName": "Fitness Plan",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "title": {
+      "type": "string"
+    },
+    "description": {
+      "type": "blocks"
+    },
+    "type": {
+      "type": "enumeration",
+      "enum": [
+        "CARDIO",
+        "FIT BOX",
+        "STRENGTH TRAINING",
+        "YOGA",
+        "PILATES",
+        "FLEXIBILITY AND MOBILITY",
+        "CROSSFIT",
+        "FUNCTIONAL FITNESS",
+        "MIND-BODY",
+        "DANCE FITNESS",
+        "OUTDOOR ACTIVITIES",
+        "SPORTS-SPECIFIC TRAINING"
+      ]
+    },
+    "duration": {
+      "type": "integer"
+    },
+    "calories_burned": {
+      "type": "integer"
+    },
+    "exercises": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::exercise.exercise",
+      "mappedBy": "fitness_plan"
+    },
+    "image": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": true
+    }
+  }
+}

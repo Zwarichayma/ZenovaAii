@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "interpretations",
+  "info": {
+    "singularName": "interpretation",
+    "pluralName": "interpretations",
+    "displayName": "Interpretation",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "teste": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::teste.teste",
+      "inversedBy": "interpretations"
+    },
+    "scoreMin": {
+      "type": "integer"
+    },
+    "scoreMax": {
+      "type": "integer"
+    },
+    "niveau": {
+      "type": "text"
+    },
+    "description": {
+      "type": "text"
+    },
+    "results": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::result.result",
+      "mappedBy": "interpretation"
+    }
+  }
+}
