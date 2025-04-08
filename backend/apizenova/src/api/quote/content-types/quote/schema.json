@@ -4,7 +4,8 @@
   "info": {
     "singularName": "quote",
     "pluralName": "quotes",
-    "displayName": "Quote"
+    "displayName": "Quote",
+    "description": ""
   },
   "options": {
     "draftAndPublish": true
@@ -18,6 +19,16 @@
       "relation": "manyToOne",
       "target": "api::mental.mental",
       "inversedBy": "quotes"
+    },
+    "image": {
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ],
+      "type": "media",
+      "multiple": true
     }
   }
 }

@@ -1,3 +1,5 @@
+// src/api/anonymous-user/controllers/anonymous-user.ts
+
 import { factories } from '@strapi/strapi';
 
 export default factories.createCoreController('api::anonymous-user.anonymous-user', ({ strapi }) => ({
@@ -47,34 +49,48 @@ export default factories.createCoreController('api::anonymous-user.anonymous-use
   },
   
   async migrateData(anonymousId, userId) {
-    // Migrer les données de teste
-    const testes = await strapi.db.query('api::teste.teste').findMany({
-      where: { anonymousId }
-    });
-
-    for (const teste of testes) {
-      await strapi.db.query('api::teste.teste').update({
-        where: { id: teste.id },
-        data: {
-          user: userId,
-          anonymousId: null
+    try {
+      // Récupérer toutes les collections du modèle Strapi
+      const contentTypes = Object.keys(strapi.contentTypes);
+      
+      // Filtrer pour ne garder que les API content types (pas les admin ou plugins)
+      const apiContentTypes = contentTypes.filter(type => type.startsWith('api::'));
+      
+      // Pour chaque content type, vérifier s'il a un champ anonymousId
+      for (const contentType of apiContentTypes) {
+        const model = strapi.contentTypes[contentType];
+        const attributes = model.attributes || {};
+        
+        // Vérifier si ce modèle a un champ anonymousId
+        if (attributes.anonymousId) {
+          const collection = contentType.split('::')[1].split('.')[0];
+          
+          strapi.log.info(`Migrating data for collection: ${collection}`);
+          
+          // Trouver tous les éléments avec cet anonymousId
+          const items = await strapi.db.query(contentType).findMany({
+            where: { anonymousId }
+          });
+          
+          strapi.log.info(`Found ${items.length} items to migrate in ${collection}`);
+          
+          // Mettre à jour chaque élément
+          for (const item of items) {
+            await strapi.db.query(contentType).update({
+              where: { id: item.id },
+              data: {
+                user: userId,
+                anonymousId: null
+              }
+            });
+          }
         }
-      });
-    }
-
-    // Migrer les résultats
-    const results = await strapi.db.query('api::result.result').findMany({
-      where: { anonymousId }
-    });
-
-    for (const result of results) {
-      await strapi.db.query('api::result.result').update({
-        where: { id: result.id },
-        data: {
-          user: userId,
-          anonymousId: null
-        }
-      });
+      }
+      
+      strapi.log.info('Data migration completed successfully');
+    } catch (error) {
+      strapi.log.error('Error during data migration:', error);
+      throw error;
     }
   }
 }));

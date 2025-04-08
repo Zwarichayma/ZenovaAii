@@ -4,7 +4,8 @@
   "info": {
     "singularName": "music",
     "pluralName": "musics",
-    "displayName": "Music"
+    "displayName": "Music",
+    "description": ""
   },
   "options": {
     "draftAndPublish": true
@@ -17,24 +18,15 @@
       "type": "blocks"
     },
     "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
       "allowedTypes": [
         "images",
         "files",
         "videos",
         "audios"
-      ],
-      "type": "media",
-      "multiple": false
-    },
-    "audio_url": {
-      "allowedTypes": [
-        "images",
-        "files",
-        "videos",
-        "audios"
-      ],
-      "type": "media",
-      "multiple": false
+      ]
     },
     "duration": {
       "type": "integer"
@@ -44,6 +36,12 @@
       "relation": "manyToOne",
       "target": "api::mental.mental",
       "inversedBy": "music"
+    },
+    "url_youtube": {
+      "type": "text"
+    },
+    "url_spotify": {
+      "type": "text"
     }
   }
 }
