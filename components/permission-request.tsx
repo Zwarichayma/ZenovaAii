@@ -1,30 +1,25 @@
-import { View, Text, TouchableOpacity, StyleSheet } from "react-native"
+import type React from "react"
+import { View, Text, StyleSheet, TouchableOpacity } from "react-native"
 
-interface PermissionRequestProps {
+interface Props {
   title: string
   message: string
   onAccept: () => void
   onLater: () => void
 }
 
-const PermissionRequest = ({ title, message, onAccept, onLater }: PermissionRequestProps) => {
+const PermissionRequest: React.FC<Props> = ({ title, message, onAccept, onLater }) => {
   return (
-    <View style={styles.overlay}>
-      <View style={styles.container}>
-        <View style={styles.iconContainer}>
-          <Text style={styles.icon}>🔒</Text>
-        </View>
-
-        <Text style={styles.title}>{title}</Text>
-        <Text style={styles.message}>{message}</Text>
-
+    <View style={styles.modalContainer}>
+      <View style={styles.modalContent}>
+        <Text style={styles.modalTitle}>{title}</Text>
+        <Text style={styles.modalMessage}>{message}</Text>
         <View style={styles.buttonContainer}>
           <TouchableOpacity style={styles.laterButton} onPress={onLater}>
             <Text style={styles.laterButtonText}>Plus tard</Text>
           </TouchableOpacity>
-
           <TouchableOpacity style={styles.acceptButton} onPress={onAccept}>
-            <Text style={styles.acceptButtonText}>Autoriser</Text>
+            <Text style={styles.acceptButtonText}>Accepter</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -33,86 +28,56 @@ const PermissionRequest = ({ title, message, onAccept, onLater }: PermissionRequ
 }
 
 const styles = StyleSheet.create({
-  overlay: {
+  modalContainer: {
     position: "absolute",
     top: 0,
     left: 0,
-    right: 0,
-    bottom: 0,
+    width: "100%",
+    height: "100%",
     backgroundColor: "rgba(0, 0, 0, 0.5)",
     justifyContent: "center",
     alignItems: "center",
-    zIndex: 1000,
   },
-  container: {
-    width: "85%",
+  modalContent: {
     backgroundColor: "#fff",
-    borderRadius: 24,
-    padding: 24,
+    borderRadius: 10,
+    padding: 20,
+    width: "80%",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 12,
-    elevation: 5,
   },
-  iconContainer: {
-    width: 70,
-    height: 70,
-    borderRadius: 35,
-    backgroundColor: "#F3F4F6",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  icon: {
-    fontSize: 32,
-  },
-  title: {
+  modalTitle: {
     fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 12,
-    textAlign: "center",
+    fontWeight: "bold",
+    marginBottom: 10,
   },
-  message: {
+  modalMessage: {
     fontSize: 16,
-    color: "#666",
     textAlign: "center",
-    marginBottom: 24,
-    lineHeight: 22,
+    marginBottom: 20,
   },
   buttonContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "space-around",
     width: "100%",
   },
   laterButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: "#F3F4F6",
-    flex: 1,
-    marginRight: 8,
-    alignItems: "center",
+    backgroundColor: "#ddd",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
   },
   laterButtonText: {
-    color: "#666",
     fontSize: 16,
-    fontWeight: "600",
   },
   acceptButton: {
-    paddingVertical: 12,
-    paddingHorizontal: 16,
-    borderRadius: 12,
-    backgroundColor: "#000",
-    flex: 1,
-    marginLeft: 8,
-    alignItems: "center",
+    backgroundColor: "#007AFF",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 5,
   },
   acceptButtonText: {
-    color: "#fff",
     fontSize: 16,
-    fontWeight: "600",
+    color: "#fff",
   },
 })
 

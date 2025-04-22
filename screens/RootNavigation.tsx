@@ -21,6 +21,7 @@ import TestScreen from "./TestScreen"
 import TestDetailScreen from "./TestDetailScreen"
 import MusicScreen from "./MusicScreen"
 import FitnessScreen from "./FitnessScreen"
+import QuoteScreen from "./QuoteScreen"
 const { height, width } = Dimensions.get("window")
 const Tab = createBottomTabNavigator()
 const Stack = createStackNavigator() // Définition du Stack Navigator
@@ -87,6 +88,7 @@ export default function RootNavigation() {
       <Stack.Screen name="TestDetail" component={TestDetailScreen} />
       <Stack.Screen name="Music" component={MusicScreen} />
       <Stack.Screen name="Fitness" component={FitnessScreen} />
+      <Stack.Screen name="Quote" component={QuoteScreen} />
 
 
     </Stack.Navigator>

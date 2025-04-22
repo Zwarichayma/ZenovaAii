@@ -1,21 +1,19 @@
 "use client"
 
-import React, { useState, useEffect, useRef } from "react"
+import { useState, useEffect, useRef } from "react"
 import {
   View,
   Text,
-  Image,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  TextInput,
   Animated,
   ScrollView,
   type NativeSyntheticEvent,
   type NativeScrollEvent,
   Alert,
 } from "react-native"
-import { ChevronRight, Flame, Activity, Clock } from "lucide-react-native"
+import { ChevronRight } from "lucide-react-native"
 import { Settings, ChevronLeft } from "react-native-feather"
 import {
   initialize,
@@ -28,6 +26,8 @@ import PermissionRequest from "../components/permission-request"
 import { SafeAreaView } from "react-native-safe-area-context"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import { useNavigation } from "@react-navigation/native"
+import FitnessCategories from "./fitness-categories"
+
 const { width, height } = Dimensions.get("window")
 type RootStackParamList = {
   Fitness: { category: string }
@@ -35,7 +35,6 @@ type RootStackParamList = {
 
 type NavigationProp = StackNavigationProp<RootStackParamList, "Fitness">
 
-  
 const ACTIVITIES = [
   { name: "Walking", icon: "👟", color: "#F5F6F8", unit: "steps" },
   { name: "Workout", icon: "🔥", color: "#F5F6F8", unit: "kcal" },
@@ -46,18 +45,27 @@ const ACTIVITIES = [
 const DAY_WIDTH = 60
 const CARD_WIDTH = (width - 60) / 2 // 60 = padding total (20 * 2 + 20 entre les cartes)
 
+// Define proper types for the health records
+interface HealthData {
+  steps: number
+  totalKilometers: number
+  calories: number
+  workout: number
+  pushups: number
+}
+
 export default function App() {
   const [isInitialized, setIsInitialized] = useState(false)
   const [hasPermissions, setHasPermissions] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
-  const [dailyData, setDailyData] = useState<any>(null)
+  const [dailyData, setDailyData] = useState<HealthData | null>(null)
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [permissionType, setPermissionType] = useState<"initialize" | "permission">("permission")
   const [currentScreen, setCurrentScreen] = useState<"health" | "training">("health")
   const scrollY = useRef(new Animated.Value(0)).current
   const [isSearchBarVisible, setIsSearchBarVisible] = useState(true)
-  const searchBarHeight = 50 // Ajustez cette valeur en fonction de la hauteur réelle de votre barre de recherche
+  const searchBarHeight = 50
   const searchBarTranslateY = scrollY.interpolate({
     inputRange: [0, searchBarHeight],
     outputRange: [0, -searchBarHeight],
@@ -71,62 +79,8 @@ export default function App() {
     },
   })
 
-  // Modify the renderCard function inside the TrainingScreen component
   const navigation = useNavigation<NavigationProp>()
 
-  const renderCard = (imageSource: any, text: string) => (
-    <View>
-      <TouchableOpacity style={styles.card1} onPress={() => navigation.navigate("Fitness", { category: text })}>
-        <Image source={imageSource} style={styles.cardImage1} />
-      </TouchableOpacity>
-      <View style={styles.categoryOverlay}>
-        <Text style={styles.ratingText}>{text}</Text>
-      </View>
-    </View>
-  )
-
-  const workoutPlans = [
-    { id: 1, title: "Chest & Triceps", variant: "B Variant", image: require("../assets/images/cardio.jpg") },
-    { id: 2, title: "Back & Biceps", variant: "B Variant", image: require("../assets/images/runn.jpg") },
-  ]
-
-  const categories = [
-    {
-      id: 1,
-      title: "Cardio",
-      rating: 4.5,
-      description: "High intensity training",
-      image: require("../assets/images/cardio.jpg"),
-    },
-    { id: 2, title: "Strength", rating: 4.7, description: "Build muscle", image: require("../assets/images/runn.jpg") },
-    {
-      id: 3,
-      title: "Yoga",
-      rating: 4.6,
-      description: "Flexibility and balance",
-      image: require("../assets/images/yooga.jpg"),
-    },
-    {
-      id: 4,
-      title: "Pilates",
-      rating: 4.5,
-      description: "Core strength",
-      image: require("../assets/images/pilate.jpg"),
-    },
-  ]
-
-  const renderWorkoutPlanCard = (plan: any) => (
-    <TouchableOpacity style={styles.planCard} key={plan.id}>
-      <Image source={plan.image} style={styles.planImage} />
-      <View style={styles.planOverlay}>
-        <Text style={styles.variantText}>{plan.variant}</Text>
-        <View style={styles.planTitleContainer}>
-          <Text style={styles.planTitle}>{plan.title}</Text>
-          <ChevronRight size={20} color="#fff" />
-        </View>
-      </View>
-    </TouchableOpacity>
-  )
   useEffect(() => {
     checkInitialization()
   }, [])
@@ -168,12 +122,43 @@ export default function App() {
     }
   }
 
+  // Fonction pour vérifier si un enregistrement est dans la plage de dates sélectionnée
+  const isRecordInSelectedDay = (record: any, selectedDate: Date) => {
+    if (!record || !record.startTime || !record.endTime) return false
+
+    const recordStartTime = new Date(record.startTime)
+    const recordEndTime = new Date(record.endTime)
+
+    const startOfDay = new Date(selectedDate)
+    startOfDay.setHours(0, 0, 0, 0)
+
+    const endOfDay = new Date(selectedDate)
+    endOfDay.setHours(23, 59, 59, 999)
+
+    // Vérifier si l'enregistrement chevauche la journée sélectionnée
+    return (
+      (recordStartTime >= startOfDay && recordStartTime <= endOfDay) ||
+      (recordEndTime >= startOfDay && recordEndTime <= endOfDay) ||
+      (recordStartTime <= startOfDay && recordEndTime >= endOfDay)
+    )
+  }
+
+  // Fetch dynamic data from Health Connect
   const fetchDailyData = async (date: Date) => {
     try {
+      // Pour le déboggage, afficher la date sélectionnée
+      console.log("Date sélectionnée:", date.toISOString())
+
+      // Définir le début et la fin de la journée sélectionnée
       const startTime = new Date(date)
       startTime.setHours(0, 0, 0, 0)
       const endTime = new Date(date)
       endTime.setHours(23, 59, 59, 999)
+
+      console.log("Fetching data for date range:", {
+        startTime: startTime.toISOString(),
+        endTime: endTime.toISOString(),
+      })
 
       // Récupérer les pas
       const stepsResult = await readRecords("Steps", {
@@ -202,25 +187,146 @@ export default function App() {
         },
       })
 
-      const totalSteps = stepsResult.records.reduce((sum, record) => sum + (record.count || 0), 0)
-      const totalKilometers = distanceResult.records.reduce(
-        (sum, record) => sum + (record.distance?.inKilometers || 0),
-        0,
-      )
-      const totalCalories = caloriesResult.records.reduce(
-        (sum, record) => sum + (record.energy?.inKilocalories || 0),
-        0,
-      )
+      // Log the raw records to the console for debugging
+      console.log("=== HEALTH CONNECT RECORDS ===")
+      console.log("Steps Records:", JSON.stringify(stepsResult, null, 2))
+      console.log("Distance Records:", JSON.stringify(distanceResult, null, 2))
+      console.log("Calories Records:", JSON.stringify(caloriesResult, null, 2))
+      console.log("==============================")
 
-      return {
+      // Process steps data
+      let totalSteps = 0
+      if (stepsResult && stepsResult.records) {
+        console.log("Nombre d'enregistrements de pas:", stepsResult.records.length)
+
+        // Filtrer les enregistrements pour la date sélectionnée
+        const filteredStepsRecords = stepsResult.records.filter((record) => isRecordInSelectedDay(record, date))
+
+        console.log("Nombre d'enregistrements de pas filtrés pour la date sélectionnée:", filteredStepsRecords.length)
+
+        for (const record of filteredStepsRecords) {
+          if (record && typeof record === "object") {
+            console.log("Traitement de l'enregistrement de pas:", JSON.stringify(record))
+            // Try different possible property names for steps
+            if ("count" in record && typeof record.count === "number") {
+              console.log("Ajout de pas via count:", record.count)
+              totalSteps += record.count
+            } else if ("steps" in record && typeof (record as any).steps === "number") {
+              console.log("Ajout de pas via steps:", (record as any).steps)
+              totalSteps += (record as any).steps
+            } else if ("sample" in record && record.sample && typeof record.sample === "object") {
+              if ("count" in record.sample && typeof record.sample.count === "number") {
+                console.log("Ajout de pas via sample.count:", record.sample.count)
+                totalSteps += record.sample.count
+              }
+            }
+          }
+        }
+        console.log("Total des pas calculé:", totalSteps)
+      }
+
+      // Process distance data
+      let totalKilometers = 0
+      if (distanceResult && distanceResult.records) {
+        // Filtrer les enregistrements pour la date sélectionnée
+        const filteredDistanceRecords = distanceResult.records.filter((record) => isRecordInSelectedDay(record, date))
+
+        for (const record of filteredDistanceRecords) {
+          if (record && typeof record === "object") {
+            if ("distance" in record && record.distance) {
+              const distance = record.distance
+              if ("inKilometers" in distance && typeof distance.inKilometers === "number") {
+                totalKilometers += distance.inKilometers
+              } else if ("inMeters" in distance && typeof distance.inMeters === "number") {
+                // Convert meters to kilometers
+                totalKilometers += distance.inMeters / 1000
+              }
+            } else if ("meters" in record && typeof (record as any).meters === "number") {
+              totalKilometers += (record as any).meters / 1000
+            }
+          }
+        }
+      }
+
+      // Process calories data
+      let totalCalories = 0
+      if (caloriesResult && caloriesResult.records) {
+        // Filtrer les enregistrements pour la date sélectionnée
+        const filteredCaloriesRecords = caloriesResult.records.filter((record) => isRecordInSelectedDay(record, date))
+
+        for (const record of filteredCaloriesRecords) {
+          if (record && typeof record === "object") {
+            if ("energy" in record && record.energy) {
+              const energy = record.energy
+              if ("inKilocalories" in energy && typeof energy.inKilocalories === "number") {
+                totalCalories += energy.inKilocalories
+              } else if ("inCalories" in energy && typeof energy.inCalories === "number") {
+                // Convert calories to kilocalories
+                totalCalories += energy.inCalories / 1000
+              } else if ("inJoules" in energy && typeof energy.inJoules === "number") {
+                // Convert joules to kilocalories (1 kcal = 4184 joules)
+                totalCalories += energy.inJoules / 4184
+              }
+            } else if ("calories" in record && typeof (record as any).calories === "number") {
+              totalCalories += (record as any).calories
+            } else if ("kilocalories" in record && typeof (record as any).kilocalories === "number") {
+              totalCalories += (record as any).kilocalories
+            }
+          }
+        }
+      }
+
+      // Try to get additional data from alternative sources if no data was found
+      if (totalSteps === 0) {
+        try {
+          const altStepsResult = await readRecords("StepCount", {
+            timeRangeFilter: {
+              operator: "between",
+              startTime: startTime.toISOString(),
+              endTime: endTime.toISOString(),
+            },
+          } as any) // Using 'as any' to bypass TypeScript checking for this alternative record type
+
+          if (altStepsResult && altStepsResult.records) {
+            // Filtrer les enregistrements pour la date sélectionnée
+            const filteredAltStepsRecords = altStepsResult.records.filter((record) =>
+              isRecordInSelectedDay(record, date),
+            )
+
+            for (const record of filteredAltStepsRecords) {
+              if (record && typeof record === "object" && "count" in record && typeof record.count === "number") {
+                totalSteps += record.count
+              }
+            }
+          }
+        } catch (error) {
+          console.log("Alternative step source not available:", error)
+        }
+      }
+
+      // Format the values
+      totalKilometers = Number.parseFloat(totalKilometers.toFixed(2))
+      totalCalories = Math.round(totalCalories)
+
+      console.log("Processed health data:", {
         steps: totalSteps,
-        totalKilometers: Number.parseFloat(totalKilometers.toFixed(2)),
-        calories: Math.round(totalCalories),
-        workout: 45, // Valeur par défaut
-        pushups: 230, // Valeur par défaut
+        totalKilometers,
+        calories: totalCalories,
+      })
+
+      console.log("Retour des données dynamiques pour la date sélectionnée")
+
+      // Return the processed data
+      return {
+        steps: totalSteps || 0,
+        totalKilometers: totalKilometers || 0,
+        calories: totalCalories || 0,
+        workout: 45, // Default value for workout (not available in Health Connect)
+        pushups: 230, // Default value for pushups (not available in Health Connect)
       }
     } catch (error) {
       console.error("Error fetching daily data:", error)
+      // Return default values in case of error
       return {
         steps: 0,
         totalKilometers: 0,
@@ -268,6 +374,7 @@ export default function App() {
         { accessType: "read", recordType: "Steps" },
         { accessType: "read", recordType: "Distance" },
         { accessType: "read", recordType: "TotalCaloriesBurned" },
+        { accessType: "read", recordType: "StepCount" } as any, // Alternative step count
       ])
 
       setHasPermissions(permissions.length > 0)
@@ -342,6 +449,18 @@ export default function App() {
     }
   }
 
+  // Refresh data periodically
+  useEffect(() => {
+    if (isInitialized && hasPermissions) {
+      const refreshInterval = setInterval(async () => {
+        const data = await fetchDailyData(selectedDate)
+        setDailyData(data)
+      }, 60000) // Refresh every minute
+
+      return () => clearInterval(refreshInterval)
+    }
+  }, [isInitialized, hasPermissions, selectedDate])
+
   return (
     <SafeAreaView style={styles.container}>
       {showPermissionModal && (
@@ -357,160 +476,118 @@ export default function App() {
         />
       )}
 
-          <View style={styles.header}>
-            <Text style={styles.headerTitle}>
-              {getDayName(selectedDate)}, {selectedDate.getDate()}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>
+          {getDayName(selectedDate)}, {selectedDate.getDate()}
+        </Text>
+        <View style={styles.headerButtons}>
+          <TouchableOpacity onPress={handleSettingsPress} style={styles.settingsButton}>
+            <Settings stroke="#666" width={24} height={24} />
+          </TouchableOpacity>
+        </View>
+      </View>
+
+      {!isInitialized || !hasPermissions ? (
+        <View style={styles.placeholderContainer}>
+          <View style={styles.placeholderIcon}>
+            <Text style={styles.placeholderIconText}>🔒</Text>
+          </View>
+          <Text style={styles.placeholderTitle}>
+            {!isInitialized ? "Installation requise" : "Autorisation requise"}
+          </Text>
+          <Text style={styles.placeholderText}>
+            {!isInitialized
+              ? "Pour suivre vos activités, l'application a besoin d'installer Health Connect."
+              : "Pour suivre vos activités, l'application a besoin d'accéder à vos données de santé."}
+          </Text>
+          <TouchableOpacity
+            style={styles.setupButton}
+            onPress={!isInitialized ? handleAccept : requestHealthPermissions}
+          >
+            <Text style={styles.setupButtonText}>
+              {!isInitialized ? "Installer Health Connect" : "Autoriser l'accès"}
             </Text>
-            <View style={styles.headerButtons}>
-              
-              <TouchableOpacity onPress={handleSettingsPress} style={styles.settingsButton}>
-                <Settings size={24} color="#666" />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <>
+          <View style={styles.calendarContainer}>
+            <View style={styles.monthSelector}>
+              <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
+                <ChevronLeft stroke="#000" width={20} height={20} />
+              </TouchableOpacity>
+              <Text style={styles.monthTitle}>{getMonthName(currentMonth)}</Text>
+              <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
+                <ChevronRight size={20} color="#000" />
               </TouchableOpacity>
             </View>
-          </View>
 
-          {!isInitialized || !hasPermissions ? (
-            <View style={styles.placeholderContainer}>
-              <View style={styles.placeholderIcon}>
-                <Text style={styles.placeholderIconText}>🔒</Text>
-              </View>
-              <Text style={styles.placeholderTitle}>
-                {!isInitialized ? "Installation requise" : "Autorisation requise"}
-              </Text>
-              <Text style={styles.placeholderText}>
-                {!isInitialized
-                  ? "Pour suivre vos activités, l'application a besoin d'installer Health Connect."
-                  : "Pour suivre vos activités, l'application a besoin d'accéder à vos données de santé."}
-              </Text>
-              <TouchableOpacity
-                style={styles.setupButton}
-                onPress={!isInitialized ? handleAccept : requestHealthPermissions}
-              >
-                <Text style={styles.setupButtonText}>
-                  {!isInitialized ? "Installer Health Connect" : "Autoriser l'accès"}
-                </Text>
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <>
-              <View style={styles.calendarContainer}>
-                <View style={styles.monthSelector}>
-                  <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
-                    <ChevronLeft size={20} color="#000" />
-                  </TouchableOpacity>
-                  <Text style={styles.monthTitle}>{getMonthName(currentMonth)}</Text>
-                  <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
-                    <ChevronRight size={20} color="#000" />
-                  </TouchableOpacity>
-                </View>
-
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  style={styles.calendar}
-                  contentContainerStyle={styles.calendarContent}
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              style={styles.calendar}
+              contentContainerStyle={styles.calendarContent}
+            >
+              {getDaysInMonth(currentMonth).map((date, index) => (
+                <TouchableOpacity
+                  key={index}
+                  style={[
+                    styles.dayButton,
+                    isSameDay(date, selectedDate) && styles.selectedDay,
+                    isToday(date) && styles.todayButton,
+                  ]}
+                  onPress={() => handleDateChange(date)}
                 >
-                  {getDaysInMonth(currentMonth).map((date, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={[
-                        styles.dayButton,
-                        isSameDay(date, selectedDate) && styles.selectedDay,
-                        isToday(date) && styles.todayButton,
-                      ]}
-                      onPress={() => handleDateChange(date)}
-                    >
-                      <Text
-                        style={[
-                          styles.dayText,
-                          isSameDay(date, selectedDate) && styles.selectedDayText,
-                          isToday(date) && styles.todayText,
-                        ]}
-                      >
-                        {date.toLocaleDateString("en-US", { weekday: "short" })}
-                      </Text>
-                      <Text
-                        style={[
-                          styles.dateText,
-                          isSameDay(date, selectedDate) && styles.selectedDayText,
-                          isToday(date) && styles.todayText,
-                        ]}
-                      >
-                        {date.getDate()}
-                      </Text>
-                    </TouchableOpacity>
-                  ))}
-                </ScrollView>
-              </View>
-
-              <ScrollView style={styles.content}>
-                <View style={styles.grid}>
-                  {ACTIVITIES.map((activity, index) => (
-                    <View key={index} style={[styles.activityCard, { backgroundColor: activity.color }]}>
-                      <View style={styles.activityIcon}>
-                        <Text style={styles.activityIconText}>{activity.icon}</Text>
-                      </View>
-                      <View style={styles.activityInfo}>
-                        <Text style={styles.activityName}>{activity.name}</Text>
-                        <Text style={styles.activityValue}>
-                          {getActivityValue(activity.name)}{" "}
-                          <Text style={{ fontSize: 14, color: "#666" }}>{activity.unit}</Text>
-                        </Text>
-                      </View>
-                    </View>
-                  ))}
-                </View>
-                
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>All categories</Text>
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <Animated.View style={{ flexDirection: "row" }}>
-              {[
-                { image: require("../assets/images/Fitbox.jpg"), text: "Fit Box" },
-                { image: require("../assets/images/cardio.jpg"), text: "Cardio" },
-                { image: require("../assets/images/tunif.jpg"), text: " Warrior" },
-                { image: require("../assets/images/runn.jpg"), text: "Running" },
-                { image: require("../assets/images/runn.jpg"), text: "Fitness" }, // Add this line
-              ].map((item, index) => (
-                <View key={index}>{renderCard(item.image, item.text)}</View>
+                  <Text
+                    style={[
+                      styles.dayText,
+                      isSameDay(date, selectedDate) && styles.selectedDayText,
+                      isToday(date) && styles.todayText,
+                    ]}
+                  >
+                    {date.toLocaleDateString("en-US", { weekday: "short" })}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.dateText,
+                      isSameDay(date, selectedDate) && styles.selectedDayText,
+                      isToday(date) && styles.todayText,
+                    ]}
+                  >
+                    {date.getDate()}
+                  </Text>
+                </TouchableOpacity>
               ))}
-            </Animated.View>
+            </ScrollView>
+          </View>
+
+          <ScrollView style={styles.content}>
+            <View style={styles.grid}>
+              {ACTIVITIES.map((activity, index) => (
+                <View key={index} style={[styles.activityCard, { backgroundColor: activity.color }]}>
+                  <View style={styles.activityIcon}>
+                    <Text style={styles.activityIconText}>{activity.icon}</Text>
+                  </View>
+                  <View style={styles.activityInfo}>
+                    <Text style={styles.activityName}>{activity.name}</Text>
+                    <Text style={styles.activityValue}>
+                      {getActivityValue(activity.name)}{" "}
+                      <Text style={{ fontSize: 14, color: "#666" }}>{activity.unit}</Text>
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+            {/* Integrate the FitnessCategories component here */}
+            <FitnessCategories />
           </ScrollView>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Recommondation</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeDetails}>See Details</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.plansContainer}>{workoutPlans.map(renderWorkoutPlanCard)}</View>
-        </View>
-
-        <View style={styles.section}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>For you</Text>
-            <TouchableOpacity>
-              <Text style={styles.seeDetails}>See Details</Text>
-            </TouchableOpacity>
-          </View>
-          <View style={styles.plansContainer}>{categories.map(renderWorkoutPlanCard)}</View>
-        </View>
-              </ScrollView>
-            </>
-          )}
-  
-  
-    
-      
-    
-
+        </>
+      )}
     </SafeAreaView>
   )
 }
 
-// Ajouter les nouveaux styles pour les boutons de navigation
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -707,7 +784,6 @@ const styles = StyleSheet.create({
     height: height * 0.031,
     resizeMode: "contain",
   },
-
   searchBar: {
     marginTop: height * 0.05,
     marginHorizontal: width * 0.05,
@@ -716,7 +792,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     fontSize: 15,
   },
-  
   statsContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -748,32 +823,6 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     marginBottom: height * 0.01,
   },
-  card1: {
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    width: width * 0.4,
-    marginRight: width * 0.04,
-    alignItems: "center",
-  },
-  ratingText: {
-    fontSize: 25,
-    color: "#fff",
-    textTransform: "uppercase",
-    fontWeight: "bold",
-  },
-  cardImage1: {
-    width: "100%",
-    height: 200,
-    resizeMode: "cover",
-    borderRadius: 12,
-  },
-  categoryOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 12,
-  },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -784,45 +833,4 @@ const styles = StyleSheet.create({
     color: "#666",
     fontSize: 14,
   },
-  plansContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  planCard: {
-    width: (width - (width * 0.1 + 12)) / 2,
-    height: (width - (width * 0.1 + 12)) / 2,
-    borderRadius: 12,
-    overflow: "hidden",
-    marginBottom: 12,
-  },
-  planImage: {
-    width: "100%",
-    height: "100%",
-  },
-  planOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 12,
-    backgroundColor: "rgba(0,0,0,0.4)",
-  },
-  variantText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 12,
-    marginBottom: 4,
-  },
-  planTitleContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  planTitle: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-  },
 })
-

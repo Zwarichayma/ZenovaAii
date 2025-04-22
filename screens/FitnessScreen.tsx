@@ -1,412 +1,521 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  StyleSheet, 
-  ScrollView, 
-  Image, 
-  TouchableOpacity, 
+"use client"
+
+import { useState, useEffect } from "react"
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  ActivityIndicator,
   Dimensions,
-  StatusBar 
-} from 'react-native';
-import { ChevronLeft, Clock, Calendar, Star, Users, BarChart2, Bookmark } from 'lucide-react-native';
-import { useNavigation } from '@react-navigation/native';
+  StatusBar,
+  Animated,
+} from "react-native"
+import { ChevronLeft, Clock, Flame, Tag, Play } from "lucide-react-native"
+import { useNavigation, useRoute } from "@react-navigation/native"
+import type { RouteProp } from "@react-navigation/native"
+import { FitnessPlan, getFitnessPlanByType, getImageUrl, getPlainTextDescription } from "@/api/fitness-plans/route"
+import { LinearGradient } from "expo-linear-gradient"
 
-const { width } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window")
+const HEADER_MAX_HEIGHT = height * 0.5
+const HEADER_MIN_HEIGHT = 90
+const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT
 
-const workoutDetails = {
-  title: 'Cardio Program',
-  duration: '4 weeks',
-  sessionsPerWeek: '3 sessions per week',
-  difficulty: 'Beginner-Intermediate',
-  slots: '8 available/15 max',
-  description: 'High-intensity cardio workouts designed to improve your endurance and burn calories effectively. Perfect for all fitness levels.',
-};
+type RootStackParamList = {
+  Fitness: { category: string }
+}
 
-const episodes = [
-  {
-    id: 1,
-    title: 'Warm Up Routine',
-    duration: '15 min',
-    image: require('../assets/images/fitness (3).jpg')
-  },
-  {
-    id: 2,
-    title: 'HIIT Session',
-    duration: '20 min',
-    image: require('../assets/images/yooga.jpg')
-  },
-  {
-    id: 3,
-    title: 'Cool Down',
-    duration: '10 min',
-    image: require('../assets/images/yoooga.jpg')
+type FitnessScreenRouteProp = RouteProp<RootStackParamList, "Fitness">
+
+export default function FitnessDetail() {
+  const [fitnessPlan, setFitnessPlan] = useState<FitnessPlan | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const navigation = useNavigation()
+  const route = useRoute<FitnessScreenRouteProp>()
+  const { category } = route.params
+  
+  const scrollY = new Animated.Value(0)
+  
+  const headerHeight = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE],
+    outputRange: [HEADER_MAX_HEIGHT, HEADER_MIN_HEIGHT],
+    extrapolate: 'clamp',
+  })
+  
+  const imageOpacity = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 0.5, 0],
+    extrapolate: 'clamp',
+  })
+  
+  const titleScale = scrollY.interpolate({
+    inputRange: [0, HEADER_SCROLL_DISTANCE / 2, HEADER_SCROLL_DISTANCE],
+    outputRange: [1, 0.9, 0.8],
+    extrapolate: 'clamp',
+  })
+
+  useEffect(() => {
+    const loadFitnessPlan = async () => {
+      try {
+        setLoading(true)
+        const plans = await getFitnessPlanByType(category)
+        if (plans && plans.length > 0) {
+          setFitnessPlan(plans[0])
+        } else {
+          setError("No fitness plan found for this category.")
+        }
+      } catch (err) {
+        console.error("Failed to load fitness plan:", err)
+        setError("Failed to load fitness plan details. Please try again later.")
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadFitnessPlan()
+  }, [category])
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <ActivityIndicator size="large" color="#5E72E4" />
+        <Text style={styles.loadingText}>Loading your fitness plan...</Text>
+      </View>
+    )
   }
-];
 
-const relatedCourses = [
-  {
-    id: 1,
-    title: 'Full Body Workout',
-    duration: '45 min',
-    image: require('../assets/images/fitness (3).jpg')
-  },
-  {
-    id: 2,
-    title: 'Strength Training',
-    duration: '30 min',
-    image: require('../assets/images/yooga.jpg')
+  if (error || !fitnessPlan) {
+    return (
+      <View style={styles.errorContainer}>
+        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <TouchableOpacity style={styles.backButtonError} onPress={() => navigation.goBack()}>
+          <ChevronLeft stroke="#000" width={24} height={24} />
+        </TouchableOpacity>
+        
+        <Text style={styles.errorTitle}>Oops!</Text>
+        <Text style={styles.errorText}>{error || "No fitness plan found"}</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.retryButtonText}>Go Back</Text>
+        </TouchableOpacity>
+      </View>
+    )
   }
-];
 
-export default function FitnessScreen() {
-  const navigation = useNavigation();
+  const imageUrl =
+    fitnessPlan.image && fitnessPlan.image.length > 0
+      ? getImageUrl(fitnessPlan.image[0].url)
+      : require("../assets/images/cardio.jpg") // Fallback image
+
+  const description = getPlainTextDescription(fitnessPlan.description)
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="light-content" translucent backgroundColor="transparent" />
       
+      <Animated.View style={[styles.header, { height: headerHeight }]}>
+        <Animated.Image
+          source={{ uri: imageUrl }}
+          style={[styles.headerImage, { opacity: imageOpacity }]}
+        />
+        <LinearGradient
+          colors={['transparent', 'rgba(0,0,0,0.7)']}
+          style={styles.gradient}
+        />
+        
+      </Animated.View>
       
+      <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+        <ChevronLeft stroke="#fff" width={24} height={24} />
+      </TouchableOpacity>
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-      <View style={styles.headerContainer}>
-          <Image 
-            source={require('../assets/images/fitness (3).jpg')}
-            style={styles.headerImage}
-          />
-          <View style={styles.headerOverlay}>
-            <View style={styles.headerTop}>
-              <Image 
-                source={require('../assets/images/33.png')}
-                style={styles.logo}
-                resizeMode="contain"
-              />
-              <View style={styles.headerActions}>
-                <TouchableOpacity style={styles.iconButton}>
-                  <Bookmark size={24} color="#fff" />
-                </TouchableOpacity>
+      <Animated.ScrollView
+        contentContainerStyle={styles.scrollViewContent}
+        scrollEventThrottle={16}
+        onScroll={Animated.event(
+          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+          { useNativeDriver: false }
+        )}
+      >
+        <View style={styles.statsContainer}>
+          <View style={styles.statItem}>
+            <Clock size={24} color="#5E72E4" />
+            <Text style={styles.statValue}>{fitnessPlan.duration} min</Text>
+            <Text style={styles.statLabel}>Duration</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.statItem}>
+            <Flame size={24} color="#FB6340" />
+            <Text style={styles.statValue}>{fitnessPlan.calories_burned}</Text>
+            <Text style={styles.statLabel}>Calories</Text>
+          </View>
+          <View style={styles.divider} />
+          <View style={styles.statItem}>
+            <Tag size={24} color="#11CDEF" />
+            <Text style={styles.statValue}>{fitnessPlan.type.split(' ')[0]}</Text>
+            <Text style={styles.statLabel}>Category</Text>
+          </View>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>About this workout</Text>
+          <Text style={styles.description}>{description}</Text>
+        </View>
+
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>What you'll need</Text>
+          <View style={styles.equipmentList}>
+            <View style={styles.equipmentItem}>
+              <View style={styles.equipmentIcon}>
+                <Text style={styles.equipmentIconText}>🏋️</Text>
               </View>
+              <Text style={styles.equipmentText}>Comfortable clothes</Text>
             </View>
-            <View style={styles.headerContent}>
-              <Text style={styles.cardioText}>CARDIO</Text>
+            <View style={styles.equipmentItem}>
+              <View style={styles.equipmentIcon}>
+                <Text style={styles.equipmentIconText}>👟</Text>
+              </View>
+              <Text style={styles.equipmentText}>Athletic shoes</Text>
+            </View>
+            <View style={styles.equipmentItem}>
+              <View style={styles.equipmentIcon}>
+                <Text style={styles.equipmentIconText}>💧</Text>
+              </View>
+              <Text style={styles.equipmentText}>Water bottle</Text>
             </View>
           </View>
         </View>
-        <View style={styles.detailsContainer}>
-          {/* Workout Details */}
-          <Text style={styles.detailsTitle}>Details</Text>
-          <View style={styles.infoList}>
-            <View style={styles.infoItem}>
-              <Calendar size={20} color="#666" />
-              <Text style={styles.infoText}>{workoutDetails.sessionsPerWeek}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Clock size={20} color="#666" />
-              <Text style={styles.infoText}>{workoutDetails.duration}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <BarChart2 size={20} color="#666" />
-              <Text style={styles.infoText}>{workoutDetails.difficulty}</Text>
-            </View>
-            <View style={styles.infoItem}>
-              <Users size={20} color="#666" />
-              <Text style={styles.infoText}>{workoutDetails.slots}</Text>
-            </View>
-          </View>
-
-          <TouchableOpacity style={styles.startButton}>
-            <Text style={styles.startButtonText}>Start Program</Text>
-          </TouchableOpacity>
-
-          {/* Title and Description */}
-          <Text style={styles.title}>{workoutDetails.title}</Text>
-          <Text style={styles.description}>{workoutDetails.description}</Text>
-
-          {/* Episodes */}
-          <Text style={styles.sectionTitle}>Workout Sessions</Text>
-          {episodes.map((episode) => (
-            <TouchableOpacity key={episode.id} style={styles.episodeCard}>
-              <Image source={episode.image} style={styles.episodeImage} />
-              <View style={styles.episodeInfo}>
-                <Text style={styles.episodeTitle}>{episode.title}</Text>
-                <Text style={styles.episodeDuration}>{episode.duration}</Text>
+        
+        <View style={styles.section}>
+          <Text style={styles.sectionTitle}>Benefits</Text>
+          <View style={styles.benefitsList}>
+            <View style={styles.benefitItem}>
+              <View style={[styles.benefitIcon, { backgroundColor: '#5E72E4' }]}>
+                <Text style={styles.benefitIconText}>💪</Text>
               </View>
-            </TouchableOpacity>
-          ))}
-
-          {/* Related Courses */}
-          <View style={styles.relatedSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Related Programs</Text>
-              <TouchableOpacity>
-                <Text style={styles.seeAll}>See all</Text>
-              </TouchableOpacity>
-            </View>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-              {relatedCourses.map((course) => (
-                <TouchableOpacity key={course.id} style={styles.courseCard}>
-                  <Image source={course.image} style={styles.courseImage} />
-                  <View style={styles.courseOverlay}>
-                    <Text style={styles.courseTitle}>{course.title}</Text>
-                    <Text style={styles.courseDuration}>{course.duration}</Text>
-                  </View>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            </View>
-
-
-          {/* Reviews */}
-          <View style={styles.reviewsSection}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Reviews</Text>
-              <TouchableOpacity>
-                <Text style={styles.seeAll}>See all</Text>
-              </TouchableOpacity>
-            </View>
-            <View style={styles.reviewCard}>
-              <View style={styles.reviewHeader}>
-                <Text style={styles.reviewerName}>Sarah Johnson</Text>
-                <View style={styles.ratingContainer}>
-                  {[1, 2, 3, 4, 5].map((star) => (
-                    <Star 
-                      key={star} 
-                      size={16} 
-                      color="#FFD700"
-                      fill="#FFD700"
-                    />
-                  ))}
-                </View>
+              <View style={styles.benefitContent}>
+                <Text style={styles.benefitTitle}>Strength</Text>
+                <Text style={styles.benefitText}>Builds muscle and improves overall strength</Text>
               </View>
-              <Text style={styles.reviewText}>
-                Amazing program! The workouts are challenging but achievable. I've seen great improvements in my cardio fitness level. Highly recommended!
-              </Text>
+            </View>
+            <View style={styles.benefitItem}>
+              <View style={[styles.benefitIcon, { backgroundColor: '#FB6340' }]}>
+                <Text style={styles.benefitIconText}>🔥</Text>
+              </View>
+              <View style={styles.benefitContent}>
+                <Text style={styles.benefitTitle}>Fat Loss</Text>
+                <Text style={styles.benefitText}>Burns calories and helps with weight management</Text>
+              </View>
+            </View>
+            <View style={styles.benefitItem}>
+              <View style={[styles.benefitIcon, { backgroundColor: '#11CDEF' }]}>
+                <Text style={styles.benefitIconText}>🧠</Text>
+              </View>
+              <View style={styles.benefitContent}>
+                <Text style={styles.benefitTitle}>Mental Health</Text>
+                <Text style={styles.benefitText}>Reduces stress and improves mood</Text>
+              </View>
             </View>
           </View>
         </View>
-      </ScrollView>
+        
+        <View style={styles.spacer} />
+      </Animated.ScrollView>
+      
+      <View style={styles.footer}>
+        <TouchableOpacity style={styles.startButton}>
+          <Play size={20} color="#fff" style={styles.startIcon} />
+          <Text style={styles.startButtonText}>Start Workout</Text>
+        </TouchableOpacity>
+      </View>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
-  headerContainer: {
-    height: 400,
-    position: 'relative',
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#fff",
   },
-  headerImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: "#5E72E4",
+    fontWeight: "500",
   },
-  headerOverlay: {
+  errorContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+    backgroundColor: "#fff",
+  },
+  errorImage: {
+    width: 120,
+    height: 120,
+    marginBottom: 20,
+  },
+  errorTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    marginBottom: 8,
+    color: "#333",
+  },
+  errorText: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+    marginBottom: 24,
+    maxWidth: "80%",
+  },
+  backButtonError: {
+    position: "absolute",
+    top: 50,
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  retryButton: {
+    backgroundColor: "#5E72E4",
+    paddingHorizontal: 32,
+    paddingVertical: 14,
+    borderRadius: 30,
+    shadowColor: "#5E72E4",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  retryButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
+  },
+  header: {
     position: 'absolute',
     top: 0,
     left: 0,
     right: 0,
-    bottom: 0,
-    backgroundColor: 'rgba(99, 99, 99, 0.3)',
+    overflow: 'hidden',
+    backgroundColor: '#000',
   },
-  headerTop: {
+  headerImage: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    width: null,
+    height: HEADER_MAX_HEIGHT,
+    resizeMode: 'cover',
+  },
+  gradient: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: '50%',
+  },
+  titleContainer: {
+    position: 'absolute',
+    bottom: 20,
+    left: 20,
+    right: 20,
+  },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 32,
+    fontWeight: '700',
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 5,
+  },
+  tagContainer: {
+    flexDirection: 'row',
+    marginTop: 8,
+  },
+  tag: {
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  tagText: {
+    color: '#fff',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  backButton: {
+    position: "absolute",
+    top: 50,
+    left: 16,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(0,0,0,0.3)",
+    justifyContent: "center",
+    alignItems: "center",
+    zIndex: 10,
+  },
+  scrollViewContent: {
+    paddingTop: HEADER_MAX_HEIGHT,
+    paddingBottom: 20,
+  },
+  statsContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    padding: 16,
-    paddingTop: 70,
-  },
-  logo: {
-    width: 60,
-    height: 22,
-    tintColor: '#fff',
-  },
-  headerActions: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  iconButton: {
-    width: 50,
-    height: 30,
-    borderRadius: 30,
-    backgroundColor: 'rgba(255, 255, 255, 0)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  headerContent: {
-    position: 'absolute',
-    bottom:30,
-    left: 20,
-  },
-  programText: {
-    color: '#fff',
-    fontSize: 24,
-    fontWeight: '500',
-    fontFamily:'fantasy',
-    marginBottom: 8,
-  },
-  cardioText: {
-    color: '#fff',
-    fontSize: 35,
-    fontWeight: '800',
-    fontFamily:'fantasy',
-    letterSpacing: 2,
-  },
-  content: {
-    flex: 1,
-    marginTop: -50,
-  },
-  detailsContainer: {
     backgroundColor: '#fff',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 20,
-  },
-  detailsTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    marginBottom: 16,
-    color: '#000',
-  },
-  infoList: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: 12,
+    marginHorizontal: 16,
+    marginTop: -40,
+    borderRadius: 16,
     padding: 16,
-    gap: 12,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 4,
   },
-  infoItem: {
-    flexDirection: 'row',
+  statItem: {
+    flex: 1,
     alignItems: 'center',
-    gap: 12,
   },
-  infoText: {
-    fontSize: 14,
+  statValue: {
+    fontSize: 15,
+    fontWeight: '700',
+    marginTop: 8,
     color: '#333',
   },
-  startButton: {
-    backgroundColor: '#000',
-    borderRadius: 25,
-    padding: 16,
-    alignItems: 'center',
-    marginVertical: 20,
-  },
-  startButtonText: {
-    color: '#fff',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    marginBottom: 8,
-    color: '#000',
-  },
-  description: {
-    fontSize: 14,
-    lineHeight: 20,
+  statLabel: {
+    fontSize: 12,
     color: '#666',
-    marginBottom: 24,
+    marginTop: 4,
   },
-  sectionHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
+  divider: {
+    width: 1,
+    height: '70%',
+    backgroundColor: '#E0E0E0',
+  },
+  section: {
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#000',
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 12,
+    color: '#333',
   },
-  seeAll: {
+  description: {
+    fontSize: 16,
+    lineHeight: 24,
+    color: '#555',
+  },
+  equipmentList: {
+    marginTop: 12,
+  },
+  equipmentItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  equipmentIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: '#f5f5f5',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 12,
+  },
+  equipmentIconText: {
+    fontSize: 20,
+  },
+  equipmentText: {
+    fontSize: 16,
+    color: '#333',
+  },
+  benefitsList: {
+    marginTop: 12,
+  },
+  benefitItem: {
+    flexDirection: 'row',
+    marginBottom: 16,
+  },
+  benefitIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginRight: 16,
+  },
+  benefitIconText: {
+    fontSize: 20,
+  },
+  benefitContent: {
+    flex: 1,
+  },
+  benefitTitle: {
+    fontSize: 16,
+    fontWeight: '600',
+    marginBottom: 4,
+    color: '#333',
+  },
+  benefitText: {
     fontSize: 14,
     color: '#666',
+    lineHeight: 20,
   },
-  episodeCard: {
-    flexDirection: 'row',
-    backgroundColor: '#f8f8f8',
-    borderRadius: 12,
-    marginBottom: 12,
-    overflow: 'hidden',
-  },
-  episodeImage: {
-    width: 80,
+  spacer: {
     height: 80,
   },
-  episodeInfo: {
-    flex: 1,
-    padding: 12,
-    justifyContent: 'center',
-  },
-  episodeTitle: {
-    fontSize: 16,
-    fontWeight: '500',
-    marginBottom: 4,
-    color: '#000',
-  },
-  episodeDuration: {
-    fontSize: 14,
-    color: '#666',
-  },
-  relatedSection: {
-    marginTop: 24,
-  },
-  courseCard: {
-    width: 200,
-    height: 120,
-    marginRight: 16,
-    borderRadius: 12,
-    overflow: 'hidden',
-  },
-  courseImage: {
-    width: '100%',
-    height: '100%',
-  },
-  courseOverlay: {
+  footer: {
     position: 'absolute',
     bottom: 0,
     left: 0,
     right: 0,
-    padding: 12,
-    backgroundColor: 'rgba(0, 0, 0, 0.26)',
+    backgroundColor: '#fff',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderTopWidth: 1,
+    borderTopColor: '#f0f0f0',
   },
-  courseTitle: {
+  startButton: {
+    backgroundColor: '#5E72E4',
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingVertical: 16,
+    borderRadius: 30,
+    shadowColor: '#5E72E4',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 6,
+  },
+  startIcon: {
+    marginRight: 8,
+  },
+  startButtonText: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '600',
   },
-  courseDuration: {
-    color: '#fff',
-    fontSize: 12,
-  },
-  reviewsSection: {
-    marginTop: 24,
-  },
-  reviewCard: {
-    backgroundColor: '#f8f8f8',
-    borderRadius: 12,
-    padding: 16,
-  },
-  reviewHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  reviewerName: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#000',
-  },
-  ratingContainer: {
-    flexDirection: 'row',
-    gap: 4,
-  },
-  reviewText: {
-    fontSize: 14,
-    lineHeight: 20,
-    color: '#666',
-  },
-});
+})

@@ -1,7 +1,5 @@
 import axios from "axios";
-
-const API_URL = "http://192.168.100.9:1337/api/exercises?populate=image";
-const TOKEN = "48887ddc9babdd10b4141628ae273f8ca303c6f8f24173d649fe9f02310f876153cb98a4fd21efb57cbcf1d2290a2b70a334377e260aa5120146bfb28366aca01eb23f25b446edded92ebd39a16419064d76bc211132b89d785d7152048942489f737164321b0f79bfefab795a9d5adaca30318fcc3e37d121e76106a484f61a";
+import { API_URL, API_KEY } from "@env";
 
 export interface Exercise {
   id: number;
@@ -28,17 +26,23 @@ export interface Exercise {
   };
 }
 
+const axiosInstance = axios.create({
+  baseURL: API_URL,
+  headers: {
+    Authorization: `Bearer ${API_KEY}`,
+    "Content-Type": "application/json",
+  },
+});
+
 export const getExercises = async (): Promise<Exercise[]> => {
   try {
-    const response = await axios.get(API_URL, {
-      headers: { Authorization: `Bearer ${TOKEN}` },
-    });
+    const response = await axiosInstance.get("/exercises?populate=image");
 
     return response.data.data.map((item: any) => ({
       id: item.id,
       attributes: {
         ...item.attributes,
-        image: item.attributes.image?.data?.attributes || null, // Safely access image data
+        image: item.attributes.image?.data?.attributes || null,
       },
     }));
   } catch (error) {

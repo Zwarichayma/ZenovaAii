@@ -208,7 +208,6 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
           <View style={styles.tabContent}>
             {recipe.instructions.map((instruction, index) => (
               <View key={index} style={styles.instructionItem}>
-                <Text style={styles.instructionNumber}>{index + 1}</Text>
                 <Text style={styles.instructionText}>{instruction.children[0].text}</Text>
               </View>
             ))}
@@ -222,7 +221,7 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
       <ScrollView>
         <View style={styles.heroSection}>
           <Image
-            source={{ uri: `http://4301-197-26-47-92.ngrok-free.app${recipe.image[0].formats.small.url}` }}
+            source={{ uri: `http://192.168.100.35:1337${recipe.image[0].formats.small.url}` }}
             style={styles.heroImage}
           />
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>

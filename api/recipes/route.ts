@@ -1,7 +1,7 @@
 import axios from "axios";
 
-const API_URL = "http://4301-197-26-47-92.ngrok-free.app/api";
-const TOKEN = "48887ddc9babdd10b4141628ae273f8ca303c6f8f24173d649fe9f02310f876153cb98a4fd21efb57cbcf1d2290a2b70a334377e260aa5120146bfb28366aca01eb23f25b446edded92ebd39a16419064d76bc211132b89d785d7152048942489f737164321b0f79bfefab795a9d5adaca30318fcc3e37d121e76106a484f61a";
+const API_URL = "http://192.168.100.35:1337/api";
+const API_KEY = "e1e0b59bcb4c7f2f580793abe51110955231099e159ae3a0357de8f79bafc713303fe2db04d84a826e113a2e0a123c47dd28987b625e4ec584e29b37d484a1530d6189121e6494904455999038d0dc3b7cb8f5dd480f7b58f4b354b326edd1c55c49e9ff63c0ee9d1c1f6943d193aabc7689eaf2f0a447fe9165f7118d6b4cf4";
 
 export const getRecipes = async (categoryDocumentId: string) => {
   try {
@@ -13,7 +13,7 @@ export const getRecipes = async (categoryDocumentId: string) => {
 
 
     const response = await axios.get(url, {
-      headers: { Authorization: `Bearer ${TOKEN}` },
+      headers: { Authorization: `Bearer ${API_KEY}` },
     });
 
 
@@ -34,7 +34,7 @@ export const getCategories = async () => {
     const url = `${API_URL}/categories?populate=*`;
 
     const response = await axios.get(url, {
-      headers: { Authorization: `Bearer ${TOKEN}` },
+      headers: { Authorization: `Bearer ${API_KEY}` },
     });
 
     // Vérification si les données sont valides
@@ -60,7 +60,7 @@ export const getRecipe = async (documentId: string) => {
     console.log("Requesting Recipe URL:", url);
 
     const {data} = await axios.get(url, {
-      headers: { Authorization: `Bearer ${TOKEN}` },
+      headers: { Authorization: `Bearer ${API_KEY}` },
     });
     // Vérification de la validité des données
     if (data) {

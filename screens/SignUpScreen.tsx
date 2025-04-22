@@ -1,126 +1,395 @@
-import React, { useState } from 'react';
-import { 
-  View, TextInput, TouchableOpacity, Text, StyleSheet, Alert, 
-  KeyboardAvoidingView, Platform, Image, Dimensions, ImageBackground
-} from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../types/navigation';
+"use client"
 
-const { width, height } = Dimensions.get("window");
-type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>;
+import { useState, useCallback, useEffect } from "react"
+import {
+  TextInput,
+  TouchableOpacity,
+  Text,
+  StyleSheet,
+  Alert,
+  KeyboardAvoidingView,
+  Platform,
+  Image,
+  Dimensions,
+  ImageBackground,
+  ActivityIndicator,
+  ScrollView,
+  View,
+} from "react-native"
+import { useNavigation } from "@react-navigation/native"
+import type { StackNavigationProp } from "@react-navigation/stack"
+import type { RootStackParamList } from "../types/navigation"
+import { authService } from "../api/auth/auth-service"
+import { storageFallback } from "../utils/storage-fallback"
+import { anonymousUserService } from "../api/anonymous/anonymous-service"
+// Add this import at the top of the file
+
+const { width, height } = Dimensions.get("window")
+type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
+
+// Constants for anonymous ID
+const ANONYMOUS_ID_KEY = "anonymousId"
+let inMemoryAnonymousId: string | null = null
 
 export default function SignUpScreen() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const navigation = useNavigation<AuthScreenNavigationProp>();
+  // Form state
+  const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
+  const [password, setPassword] = useState("")
+  const [confirmPassword, setConfirmPassword] = useState("")
 
-  const handleSignUp = () => {
-    if (!email || !password || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
+  // UI state
+  const [isLoading, setIsLoading] = useState(false)
+  const [googleLoading, setGoogleLoading] = useState(false)
+  const [anonymousId, setAnonymousId] = useState<string | null>(null)
+
+  // Form validation state
+  const [emailError, setEmailError] = useState("")
+  const [usernameError, setUsernameError] = useState("")
+  const [passwordError, setPasswordError] = useState("")
+  const [confirmPasswordError, setConfirmPasswordError] = useState("")
+
+  // Navigation
+  const navigation = useNavigation<AuthScreenNavigationProp>()
+
+  // Load anonymous ID when component mounts
+  useEffect(() => {
+    const loadAnonymousId = async () => {
+      try {
+        const id = await authService.getAnonymousId()
+        setAnonymousId(id)
+        console.log("Anonymous ID loaded in SignUpScreen:", id)
+      } catch (error) {
+        console.error("Error loading anonymous ID in SignUpScreen:", error)
+      }
     }
-    if (password !== confirmPassword) {
-      Alert.alert('Error', 'Passwords do not match');
-      return;
+
+    loadAnonymousId()
+  }, [])
+
+  // Define validation functions
+  const validateEmail = useCallback((email: string): boolean => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+    const isValid = emailRegex.test(email)
+    setEmailError(isValid ? "" : "Please enter a valid email address")
+    return isValid
+  }, [])
+
+  const validateUsername = useCallback((username: string): boolean => {
+    const isValid = username.length >= 3
+    setUsernameError(isValid ? "" : "Username must be at least 3 characters")
+    return isValid
+  }, [])
+
+  const validatePassword = useCallback((password: string): boolean => {
+    const isValid = password.length >= 6
+    setPasswordError(isValid ? "" : "Password must be at least 6 characters")
+    return isValid
+  }, [])
+
+  const validateConfirmPassword = useCallback((password: string, confirmPassword: string): boolean => {
+    const isValid = password === confirmPassword
+    setConfirmPasswordError(isValid ? "" : "Passwords do not match")
+    return isValid
+  }, [])
+
+  // Handle form input changes with validation
+  const handleEmailChange = useCallback(
+    (text: string) => {
+      setEmail(text)
+      if (emailError) validateEmail(text)
+    },
+    [emailError, validateEmail],
+  )
+
+  const handleUsernameChange = useCallback(
+    (text: string) => {
+      setUsername(text)
+      if (usernameError) validateUsername(text)
+    },
+    [usernameError, validateUsername],
+  )
+
+  const handlePasswordChange = useCallback(
+    (text: string) => {
+      setPassword(text)
+      if (passwordError) validatePassword(text)
+      if (confirmPasswordError && confirmPassword) validateConfirmPassword(text, confirmPassword)
+    },
+    [passwordError, confirmPasswordError, confirmPassword, validatePassword, validateConfirmPassword],
+  )
+
+  const handleConfirmPasswordChange = useCallback(
+    (text: string) => {
+      setConfirmPassword(text)
+      if (confirmPasswordError) validateConfirmPassword(password, text)
+    },
+    [confirmPasswordError, password, validateConfirmPassword],
+  )
+
+  // Validate all form fields
+  const validateForm = useCallback((): boolean => {
+    const isEmailValid = validateEmail(email)
+    const isUsernameValid = validateUsername(username)
+    const isPasswordValid = validatePassword(password)
+    const isConfirmPasswordValid = validateConfirmPassword(password, confirmPassword)
+
+    return isEmailValid && isUsernameValid && isPasswordValid && isConfirmPasswordValid
+  }, [
+    email,
+    username,
+    password,
+    confirmPassword,
+    validateEmail,
+    validateUsername,
+    validatePassword,
+    validateConfirmPassword,
+  ])
+
+  // Handle sign up submission
+  const handleSignUp = useCallback(async () => {
+    // Clear any previous errors
+    setEmailError("")
+    setUsernameError("")
+    setPasswordError("")
+    setConfirmPasswordError("")
+
+    // Validate all inputs
+    if (!validateForm()) {
+      return
     }
-    // TODO: Implement sign-up logic
-    Alert.alert('Success', 'Account created successfully');
-    navigation.navigate('Profile');
-  };
+
+    setIsLoading(true)
+    try {
+      // Get the current anonymous ID before registration
+      const currentAnonymousId = anonymousId
+
+      // Call the register method from our auth service
+      const response = await authService.register(email, username, password)
+
+      // Registration successful
+      console.log("Registration successful:", response.user)
+
+      // Now convert the anonymous user data to the registered user
+      if (currentAnonymousId) {
+        try {
+          await anonymousUserService.convertToUser(currentAnonymousId)
+          console.log("Anonymous data successfully migrated to user ID:", response.user.id)
+        } catch (conversionError) {
+          // Log the error but don't fail the registration process
+          console.error("Error migrating anonymous data:", conversionError)
+        }
+      }
+
+      Alert.alert("Success", "Account created successfully", [
+        { text: "OK", onPress: () => navigation.navigate("Profile") },
+      ])
+    } catch (error: any) {
+      // Handle registration error
+      console.error("Registration error:", error)
+
+      // Display specific error messages based on the error
+      if (error.message?.includes("email")) {
+        setEmailError(error.message || "Email is invalid or already taken")
+      } else if (error.message?.includes("username")) {
+        setUsernameError(error.message || "Username is invalid or already taken")
+      } else if (error.message?.includes("password")) {
+        setPasswordError(error.message || "Password is invalid")
+      } else {
+        // Generic error
+        Alert.alert("Registration Failed", error.message || "An error occurred during registration")
+      }
+    } finally {
+      setIsLoading(false)
+    }
+  }, [email, username, password, navigation, validateForm, anonymousId])
+
+  // Handle Google sign-in with a mock implementation
+  const handleGoogleSignIn = useCallback(async () => {
+    setGoogleLoading(true)
+    try {
+      // Since we don't have the Google Sign-In module working,
+      // show an alert explaining the situation
+      Alert.alert(
+        "Google Sign-In Not Available",
+        "The Google Sign-In module is not properly linked. Please use email/password registration instead.",
+        [{ text: "OK" }],
+      )
+    } catch (error: any) {
+      console.error("Error with Google Sign-In:", error)
+      Alert.alert("Error", error.message || "An error occurred")
+    } finally {
+      setGoogleLoading(false)
+    }
+  }, [])
+
+  // Function to refresh the anonymous ID
+  const refreshAnonymousId = async () => {
+    try {
+      // Force regeneration by clearing the in-memory ID first
+      // This is just for demonstration - in a real app you might not want to do this
+      await storageFallback.removeItem(ANONYMOUS_ID_KEY)
+      inMemoryAnonymousId = null
+
+      const newId = await authService.getAnonymousId()
+      setAnonymousId(newId)
+      Alert.alert("Success", "Anonymous ID refreshed")
+    } catch (error) {
+      console.error("Error refreshing anonymous ID:", error)
+      Alert.alert("Error", "Failed to refresh anonymous ID")
+    }
+  }
 
   return (
-    <ImageBackground 
-      source={require('../assets/images/back.jpg')} // Replace with your background image
+    <ImageBackground
+      source={require("../assets/images/back.jpg")}
       style={styles.container}
       imageStyle={styles.backgroundImage}
     >
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={styles.innerContainer}
-      >
-        {/* Logo (Retour à HomeScreen) */}
-        <TouchableOpacity onPress={() => navigation.navigate('MainTabs', { screen: 'Home' })}>
-          <Image source={require('../assets/images/33.png')} style={styles.logo} />
-        </TouchableOpacity>
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.innerContainer}>
+          {/* Logo (Return to HomeScreen) */}
+          <TouchableOpacity onPress={() => navigation.navigate("MainTabs", { screen: "Home" })}>
+            <Image source={require("../assets/images/33.png")} style={styles.logo} />
+          </TouchableOpacity>
 
-        <Text style={styles.title}>Sign up</Text>
-        <Text style={styles.subtitle}>Create an account to get started</Text>
+          <Text style={styles.title}>Sign up</Text>
+          <Text style={styles.subtitle}>Create an account to get started</Text>
 
-        {/* Google Sign-Up Button */}
-        <TouchableOpacity style={styles.googleButton}>
-          <Image source={require('../assets/images/goo.png')} style={styles.googleLogo} />
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
-        </TouchableOpacity>
+          {/* Anonymous ID Display */}
+          <View style={styles.anonymousIdContainer}>
+            <Text style={styles.anonymousIdLabel}>Anonymous ID:</Text>
+            <Text style={styles.anonymousId}>{anonymousId || "Loading..."}</Text>
+            <TouchableOpacity onPress={refreshAnonymousId} style={styles.refreshButton}>
+              <Text style={styles.refreshButtonText}>Refresh ID</Text>
+            </TouchableOpacity>
+          </View>
 
-        <Text style={styles.orText}>or</Text>
+          {/* Google Sign-Up Button */}
+          <TouchableOpacity
+            style={styles.googleButton}
+            onPress={handleGoogleSignIn}
+            disabled={googleLoading || isLoading}
+          >
+            {googleLoading ? (
+              <ActivityIndicator size="small" color="#4285F4" />
+            ) : (
+              <>
+                <Image source={require("../assets/images/goo.png")} style={styles.googleLogo} />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </>
+            )}
+          </TouchableOpacity>
 
-        {/* Email & Password Fields */}
-        <TextInput
-          style={styles.input}
-          placeholder="Email Address"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Confirm Password"
-          value={confirmPassword}
-          onChangeText={setConfirmPassword}
-          secureTextEntry
-        />
+          <Text style={styles.orText}>or</Text>
 
-        {/* Sign Up Button */}
-        <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-          <Text style={styles.buttonText}>Sign Up</Text>
-        </TouchableOpacity>
+          {/* Email Field */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.input, emailError ? styles.inputError : null]}
+              placeholder="Email Address"
+              value={email}
+              onChangeText={handleEmailChange}
+              onBlur={() => validateEmail(email)}
+              keyboardType="email-address"
+              autoCapitalize="none"
+              editable={!isLoading}
+            />
+            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+          </View>
 
-        <Text style={styles.signUpText}>
-  Already have an account?{' '}
-  <Text 
-    style={styles.signUpLink} 
-    onPress={() => navigation.navigate('Auth')}
-  >
-    Sign in
-  </Text>
-</Text>
+          {/* Username Field */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.input, usernameError ? styles.inputError : null]}
+              placeholder="Username"
+              value={username}
+              onChangeText={handleUsernameChange}
+              onBlur={() => validateUsername(username)}
+              autoCapitalize="none"
+              editable={!isLoading}
+            />
+            {usernameError ? <Text style={styles.errorText}>{usernameError}</Text> : null}
+          </View>
 
-      </KeyboardAvoidingView>
+          {/* Password Field */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.input, passwordError ? styles.inputError : null]}
+              placeholder="Password"
+              value={password}
+              onChangeText={handlePasswordChange}
+              onBlur={() => validatePassword(password)}
+              secureTextEntry
+              editable={!isLoading}
+            />
+            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+          </View>
+
+          {/* Confirm Password Field */}
+          <View style={styles.inputContainer}>
+            <TextInput
+              style={[styles.input, confirmPasswordError ? styles.inputError : null]}
+              placeholder="Confirm Password"
+              value={confirmPassword}
+              onChangeText={handleConfirmPasswordChange}
+              onBlur={() => validateConfirmPassword(password, confirmPassword)}
+              secureTextEntry
+              editable={!isLoading}
+            />
+            {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
+          </View>
+
+          {/* Sign Up Button */}
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleSignUp}
+            disabled={isLoading || googleLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Sign Up</Text>
+            )}
+          </TouchableOpacity>
+
+          <Text style={styles.signUpText}>
+            Already have an account?{" "}
+            <Text style={styles.signUpLink} onPress={() => navigation.navigate("Auth")}>
+              Sign in
+            </Text>
+          </Text>
+        </KeyboardAvoidingView>
+      </ScrollView>
     </ImageBackground>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, 
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40, 
-    paddingVertical: 1, 
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollContainer: {
+    flexGrow: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 20,
   },
   backgroundImage: {
     flex: 1,
-    justifyContent: 'center',
-    resizeMode: 'cover', 
+    justifyContent: "center",
+    resizeMode: "cover",
   },
   innerContainer: {
     width: width * 0.9,
-    backgroundColor: 'rgba(255, 255, 255, 0.67)', 
+    backgroundColor: "rgba(255, 255, 255, 0.67)",
     borderRadius: 25,
     padding: width * 0.08,
-    alignItems: 'center',
+    alignItems: "center",
     elevation: 3,
-    shadowColor: '#fff',
+    shadowColor: "#fff",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -133,76 +402,127 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 15,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginBottom: 5,
-    color: '#332',
+    color: "#332",
   },
   subtitle: {
     fontSize: 13,
-    color: 'gray',
-    marginBottom: width * 0.08,
+    color: "gray",
+    marginBottom: width * 0.04,
+  },
+  anonymousIdContainer: {
+    width: "100%",
+    backgroundColor: "#f8f8f8",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: width * 0.04,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  anonymousIdLabel: {
+    fontSize: 12,
+    fontWeight: "bold",
+    color: "#555",
+  },
+  anonymousId: {
+    fontSize: 11,
+    fontFamily: "monospace",
+    color: "#333",
+    padding: 5,
+    backgroundColor: "#eee",
+    borderRadius: 4,
+    marginTop: 5,
+    marginBottom: 5,
+  },
+  refreshButton: {
+    alignSelf: "flex-end",
+    backgroundColor: "#f0f0f0",
+    padding: 5,
+    borderRadius: 5,
+  },
+  refreshButtonText: {
+    fontSize: 10,
+    color: "#555",
   },
   googleButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     borderWidth: 1,
-    borderColor: '#eee',
+    borderColor: "#eee",
     padding: width * 0.03,
     borderRadius: 20,
-    width: '100%',
-    justifyContent: 'center',
+    width: "100%",
+    justifyContent: "center",
     marginBottom: width * 0.01,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
   },
   googleButtonText: {
     fontSize: 14,
     marginLeft: 11,
-    color: '#333',
+    color: "#333",
   },
   orText: {
     marginVertical: width * 0.04,
-    color: 'gray',
+    color: "gray",
+  },
+  inputContainer: {
+    width: "100%",
+    marginBottom: width * 0.02,
   },
   input: {
-    width: '100%',
+    width: "100%",
     height: width * 0.11,
-    borderColor: '#eee',
+    borderColor: "#eee",
     borderWidth: 1,
     borderRadius: 20,
     paddingHorizontal: width * 0.04,
-    marginBottom: width * 0.04,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
+  },
+  inputError: {
+    borderColor: "#ff3b30",
+  },
+  errorText: {
+    color: "#ff3b30",
+    fontSize: 12,
+    marginTop: 4,
+    marginLeft: 4,
   },
   button: {
-    backgroundColor: '#000',
+    backgroundColor: "#000",
     padding: width * 0.03,
-    alignItems: 'center',
-    width: '100%',
+    alignItems: "center",
+    width: "100%",
     borderRadius: 20,
-    marginTop: width * 0.01,
+    marginTop: width * 0.04,
+    height: width * 0.11,
+    justifyContent: "center",
+  },
+  buttonDisabled: {
+    backgroundColor: "#666",
   },
   buttonText: {
-    color: 'white',
+    color: "white",
     fontSize: 15,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   signUpText: {
     marginTop: width * 0.02,
     fontSize: 14,
-    color: 'gray',
-    textAlign: 'center',
+    color: "gray",
+    textAlign: "center",
     padding: width * 0.04,
   },
   signUpLink: {
-    fontWeight: 'bold',
-    color: '#000',
-    textDecorationLine: 'underline',
+    fontWeight: "bold",
+    color: "#000",
+    textDecorationLine: "underline",
   },
   googleLogo: {
-    width: 19, 
-    height: 19, 
-    marginRight: 8, 
-    resizeMode: 'contain',
+    width: 19,
+    height: 19,
+    marginRight: 8,
+    resizeMode: "contain",
   },
-});
+})
 

@@ -13,10 +13,11 @@ import {
   ImageBackground,
   Animated,
 } from "react-native"
-import { ArrowLeft, Search, Filter, Clock, ChevronRight } from "lucide-react-native"
+import { ArrowLeft, Search, Filter, Clock, ChevronRight, Heart } from "lucide-react-native"
 import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import { getCategories, getRecipes } from "../api/recipes/route"
+import { API_BASE_URL } from "@env"
 
 const { width, height } = Dimensions.get("window")
 
@@ -93,6 +94,7 @@ export default function NutritionScreen() {
   const [healthyRecipes, setHealthyRecipes] = useState<Recipe[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const scrollY = new Animated.Value(0)
 
   useEffect(() => {
     fetchData()
@@ -186,7 +188,8 @@ export default function NutritionScreen() {
     // Safely build the image URL with fallbacks
     let imageUrl = "https://via.placeholder.com/300x200?text=No+Image"
     if (category.attributes?.image?.data?.attributes?.formats?.small?.url) {
-      imageUrl = "http://4301-197-26-47-92.ngrok-free.app" + category.attributes.image.data.attributes.formats.small.url
+      imageUrl =   imageUrl = API_BASE_URL + imageUrl;
+      + category.attributes.image.data.attributes.formats.small.url
     }
 
     return (
@@ -195,6 +198,7 @@ export default function NutritionScreen() {
         onPress={() => navigation.navigate("Recette", { category: documentId })}
       >
         <ImageBackground source={{ uri: imageUrl }} style={styles.categoryImage}>
+          <View style={styles.categoryOverlay} />
           <View style={styles.categoryContent}>
             <Text style={styles.categoryTitle}>{title}</Text>
             <Text style={styles.categoryDescription}>Nutritious recipes</Text>
@@ -204,8 +208,15 @@ export default function NutritionScreen() {
     )
   }
 
+  const headerOpacity = scrollY.interpolate({
+    inputRange: [0, 100],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
   return (
     <View style={styles.container}>
+      <Animated.View style={[styles.headerBackground, { opacity: headerOpacity }]} />
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
           <ArrowLeft size={22} color="#000" />
@@ -219,7 +230,14 @@ export default function NutritionScreen() {
           <ActivityIndicator size="large" color="#000" />
         </View>
       ) : (
-        <ScrollView showsVerticalScrollIndicator={false}>
+        <Animated.ScrollView 
+          showsVerticalScrollIndicator={false}
+          onScroll={Animated.event(
+            [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+            { useNativeDriver: true }
+          )}
+          scrollEventThrottle={16}
+        >
           <View style={styles.searchContainer}>
             <View style={styles.searchBar}>
               <Search size={20} color="#666" />
@@ -235,7 +253,7 @@ export default function NutritionScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Nutrition Categories</Text>
-                <TouchableOpacity>
+                <TouchableOpacity style={styles.seeAllButton}>
                   <Text style={styles.seeAllText}>See All</Text>
                 </TouchableOpacity>
               </View>
@@ -255,7 +273,7 @@ export default function NutritionScreen() {
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Featured Recipes</Text>
-                <TouchableOpacity>
+                <TouchableOpacity style={styles.seeAllButton}>
                   <Text style={styles.seeAllText}>See All</Text>
                 </TouchableOpacity>
               </View>
@@ -267,15 +285,20 @@ export default function NutritionScreen() {
                     style={styles.recipeCard}
                     onPress={() => navigation.navigate("RecipeDetail", { recipeId: recipe.documentId })}
                   >
-                    <Image
-                      source={{
-                        uri:
-                          recipe.image && recipe.image.length > 0
-                            ? `http://4301-197-26-47-92.ngrok-free.app${recipe.image[0].formats.small.url}`
-                            : "https://via.placeholder.com/300x200?text=No+Image",
-                      }}
-                      style={styles.recipeImage}
-                    />
+                    <View style={styles.recipeImageContainer}>
+                      <Image
+                        source={{
+                          uri:
+                            recipe.image && recipe.image.length > 0
+                              ? `${API_BASE_URL}${recipe.image[0].formats.small.url}`
+                              : "https://via.placeholder.com/300x200?text=No+Image",
+                        }}
+                        style={styles.recipeImage}
+                      />
+                      <TouchableOpacity style={styles.favoriteButton}>
+                        <Heart size={16} color="#FF4757" />
+                      </TouchableOpacity>
+                    </View>
                     <View style={styles.recipeContent}>
                       <Text style={styles.recipeTitle} numberOfLines={1}>
                         {recipe.title}
@@ -296,10 +319,10 @@ export default function NutritionScreen() {
 
           {/* Healthy Recipes */}
           {healthyRecipes.length > 0 && (
-            <View style={styles.section}>
+            <View style={[styles.section, styles.healthySection]}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Healthy Recipes</Text>
-                <TouchableOpacity>
+                <TouchableOpacity style={styles.seeAllButton}>
                   <Text style={styles.seeAllText}>See All</Text>
                 </TouchableOpacity>
               </View>
@@ -314,7 +337,7 @@ export default function NutritionScreen() {
                     source={{
                       uri:
                         recipe.image && recipe.image.length > 0
-                          ? `http://4301-197-26-47-92.ngrok-free.app${recipe.image[0].formats.small.url}`
+                          ? `${API_BASE_URL}${recipe.image[0].formats.small.url}`
                           : "https://via.placeholder.com/300x200?text=No+Image",
                     }}
                     style={styles.healthyRecipeImage}
@@ -333,9 +356,10 @@ export default function NutritionScreen() {
               ))}
             </View>
           )}
-
           
-        </ScrollView>
+          {/* Bottom padding */}
+          <View style={{ height: 30 }} />
+        </Animated.ScrollView>
       )}
     </View>
   )
@@ -346,6 +370,20 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#FFFFFF",
   },
+  headerBackground: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 100,
+    backgroundColor: '#FFFFFF',
+    zIndex: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -353,13 +391,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingTop: 50,
     paddingBottom: 16,
-    backgroundColor: "#FFFFFF",
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
+    backgroundColor: "transparent",
+    zIndex: 2,
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "700",
     color: "#000",
   },
   backButton: {
@@ -389,7 +426,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5F5F5",
     borderRadius: 12,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     marginRight: 12,
   },
   searchPlaceholder: {
@@ -406,8 +443,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   section: {
-    marginBottom: 24,
+    marginBottom: 30,
     paddingHorizontal: 16,
+  },
+  healthySection: {
+    backgroundColor: "#F9F9F9",
+    paddingTop: 24,
+    paddingBottom: 10,
+    marginHorizontal: -16,
+    paddingHorizontal: 32,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -416,13 +460,18 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
+    fontSize: 20,
+    fontWeight: "700",
     color: "#000",
+  },
+  seeAllButton: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
   },
   seeAllText: {
     fontSize: 14,
-    color: "#666",
+    fontWeight: "600",
+    color: "#007AFF",
   },
   categoriesContainer: {
     marginLeft: -16,
@@ -430,55 +479,89 @@ const styles = StyleSheet.create({
   },
   categoryCard: {
     width: width * 0.7,
-    height: 120,
+    height: 140,
     marginRight: 16,
     borderRadius: 16,
     overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 5,
   },
   categoryImage: {
     width: "100%",
     height: "100%",
     justifyContent: "flex-end",
   },
-  categoryContent: {
-    padding: 16,
+  categoryOverlay: {
+    ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(0,0,0,0.3)",
   },
+  categoryContent: {
+    padding: 16,
+    zIndex: 1,
+  },
   categoryTitle: {
-    fontSize: 18,
+    fontSize: 20,
     fontWeight: "bold",
     color: "#FFF",
     marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: {width: -1, height: 1},
+    textShadowRadius: 10
   },
   categoryDescription: {
-    fontSize: 12,
+    fontSize: 14,
     color: "#FFF",
+    textShadowColor: 'rgba(0, 0, 0, 0.75)',
+    textShadowOffset: {width: -1, height: 1},
+    textShadowRadius: 10
   },
   recipeCard: {
-    width: width * 0.6,
-    marginRight:20,
+    width: width * 0.65,
+    marginRight: 20,
     borderRadius: 20,
     backgroundColor: "#FFF",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
     shadowRadius: 8,
-    elevation: 3,
+    elevation: 5,
     overflow: "hidden",
+  },
+  recipeImageContainer: {
+    position: "relative",
   },
   recipeImage: {
     width: "100%",
-    height: 150,
+    height: 180,
     borderTopLeftRadius: 16,
     borderTopRightRadius: 16,
   },
+  favoriteButton: {
+    position: "absolute",
+    top: 12,
+    right: 12,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "rgba(255,255,255,0.9)",
+    alignItems: "center",
+    justifyContent: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
   recipeContent: {
-    padding: 12,
+    padding: 16,
   },
   recipeTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 8,
+    fontWeight: "700",
+    marginBottom: 12,
     color: "#000",
   },
   recipeInfo: {
@@ -489,11 +572,16 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginRight: 12,
+    backgroundColor: "#F5F5F5",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
   },
   recipeTimeText: {
     fontSize: 12,
     color: "#666",
     marginLeft: 4,
+    fontWeight: "500",
   },
   nutritionInfo: {
     flexDirection: "row",
@@ -504,7 +592,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   nutritionValue: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "bold",
     color: "#000",
   },
@@ -526,7 +614,7 @@ const styles = StyleSheet.create({
   },
   healthyRecipeImage: {
     width: 120,
-    height: 150,
+    height: 120,
     borderTopLeftRadius: 16,
     borderBottomLeftRadius: 16,
   },
@@ -536,7 +624,7 @@ const styles = StyleSheet.create({
   },
   healthyRecipeTitle: {
     fontSize: 16,
-    fontWeight: "600",
+    fontWeight: "700",
     marginBottom: 4,
     color: "#000",
   },
@@ -544,11 +632,10 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#666",
     marginBottom: 8,
+    lineHeight: 16,
   },
   healthyRecipeArrow: {
     alignSelf: "center",
     marginRight: 12,
   },
-  
 })
-

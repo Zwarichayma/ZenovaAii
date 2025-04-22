@@ -17,6 +17,7 @@ import type { StackNavigationProp } from "@react-navigation/stack"
 import { ArrowLeft } from "lucide-react-native"
 import { getTests } from "../api/tests/route"
 import { LinearGradient } from "expo-linear-gradient"
+import { API_BASE_URL } from "@env"
 
 const { width } = Dimensions.get("window")
 const CARD_WIDTH = width * 0.44
@@ -119,7 +120,7 @@ export default function TestScreen({ navigation, route }: TestScreenProps) {
                   source={{
                     uri:
                       test.image && test.image.length > 0
-                        ? `http://4301-197-26-47-92.ngrok-free.app${test.image[0].formats.small.url}`
+                        ?`${API_BASE_URL}${test.image[0].formats.small.url}`
                         : "https://via.placeholder.com/300x200?text=No+Image",
                   }}
                   style={styles.image}

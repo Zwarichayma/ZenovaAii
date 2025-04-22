@@ -25,6 +25,7 @@ export type RootStackParamList = {
     TestDetail: undefined; 
     Music: undefined; 
     Fitness:undefined;
+    Quote:undefined;
 
   };
   
