@@ -501,6 +501,7 @@ export interface ApiChatbotConversationChatbotConversation
 export interface ApiExerciseExercise extends Struct.CollectionTypeSchema {
   collectionName: 'exercises';
   info: {
+    description: '';
     displayName: 'Exercise';
     pluralName: 'exercises';
     singularName: 'exercise';
@@ -509,15 +510,11 @@ export interface ApiExerciseExercise extends Struct.CollectionTypeSchema {
     draftAndPublish: true;
   };
   attributes: {
+    calories_burned: Schema.Attribute.String;
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
-    description: Schema.Attribute.Blocks;
-    duration: Schema.Attribute.Integer;
-    fitness_plan: Schema.Attribute.Relation<
-      'manyToOne',
-      'api::fitness-plan.fitness-plan'
-    >;
+    duration: Schema.Attribute.String;
     image: Schema.Attribute.Media<'images' | 'files' | 'videos' | 'audios'>;
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<
@@ -527,9 +524,12 @@ export interface ApiExerciseExercise extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     name: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
-    reps: Schema.Attribute.Integer;
+    rep: Schema.Attribute.String;
     sets: Schema.Attribute.Integer;
-    type: Schema.Attribute.String;
+    sub_category: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::sub-category.sub-category'
+    >;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
@@ -555,7 +555,6 @@ export interface ApiFitnessPlanFitnessPlan extends Struct.CollectionTypeSchema {
       Schema.Attribute.Private;
     description: Schema.Attribute.Blocks;
     duration: Schema.Attribute.Integer;
-    exercises: Schema.Attribute.Relation<'oneToMany', 'api::exercise.exercise'>;
     image: Schema.Attribute.Media<
       'images' | 'files' | 'videos' | 'audios',
       true
@@ -567,6 +566,10 @@ export interface ApiFitnessPlanFitnessPlan extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     publishedAt: Schema.Attribute.DateTime;
+    sub_categories: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::sub-category.sub-category'
+    >;
     title: Schema.Attribute.String;
     type: Schema.Attribute.Enumeration<
       [
@@ -986,6 +989,44 @@ export interface ApiResultResult extends Struct.CollectionTypeSchema {
       'manyToOne',
       'plugin::users-permissions.user'
     >;
+  };
+}
+
+export interface ApiSubCategorySubCategory extends Struct.CollectionTypeSchema {
+  collectionName: 'sub_categories';
+  info: {
+    description: '';
+    displayName: 'SubCategory';
+    pluralName: 'sub-categories';
+    singularName: 'sub-category';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    exercises: Schema.Attribute.Relation<'oneToMany', 'api::exercise.exercise'>;
+    fitness_plan: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::fitness-plan.fitness-plan'
+    >;
+    image: Schema.Attribute.Media<
+      'images' | 'files' | 'videos' | 'audios',
+      true
+    >;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::sub-category.sub-category'
+    > &
+      Schema.Attribute.Private;
+    name: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -1604,6 +1645,7 @@ declare module '@strapi/strapi' {
       'api::recipe.recipe': ApiRecipeRecipe;
       'api::reponse.reponse': ApiReponseReponse;
       'api::result.result': ApiResultResult;
+      'api::sub-category.sub-category': ApiSubCategorySubCategory;
       'api::test-score.test-score': ApiTestScoreTestScore;
       'api::teste.teste': ApiTesteTeste;
       'plugin::content-releases.release': PluginContentReleasesRelease;

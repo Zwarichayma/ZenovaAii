@@ -40,21 +40,22 @@
     "calories_burned": {
       "type": "integer"
     },
-    "exercises": {
-      "type": "relation",
-      "relation": "oneToMany",
-      "target": "api::exercise.exercise",
-      "mappedBy": "fitness_plan"
-    },
     "image": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
       "allowedTypes": [
         "images",
         "files",
         "videos",
         "audios"
-      ],
-      "type": "media",
-      "multiple": true
+      ]
+    },
+    "sub_categories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::sub-category.sub-category",
+      "mappedBy": "fitness_plan"
     }
   }
 }
