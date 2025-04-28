@@ -4,7 +4,8 @@
   "info": {
     "singularName": "exercise",
     "pluralName": "exercises",
-    "displayName": "Exercise"
+    "displayName": "Exercise",
+    "description": ""
   },
   "options": {
     "draftAndPublish": true
@@ -13,39 +14,37 @@
     "name": {
       "type": "string"
     },
-    "description": {
-      "type": "blocks"
-    },
     "image": {
+      "type": "media",
+      "multiple": false,
+      "required": false,
       "allowedTypes": [
         "images",
         "files",
         "videos",
         "audios"
-      ],
-      "type": "media",
-      "multiple": false
+      ]
     },
     "video_url": {
       "type": "string"
     },
-    "type": {
-      "type": "string"
-    },
-    "duration": {
-      "type": "integer"
-    },
-    "reps": {
-      "type": "integer"
-    },
     "sets": {
       "type": "integer"
     },
-    "fitness_plan": {
+    "sub_category": {
       "type": "relation",
       "relation": "manyToOne",
-      "target": "api::fitness-plan.fitness-plan",
+      "target": "api::sub-category.sub-category",
       "inversedBy": "exercises"
+    },
+    "rep": {
+      "type": "string"
+    },
+    "duration": {
+      "type": "string"
+    },
+    "calories_burned": {
+      "type": "string"
     }
   }
 }
