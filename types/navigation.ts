@@ -1,32 +1,44 @@
 // types/navigation.ts
-import { NavigatorScreenParams } from '@react-navigation/native';
 
+import { Exercise, SubCategory } from "@/api/fitness-plans/route"
+import { NavigatorScreenParams } from "@react-navigation/native"
+
+// Onglets principaux de l'app
 export type MainTabParamList = {
-  Home: undefined;
-  Training: undefined;
-  Bot: undefined;
-  Nutrition: undefined;
-  'Mental Health': undefined;
-};
+  Home: undefined
+  Training: undefined
+  Bot: undefined
+  Nutrition: undefined
+  "Mental Health": undefined
+}
 
-
-
-  
+// Navigation principale (Stack)
 export type RootStackParamList = {
-    Home: undefined;
-    MainTabs: NavigatorScreenParams<MainTabParamList>; 
-    Profile: undefined;
-    Auth: undefined;
-    SignUp: undefined;
-    Bot: undefined;
-    Recette: undefined; 
-    RecipeDetail: undefined; 
-    Test: undefined; 
-    TestDetail: undefined; 
-    Music: undefined; 
-    Fitness:undefined;
-    Quote:undefined;
+  // Authentification
+  Auth: undefined
+  SignUp: undefined
 
-  };
-  
-  
+  // Navigation principale avec onglets
+  MainTabs: NavigatorScreenParams<MainTabParamList>
+
+  // Pages standards
+  Home: undefined
+  Profile: undefined
+  Bot: undefined
+  Music: undefined
+  Quote: undefined
+  Fitness: undefined
+
+  // Recettes
+  Recette: undefined
+  RecipeDetail: undefined
+
+  // Tests
+  Test: undefined
+  TestDetail: undefined
+
+  // Navigation fitness
+  SubCategories: { fitnessId: number; fitnessTitle: string }
+  ExerciseList: { subCategory: SubCategory }
+  ExerciseDetail: { exercise: Exercise; subCategoryName: string }
+}

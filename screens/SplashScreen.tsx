@@ -4,8 +4,9 @@ export default function SplashScreen() {
   return (
     <View style={styles.container}>
       <Image 
-        source={require('../assets/images/1.png')} // Replace with your logo path
+        source={require('../assets/images/1.png')} 
         style={styles.headerLogo}
+        resizeMode="contain"
       />
     </View>
   );
@@ -19,7 +20,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
   },
   headerLogo: {
-    width: 200,  // Set your desired width
-    height: 200, // Set your desired height
+    width: 200,
+    height: 200,
   },
 });

@@ -301,8 +301,7 @@ export default function NutritionScreen() {
                     </View>
                     <View style={styles.recipeContent}>
                       <Text style={styles.recipeTitle} numberOfLines={1}>
-                        {recipe.title}
-                      </Text>
+                       </Text>
                       <View style={styles.recipeInfo}>
                         <View style={styles.recipeTime}>
                           <Clock size={14} color="#666" />
