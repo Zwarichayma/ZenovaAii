@@ -578,8 +578,6 @@ export default function App() {
                 </View>
               ))}
             </View>
-
-            {/* Integrate the FitnessCategories component here */}
             <FitnessCategories />
           </ScrollView>
         </>

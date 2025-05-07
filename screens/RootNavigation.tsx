@@ -5,7 +5,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs"
 import { createStackNavigator } from "@react-navigation/stack" // Stack Navigator
 import { BlurView } from "expo-blur"
 import { Dimensions, StyleSheet, Animated, View } from "react-native"
-import { Airplay, Dumbbell, Bot, ChefHat, Brain } from "lucide-react-native"
+import { Airplay, Dumbbell, Bot, ChefHat, Brain, Search } from "lucide-react-native"
 import HomeScreen from "../screens/HomeScreen"
 import TrainingScreen from "./TrainingScreen"
 import MentalHealthScreen from "./MentalHealthScreen"
@@ -23,7 +23,12 @@ import MusicScreen from "./MusicScreen"
 import FitnessScreen from "./FitnessScreen"
 import QuoteScreen from "./QuoteScreen"
 import SubCategoriesScreen from "./Subcategories"
-import WorkoutSessionScreen from "./WorkoutSessionScreen"
+import MusicDetailScreen from "./MusicDetail"
+import AllCategories from "./all-categories"
+import FitnessDetail from "./FitnessScreen"
+import Exercises from "./Exercises"
+import SearchScreen from "./SearchScreen"
+import QuoteDetail from "./QuoteDetail"
 const { height, width } = Dimensions.get("window")
 const Tab = createBottomTabNavigator()
 const Stack = createStackNavigator() // Définition du Stack Navigator
@@ -92,9 +97,12 @@ export default function RootNavigation() {
       <Stack.Screen name="Fitness" component={FitnessScreen} />
       <Stack.Screen name="Quote" component={QuoteScreen} />
       <Stack.Screen name="SubCategories" component={SubCategoriesScreen} />
-      <Stack.Screen name="WorkoutSession" component={WorkoutSessionScreen} />
-
-
+      <Stack.Screen name="Exercises" component={Exercises} />
+      <Stack.Screen name="SearchScreen" component={SearchScreen} />
+      <Stack.Screen name="AllCategories" component={AllCategories} />
+      <Stack.Screen name="MusicDetail" component={MusicDetailScreen} />
+      <Stack.Screen name="FitnessPlanDetail" component={FitnessDetail} />
+      <Stack.Screen name="QuoteDetail" component={QuoteDetail} />
 
     </Stack.Navigator>
   )

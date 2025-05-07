@@ -11,8 +11,11 @@ import {
   ScrollView,
   ActivityIndicator,
   StatusBar,
+  SafeAreaView,
+  RefreshControl,
+  Animated,
 } from "react-native"
-import { ChevronRight, ArrowRight } from "lucide-react-native"
+import { Dumbbell, Flame, Clock, Calendar, Heart, ChevronRight } from "lucide-react-native"
 import { getFitnessPlans, type FitnessPlan, getImageUrl } from "@/api/fitness-plans/route"
 import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
@@ -22,137 +25,141 @@ const { width } = Dimensions.get("window")
 
 type RootStackParamList = {
   Fitness: { category: string }
+  AllCategories: undefined
+  AllWorkouts: undefined
+  AllRecommended: undefined
 }
 
-type NavigationProp = StackNavigationProp<RootStackParamList, "Fitness">
+type NavigationProp = StackNavigationProp<RootStackParamList>
 
 export default function FitnessCategories() {
   const [fitnessPlans, setFitnessPlans] = useState<FitnessPlan[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const navigation = useNavigation<NavigationProp>()
+  const scrollY = new Animated.Value(0)
+
+  const loadFitnessPlans = async () => {
+    try {
+      setLoading(true)
+      const plans = await getFitnessPlans()
+      setFitnessPlans(plans)
+      setError(null)
+    } catch (err) {
+      console.error("Failed to load fitness plans:", err)
+      setError("Failed to load fitness categories. Please try again later.")
+    } finally {
+      setLoading(false)
+      setRefreshing(false)
+    }
+  }
 
   useEffect(() => {
-    const loadFitnessPlans = async () => {
-      try {
-        setLoading(true)
-        const plans = await getFitnessPlans()
-        setFitnessPlans(plans)
-        setError(null)
-      } catch (err) {
-        console.error("Failed to load fitness plans:", err)
-        setError("Failed to load fitness categories. Please try again later.")
-      } finally {
-        setLoading(false)
-      }
-    }
-
     loadFitnessPlans()
   }, [])
 
-  const renderCard = (plan: FitnessPlan) => {
+  const onRefresh = () => {
+    setRefreshing(true)
+    loadFitnessPlans()
+  }
+
+  // Get today's date in a readable format
+  const getTodayDate = () => {
+    const today = new Date()
+    const options: Intl.DateTimeFormatOptions = { weekday: "long", month: "long", day: "numeric" }
+    return today.toLocaleDateString("en-US", options)
+  }
+
+  const renderTodayWorkout = (plan: FitnessPlan) => {
     const imageUrl =
-      plan.image && plan.image.length > 0 ? getImageUrl(plan.image[0].url) : require("../assets/images/cardio.jpg") // Fallback image
+      plan.image && plan.image.length > 0 ? getImageUrl(plan.image[0].url) : require("../assets/images/cardio.jpg")
 
     return (
       <TouchableOpacity
-        key={plan.id}
-        style={styles.card}
+        style={styles.todayWorkoutCard}
+        activeOpacity={0.9}
         onPress={() => navigation.navigate("Fitness", { category: plan.type })}
       >
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.cardImage}
-          defaultSource={require("../assets/images/cardio.jpg")}
-        />
-        <LinearGradient colors={["transparent", "rgba(0,0,0,0.7)"]} style={styles.cardGradient} />
-        <View style={styles.cardContent}>
-          <Text style={styles.cardTitle}>{plan.title}</Text>
-          <View style={styles.cardMeta}>
-            <Text style={styles.cardMetaText}>{plan.duration} min</Text>
-            <View style={styles.cardMetaDot} />
-            <Text style={styles.cardMetaText}>{plan.calories_burned} kcal</Text>
+        <Image source={{ uri: imageUrl }} style={styles.todayWorkoutImage} />
+        <LinearGradient 
+          colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.7)", "rgba(0,0,0,0.9)"]} 
+          style={styles.todayWorkoutGradient}
+        >
+          <View style={styles.todayWorkoutContent}>
+            <Text style={styles.todayWorkoutTitle}>{plan.title}</Text>
+            <Text style={styles.todayWorkoutSubtitle}>Medium Full Body Workout</Text>
+
+            <View style={styles.todayWorkoutMetrics}>
+              <View style={styles.todayWorkoutMetric}>
+                <Clock size={14} color="#fff" />
+                <Text style={styles.todayWorkoutMetricText}>{plan.duration} min</Text>
+              </View>
+              <View style={styles.todayWorkoutMetric}>
+                <Flame size={14} color="#fff" />
+                <Text style={styles.todayWorkoutMetricText}>{plan.calories_burned} cal</Text>
+              </View>
+              <View style={styles.todayWorkoutMetric}>
+                <Heart size={14} color="#fff" />
+                <Text style={styles.todayWorkoutMetricText}>Beginner</Text>
+              </View>
+            </View>
           </View>
-        </View>
+        </LinearGradient>
       </TouchableOpacity>
     )
   }
 
-  const renderFeaturedPlan = (plan: FitnessPlan) => {
+  const renderCategoryCard = (plan: FitnessPlan, index: number) => {
     const imageUrl =
-      plan.image && plan.image.length > 0 ? getImageUrl(plan.image[0].url) : require("../assets/images/cardio.jpg") // Fallback image
+      plan.image && plan.image.length > 0 ? getImageUrl(plan.image[0].url) : require("../assets/images/cardio.jpg")
 
     return (
       <TouchableOpacity
-        style={styles.featuredCard}
         key={plan.id}
+        style={styles.categoryCard}
+        activeOpacity={0.9}
         onPress={() => navigation.navigate("Fitness", { category: plan.type })}
       >
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.featuredImage}
-          defaultSource={require("../assets/images/cardio.jpg")}
-        />
-        <LinearGradient colors={["transparent", "rgba(0,0,0,0.8)"]} style={styles.featuredGradient} />
-        <View style={styles.featuredContent}>
-          <View style={styles.featuredBadge}>
-            <Text style={styles.featuredBadgeText}>Featured</Text>
+        <Image source={{ uri: imageUrl }} style={styles.categoryImage} />
+        <LinearGradient 
+          colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.7)"]} 
+          style={styles.categoryGradient}
+        >
+          <Text style={styles.categoryTitle}>{plan.title}</Text>
+          <View style={styles.categoryMeta}>
+            <Clock size={12} color="#fff" />
+            <Text style={styles.categoryMetaText}>{plan.duration} min</Text>
           </View>
-          <Text style={styles.featuredTitle}>{plan.title}</Text>
-          <View style={styles.featuredMeta}>
-            <Text style={styles.featuredMetaText}>{plan.duration} min</Text>
-            <View style={styles.featuredMetaDot} />
-            <Text style={styles.featuredMetaText}>{plan.calories_burned} kcal</Text>
-          </View>
-          <TouchableOpacity
-            style={styles.getStartedButton}
-            onPress={() => navigation.navigate("Fitness", { category: plan.type })}
-          >
-            <Text style={styles.getStartedText}>Get Started</Text>
-            <ArrowRight size={16} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        </LinearGradient>
       </TouchableOpacity>
     )
   }
 
-  const renderPlanCard = (plan: FitnessPlan) => {
-    const imageUrl =
-      plan.image && plan.image.length > 0 ? getImageUrl(plan.image[0].url) : require("../assets/images/cardio.jpg") // Fallback image
-
-    return (
-      <TouchableOpacity
-        style={styles.planCard}
-        key={plan.id}
-        onPress={() => navigation.navigate("Fitness", { category: plan.type })}
+  const renderDifficultyButton = (title: string, isActive = false) => (
+    <TouchableOpacity 
+      style={[
+        styles.difficultyButton, 
+        isActive && styles.difficultyButtonActive
+      ]}
+    >
+      <Text 
+        style={[
+          styles.difficultyButtonText, 
+          isActive && styles.difficultyButtonTextActive
+        ]}
       >
-        <Image
-          source={{ uri: imageUrl }}
-          style={styles.planImage}
-          defaultSource={require("../assets/images/cardio.jpg")}
-        />
-        <LinearGradient colors={["transparent", "rgba(0,0,0,0.7)"]} style={styles.planGradient} />
-        <View style={styles.planOverlay}>
-          <View style={styles.planMetaContainer}>
-            <Text style={styles.planMetadata}>
-              {plan.duration} min • {plan.calories_burned} kcal
-            </Text>
-          </View>
-          <View style={styles.planTitleContainer}>
-            <Text style={styles.planTitle}>{plan.title}</Text>
-            <ChevronRight size={20} color="#fff" />
-          </View>
-        </View>
-      </TouchableOpacity>
-    )
-  }
+        {title}
+      </Text>
+    </TouchableOpacity>
+  )
 
-  if (loading) {
+  if (loading && !refreshing) {
     return (
       <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
         <ActivityIndicator size="large" color="#5E72E4" />
-        <Text style={styles.loadingText}>Loading fitness categories...</Text>
+        <Text style={styles.loadingText}>Loading workouts...</Text>
       </View>
     )
   }
@@ -160,80 +167,197 @@ export default function FitnessCategories() {
   if (error) {
     return (
       <View style={styles.errorContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity
-          style={styles.retryButton}
-          onPress={() =>
-            getFitnessPlans()
-              .then(setFitnessPlans)
-              .catch((err) => setError(String(err)))
-          }
-        >
+        <TouchableOpacity style={styles.retryButton} onPress={loadFitnessPlans}>
           <Text style={styles.retryButtonText}>Retry</Text>
         </TouchableOpacity>
       </View>
     )
   }
 
-  // Select a featured plan (first one for now)
-  const featuredPlan = fitnessPlans.length > 0 ? fitnessPlans[0] : null
+  // Select a featured plan for today's workout
+  const todayWorkout = fitnessPlans.length > 0 ? fitnessPlans[0] : null
 
   return (
-    <>
-      {featuredPlan && (
-        <View style={styles.featuredSection}>
-          <Text style={styles.sectionTitle}>Featured Workout</Text>
-          {renderFeaturedPlan(featuredPlan)}
-        </View>
-      )}
+    <SafeAreaView style={styles.container}>
+      <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
 
-      <View style={styles.section}>
-        <Text style={styles.sectionTitle}>All Categories</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoriesContainer}
-        >
-          {fitnessPlans.map(renderCard)}
-        </ScrollView>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.headerDate}>{getTodayDate()}</Text>
+          <Text style={styles.headerTitle}>Fitness</Text>
+        </View>
+        <TouchableOpacity style={styles.profileButton}>
+          <View style={styles.profileButtonInner}>
+            <Dumbbell size={16} color="#fff" />
+          </View>
+        </TouchableOpacity>
       </View>
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Recommended Plans</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeDetails}>See All</Text>
-          </TouchableOpacity>
-        </View>
-        <View style={styles.plansContainer}>{fitnessPlans.slice(0, 2).map(renderPlanCard)}</View>
-      </View>
+      <Animated.ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#5E72E4"]} />}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+        scrollEventThrottle={16}
+      >
+        {todayWorkout && (
+          <View style={styles.todaySection}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleWrapper}>
+                <Calendar size={18} color="#333" style={styles.sectionIcon} />
+                <Text style={styles.sectionTitle}>Today's Workout Plan</Text>
+              </View>
+              <TouchableOpacity 
+                style={styles.viewAllButton}
+                onPress={() => navigation.navigate("AllWorkouts")}
+              >
+                <Text style={styles.viewAllText}>View All</Text>
+                <ChevronRight size={16} color="#5E72E4" />
+              </TouchableOpacity>
+            </View>
+            {renderTodayWorkout(todayWorkout)}
+          </View>
+        )}
 
-      <View style={styles.section}>
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>For You</Text>
-          <TouchableOpacity>
-            <Text style={styles.seeDetails}>See All</Text>
-          </TouchableOpacity>
+        <View style={styles.categoriesSection}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Workout Categories</Text>
+            <TouchableOpacity 
+              style={styles.viewAllButton}
+              onPress={() => navigation.navigate("AllCategories")}
+            >
+              <Text style={styles.viewAllText}>See All</Text>
+              <ChevronRight size={16} color="#5E72E4" />
+            </TouchableOpacity>
+          </View>
+
+          <View style={styles.difficultyFilter}>
+            {renderDifficultyButton("Beginner", true)}
+            {renderDifficultyButton("Intermediate")}
+            {renderDifficultyButton("Advanced")}
+          </View>
+
+          <View style={styles.categoriesGrid}>
+            {fitnessPlans.slice(0, 4).map((plan, index) => renderCategoryCard(plan, index))}
+          </View>
         </View>
-        <View style={styles.plansContainer}>{fitnessPlans.slice(0, 4).map(renderPlanCard)}</View>
-      </View>
-    </>
+
+        <View style={styles.recommendedSection}>
+          <View style={styles.sectionHeader}>
+            <View style={styles.sectionTitleWrapper}>
+              <Flame size={18} color="#333" style={styles.sectionIcon} />
+              <Text style={styles.sectionTitle}>Recommended</Text>
+            </View>
+            <TouchableOpacity 
+              style={styles.viewAllButton}
+              onPress={() => navigation.navigate("AllRecommended")}
+            >
+              <Text style={styles.viewAllText}>See All</Text>
+              <ChevronRight size={16} color="#5E72E4" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.recommendedScrollContent}
+          >
+            {fitnessPlans.slice(0, 5).map((plan, index) => (
+              <TouchableOpacity
+                key={`recommended-${plan.id}`}
+                style={styles.recommendedCard}
+                activeOpacity={0.9}
+                onPress={() => navigation.navigate("Fitness", { category: plan.type })}
+              >
+                <Image
+                  source={{
+                    uri:
+                      plan.image && plan.image.length > 0
+                        ? getImageUrl(plan.image[0].url)
+                        : require("../assets/images/cardio.jpg"),
+                  }}
+                  style={styles.recommendedImage}
+                />
+                <View style={styles.recommendedContent}>
+                  <Text style={styles.recommendedTitle}>{plan.title}</Text>
+                  <View style={styles.recommendedMeta}>
+                    <Clock size={12} color="#fff" style={styles.recommendedMetaIcon} />
+                    <Text style={styles.recommendedMetaText}>{plan.duration} min</Text>
+                    <View style={styles.recommendedMetaDot} />
+                    <Flame size={12} color="#fff" style={styles.recommendedMetaIcon} />
+                    <Text style={styles.recommendedMetaText}>{plan.calories_burned} cal</Text>
+                  </View>
+                </View>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+      </Animated.ScrollView>
+    </SafeAreaView>
   )
 }
-
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#ffffff",
+  },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 20,
+    paddingTop: 10,
+    paddingBottom: 15,
+    borderBottomWidth: 1,
+    borderBottomColor: "#f0f0f0",
+  },
+  headerDate: {
+    fontSize: 14,
+    color: "#888",
+    marginBottom: 4,
+    fontWeight: "500",
+  },
+  headerTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#333",
+  },
+  profileButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "rgba(94, 114, 228, 0.1)",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#5E72E4",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  profileButtonInner: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#5E72E4",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  scrollContent: {
+    paddingBottom: 30,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 10,
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: "#5E72E4",
+    color: "#333",
     fontWeight: "500",
   },
   errorContainer: {
@@ -241,7 +365,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     padding: 20,
-    backgroundColor: "#fff",
+    backgroundColor: "#ffffff",
   },
   errorText: {
     fontSize: 16,
@@ -253,179 +377,24 @@ const styles = StyleSheet.create({
     backgroundColor: "#5E72E4",
     paddingHorizontal: 24,
     paddingVertical: 12,
-    borderRadius: 30,
+    borderRadius: 12,
     shadowColor: "#5E72E4",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
+    shadowOpacity: 0.2,
     shadowRadius: 8,
-    elevation: 6,
+    elevation: 4,
   },
   retryButtonText: {
     color: "#fff",
     fontSize: 16,
     fontWeight: "600",
   },
-  featuredSection: {
-    marginBottom: 24,
+
+  // Today's Workout Section
+  todaySection: {
     paddingHorizontal: 20,
-  },
-  section: {
-    marginBottom: 24,
-    paddingHorizontal: 20,
-  },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 16,
-    color: "#333",
-  },
-  categoriesContainer: {
-    paddingRight: 20,
-  },
-  card: {
-    width: width * 0.4,
-    height: 180,
-    marginRight: 16,
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "#f5f5f5",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  cardImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
-  cardGradient: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: "50%",
-  },
-  cardContent: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 10,
-  },
-  cardTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#fff",
-    marginBottom: 4,
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  cardMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  cardMetaText: {
-    fontSize: 12,
-    color: "rgba(255, 255, 255, 0.8)",
-  },
-  cardMetaDot: {
-    width: 3,
-    height: 3,
-    borderRadius: 1.5,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    marginHorizontal: 6,
-  },
-  featuredCard: {
-    width: "100%",
-    height: 220,
-    borderRadius: 16,
-    overflow: "hidden",
-    backgroundColor: "#f5f5f5",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  featuredImage: {
-    width: "100%",
-    height: "100%",
-    resizeMode: "cover",
-  },
-  featuredGradient: {
-    position: "absolute",
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: "70%",
-  },
-  featuredContent: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 16,
-  },
-  featuredBadge: {
-    backgroundColor: "#5E72E4",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    marginBottom: 8,
-  },
-  featuredBadgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  featuredTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#fff",
-    marginBottom: 8,
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
-    textShadowOffset: { width: 0, height: 1 },
-    textShadowRadius: 3,
-  },
-  featuredMeta: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  featuredMetaText: {
-    fontSize: 14,
-    color: "rgba(255, 255, 255, 0.8)",
-  },
-  featuredMetaDot: {
-    width: 4,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: "rgba(255, 255, 255, 0.8)",
-    marginHorizontal: 8,
-  },
-  getStartedButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#5E72E4",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderRadius: 30,
-    alignSelf: "flex-start",
-    shadowColor: "#5E72E4",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.3,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  getStartedText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "600",
-    marginRight: 8,
+    marginTop: 20,
+    marginBottom: 30,
   },
   sectionHeader: {
     flexDirection: "row",
@@ -433,66 +402,245 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
-  seeDetails: {
-    color: "#5E72E4",
+  sectionTitleWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  sectionIcon: {
+    marginRight: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#333",
+  },
+  viewAllButton: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  viewAllText: {
     fontSize: 14,
+    color: "#5E72E4",
+    fontWeight: "600",
+    marginRight: 2,
+  },
+  seeAllText: {
+    fontSize: 14,
+    color: "#5E72E4",
     fontWeight: "600",
   },
-  plansContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    flexWrap: "wrap",
-  },
-  planCard: {
-    width: (width - 56) / 2,
-    height: (width - 56) / 2,
-    borderRadius: 16,
+  todayWorkoutCard: {
+    width: "100%",
+    height: 200,
+    borderRadius: 20,
     overflow: "hidden",
-    marginBottom: 16,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#f8f8f8",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
   },
-  planImage: {
+  todayWorkoutImage: {
     width: "100%",
     height: "100%",
     resizeMode: "cover",
   },
-  planGradient: {
+  todayWorkoutGradient: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+  },
+  todayWorkoutContent: {
     position: "absolute",
     left: 0,
     right: 0,
     bottom: 0,
-    height: "50%",
+    padding: 20,
   },
-  planOverlay: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: 12,
-  },
-  planMetaContainer: {
-    marginBottom: 4,
-  },
-  planMetadata: {
-    color: "rgba(255, 255, 255, 0.8)",
-    fontSize: 12,
-  },
-  planTitleContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-  },
-  planTitle: {
+  todayWorkoutTitle: {
+    fontSize: 24,
+    fontWeight: "800",
     color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    textShadowColor: "rgba(0, 0, 0, 0.5)",
+    marginBottom: 4,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
+  },
+  todayWorkoutSubtitle: {
+    fontSize: 14,
+    color: "rgba(255, 255, 255, 0.9)",
+    marginBottom: 12,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  todayWorkoutMetrics: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  todayWorkoutMetric: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 12,
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  todayWorkoutMetricText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "600",
+    marginLeft: 6,
+  },
+
+  // Categories Section
+  categoriesSection: {
+    paddingHorizontal: 20,
+    marginBottom: 30,
+  },
+  difficultyFilter: {
+    flexDirection: "row",
+    marginBottom: 20,
+  },
+  difficultyButton: {
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginRight: 10,
+    backgroundColor: "#f0f0f0",
+    borderWidth: 1,
+    borderColor: "#f0f0f0",
+  },
+  difficultyButtonActive: {
+    backgroundColor: "#5E72E4",
+    borderColor: "#5E72E4",
+  },
+  difficultyButtonText: {
+    color: "#666",
+    fontSize: 14,
+    fontWeight: "600",
+  },
+  difficultyButtonTextActive: {
+    color: "#fff",
+  },
+  categoriesGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  categoryCard: {
+    width: "48%",
+    height: 160,
+    borderRadius: 20,
+    overflow: "hidden",
+    marginBottom: 16,
+    backgroundColor: "#f8f8f8",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  categoryImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  categoryGradient: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    top: 0,
+    bottom: 0,
+    justifyContent: "flex-end",
+    padding: 16,
+  },
+  categoryTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 6,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  categoryMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  categoryMetaText: {
+    fontSize: 12,
+    color: "#fff",
+    marginLeft: 4,
+    fontWeight: "500",
+  },
+
+  // Recommended Section
+  recommendedSection: {
+    paddingHorizontal: 20,
+    marginBottom: 20,
+  },
+  recommendedScrollContent: {
+    paddingRight: 20,
+    paddingBottom: 10,
+  },
+  recommendedCard: {
+    width: width * 0.7,
+    height: 160,
+    borderRadius: 20,
+    overflow: "hidden",
+    marginRight: 16,
+    backgroundColor: "#f8f8f8",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  recommendedImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  recommendedContent: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 16,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    borderBottomLeftRadius: 20,
+    borderBottomRightRadius: 20,
+  },
+  recommendedTitle: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#fff",
+    marginBottom: 6,
+    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 3,
+  },
+  recommendedMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  recommendedMetaIcon: {
+    marginRight: 4,
+  },
+  recommendedMetaText: {
+    fontSize: 12,
+    color: "rgba(255, 255, 255, 0.9)",
+  },
+  recommendedMetaDot: {
+    width: 3,
+    height: 3,
+    borderRadius: 1.5,
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
+    marginHorizontal: 6,
   },
 })

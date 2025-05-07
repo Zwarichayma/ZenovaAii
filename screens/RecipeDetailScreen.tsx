@@ -17,11 +17,12 @@ import type { RouteProp } from "@react-navigation/native"
 import { ArrowLeft, Clock, Hourglass, Check, Bookmark, Share2, Calendar } from "lucide-react-native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import { getRecipe } from "../api/recipes/route"
+import { API_BASE_URL } from "@env"
 
 const { width } = Dimensions.get("window")
 
 type RootStackParamList = {
-  RecipeDetail: { recetteId: string }
+  RecipeDetail: { recipeId: string }
 }
 
 type RecipeDetailScreenRouteProp = RouteProp<RootStackParamList, "RecipeDetail">
@@ -95,41 +96,55 @@ const NUTRIENT_COLORS = {
 
 export default function RecipeDetailScreen({ route, navigation }: RecipeDetailScreenProps) {
   const [activeTab, setActiveTab] = useState("about")
-  const { recetteId } = route.params
+  const { recipeId } = route.params // Make sure we're using recipeId, not recetteId
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchRecipe = async () => {
-      setIsLoading(true);
+      setIsLoading(true)
+      setError(null)
       try {
-        const data = await getRecipe(recetteId);
-        if (data){
-          setRecipe(data); // Set the fetched recipe data
+        console.log("Fetching recipe with ID:", recipeId)
+        const data = await getRecipe(recipeId)
+        if (data) {
+          setRecipe(data)
+        } else {
+          setError("Recette non trouvée")
         }
       } catch (error) {
-        console.error("Error fetching recipe details:", error);
+        console.error("Error fetching recipe details:", error)
+        setError("Erreur lors du chargement de la recette")
       } finally {
-        setIsLoading(false);
+        setIsLoading(false)
       }
-    };
+    }
 
-    fetchRecipe();
-  }, [recetteId]);
-
+    if (recipeId) {
+      fetchRecipe()
+    } else {
+      setError("ID de recette manquant")
+      setIsLoading(false)
+    }
+  }, [recipeId])
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000" />
+        <Text style={styles.loadingText}>Chargement de la recette...</Text>
       </View>
     )
   }
 
-  if (!recipe) {
+  if (error || !recipe) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Recette non trouvée</Text>
+        <Text style={styles.errorText}>{error || "Recette non trouvée"}</Text>
+        <TouchableOpacity style={styles.backButtonError} onPress={() => navigation.goBack()}>
+          <Text style={styles.backButtonText}>Retour</Text>
+        </TouchableOpacity>
       </View>
     )
   }
@@ -193,26 +208,41 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
       case "ingredients":
         return (
           <View style={styles.tabContent}>
-            {recipe.ingredients.items.map((ingredient, index) => (
-              <View key={index} style={styles.ingredientItem}>
-                <Text style={styles.ingredientText}>
-                  {ingredient.quantity} {ingredient.unit} {ingredient.name}{" "}
-                  {ingredient.extra ? `(${ingredient.extra})` : ""}
-                </Text>
-              </View>
-            ))}
+            {recipe.ingredients && recipe.ingredients.items ? (
+              recipe.ingredients.items.map((ingredient, index) => (
+                <View key={index} style={styles.ingredientItem}>
+                  <Text style={styles.ingredientText}>
+                    {ingredient.quantity} {ingredient.unit} {ingredient.name}{" "}
+                    {ingredient.extra ? `(${ingredient.extra})` : ""}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noContentText}>Aucun ingrédient disponible</Text>
+            )}
           </View>
         )
       case "preparation":
         return (
           <View style={styles.tabContent}>
-            {recipe.instructions.map((instruction, index) => (
-              <View key={index} style={styles.instructionItem}>
-                <Text style={styles.instructionText}>{instruction.children[0].text}</Text>
-              </View>
-            ))}
+            {recipe.instructions && recipe.instructions.length > 0 ? (
+              recipe.instructions.map((instruction, index) => (
+                <View key={index} style={styles.instructionItem}>
+                  <View style={styles.instructionNumberContainer}>
+                    <Text style={styles.instructionNumber}>{index + 1}</Text>
+                  </View>
+                  <Text style={styles.instructionText}>
+                    {instruction.children && instruction.children.length > 0 ? instruction.children[0].text : ""}
+                  </Text>
+                </View>
+              ))
+            ) : (
+              <Text style={styles.noContentText}>Aucune instruction disponible</Text>
+            )}
           </View>
         )
+      default:
+        return null
     }
   }
 
@@ -221,7 +251,12 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
       <ScrollView>
         <View style={styles.heroSection}>
           <Image
-            source={{ uri: `http://192.168.100.35:1337${recipe.image[0].formats.small.url}` }}
+            source={{
+              uri:
+                recipe.image && recipe.image.length > 0
+                  ? `${API_BASE_URL}${recipe.image[0].formats.small.url}`
+                  : "https://via.placeholder.com/300x200?text=No+Image",
+            }}
             style={styles.heroImage}
           />
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
@@ -312,14 +347,33 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 16,
+    color: "#000",
+  },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    padding: 20,
   },
   errorText: {
     fontSize: 18,
     color: "red",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  backButtonError: {
+    backgroundColor: "#000",
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
+  backButtonText: {
+    color: "#fff",
+    fontSize: 16,
+    fontWeight: "600",
   },
   heroSection: {
     position: "relative",
@@ -359,8 +413,6 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     zIndex: 10,
   },
-
-
   headerTitle: {
     fontSize: 18,
     fontWeight: "600",
@@ -452,7 +504,6 @@ const styles = StyleSheet.create({
   },
   nutritionSection: {
     marginTop: 24,
-    paddingHorizontal: 16,
   },
   nutritionCard: {
     backgroundColor: "white",
@@ -522,14 +573,18 @@ const styles = StyleSheet.create({
     gap: 16,
     marginBottom: 24,
   },
-  instructionNumber: {
+  instructionNumberContainer: {
     width: 28,
     height: 28,
     backgroundColor: "#000",
-    color: "#fff",
     borderRadius: 14,
-    textAlign: "center",
-    lineHeight: 28,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  instructionNumber: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "bold",
   },
   instructionText: {
     flex: 1,
@@ -546,6 +601,11 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 16,
   },
-
+  noContentText: {
+    fontSize: 16,
+    color: "#6B7280",
+    fontStyle: "italic",
+    textAlign: "center",
+    marginTop: 20,
+  },
 })
-

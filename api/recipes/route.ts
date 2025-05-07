@@ -1,7 +1,6 @@
-import axios from "axios";
-
-const API_URL = "http://192.168.100.15:1337/api";
-const API_KEY = "90e0b995cd84179026cb851de953de05e32a7ad3bb579c26c930057a384892a4fd89aee4f53da73ca3a88fd4c9084360df104e7761d491701fe4214471722b7d17d15d3d55f2d6e7ff6549d9de3d02f13476ae8dbd70315d6df445ec6f536d5949781519d0187235f1ea2826b82a66e1625b2cf96ac7ee0d677a00c0db198a9a";
+import axios from 'axios';
+const API_URL = "http://192.168.1.110:1337/api";
+const API_KEY = "f441809cb88567ac4e4b13bce7ca649f71163eb0d3f66b1c6b4489f6f02262983343eb079ece4f249222304aff0f5a8cdb3b465376e35c5404a419999c654806ae1accced63bccec4706719fe4e5800d8da56feca0b7aaf76f7579baa83cb6be07b51f31ece47d295ab138db41dd99ff71f5849eb28b1e91154f4c3644102225";
 
 export const getRecipes = async (categoryDocumentId: string) => {
   try {
@@ -11,23 +10,47 @@ export const getRecipes = async (categoryDocumentId: string) => {
       url += `&filters[categories][documentId][$eq]=${encodeURIComponent(categoryDocumentId)}`;
     }
 
-
     const response = await axios.get(url, {
       headers: { Authorization: `Bearer ${API_KEY}` },
     });
 
-
     return response.data.data;
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error("Axios error details:", error.response?.data);
-      console.error("Axios error status:", error.response?.status);
-      console.error("Axios error headers:", error.response?.headers);
+      console.error('Axios error details:', error.response?.data);
+      console.error('Axios error status:', error.response?.status);
+      console.error('Axios error headers:', error.response?.headers);
     }
-    console.error("Erreur lors de la récupération des recettes :", error);
+    console.error('Erreur lors de la récupération des recettes :', error);
     throw error;
   }
 };
+export const getRecipe = async (documentId: string) => {
+  try {
+    // Make sure you're using the correct endpoint format
+    const url = `${API_URL}/recipes/${documentId}?populate=image`
+    console.log("Requesting Recipe URL:", url)
+
+    const { data } = await axios.get(url, {
+      headers: { Authorization: `Bearer ${API_KEY}` },
+    })
+
+    // Vérification de la validité des données
+    if (data) {
+      return data.data
+    } else {
+      throw new Error("Aucune recette trouvée dans la réponse de l'API")
+    }
+  } catch (error) {
+    if (axios.isAxiosError(error)) {
+      console.error("Axios error details:", error.response?.data)
+      console.error("Axios error status:", error.response?.status)
+      console.error("Axios error headers:", error.response?.headers)
+    }
+    console.error("Erreur lors de la récupération de la recette :", error)
+    throw error
+  }
+}
 
 export const getCategories = async () => {
   try {
@@ -41,40 +64,16 @@ export const getCategories = async () => {
     if (response.data && response.data.data) {
       return response.data.data;
     } else {
-      throw new Error("Aucune catégorie trouvée dans la réponse de l'API");
+      throw new Error('Aucune catégorie trouvée dans la réponse de l\'API');
     }
   } catch (error) {
     if (axios.isAxiosError(error)) {
-      console.error("Axios error details:", error.response?.data);
-      console.error("Axios error status:", error.response?.status);
-      console.error("Axios error headers:", error.response?.headers);
+      console.error('Axios error details:', error.response?.data);
+      console.error('Axios error status:', error.response?.status);
+      console.error('Axios error headers:', error.response?.headers);
     }
-    console.error("Erreur lors de la récupération des catégories :", error);
+    console.error('Erreur lors de la récupération des catégories :', error);
     throw error;
   }
 };
 
-export const getRecipe = async (documentId: string) => {
-  try {
-    const url = `${API_URL}/recipes/${documentId}?populate=image`;
-    console.log("Requesting Recipe URL:", url);
-
-    const {data} = await axios.get(url, {
-      headers: { Authorization: `Bearer ${API_KEY}` },
-    });
-    // Vérification de la validité des données
-    if (data) {
-      return data.data;
-    } else {
-      throw new Error("Aucune recette trouvée dans la réponse de l'API");
-    }
-  } catch (error) {
-    if (axios.isAxiosError(error)) {
-      console.error("Axios error details:", error.response?.data);
-      console.error("Axios error status:", error.response?.status);
-      console.error("Axios error headers:", error.response?.headers);
-    }
-    console.error("Erreur lors de la récupération de la recette :", error);
-    throw error;
-  }
-};
