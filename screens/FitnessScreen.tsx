@@ -14,7 +14,12 @@ import {
 import { ChevronLeft, Clock, Flame, Tag } from "lucide-react-native"
 import { useNavigation, useRoute } from "@react-navigation/native"
 import type { RouteProp } from "@react-navigation/native"
-import { type FitnessPlan, getFitnessPlanByType, getImageUrl, getPlainTextDescription } from "@/api/fitness-plans/route"
+import { 
+  type FitnessPlan, 
+  getFitnessPlans, 
+  getImageUrl, 
+  getPlainTextDescription 
+} from "@/api/fitness-plans/route"
 import { LinearGradient } from "expo-linear-gradient"
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack"
 
@@ -25,18 +30,30 @@ const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT
 
 type RootStackParamList = {
   Fitness: { category: string }
-  SubCategories: { category: string } // ✅ Add this
+  SubCategories: { category: string }
+  FitnessPlanDetail: { planId: string } // Updated to use planId
 }
 
-type FitnessScreenRouteProp = RouteProp<RootStackParamList, "Fitness">
+type FitnessDetailScreenRouteProp = RouteProp<RootStackParamList, "FitnessPlanDetail">
 type NavigationProp = NativeStackNavigationProp<RootStackParamList>
+
+// Add this function to your API file or implement it here temporarily
+async function getFitnessPlanById(id: string): Promise<FitnessPlan | null> {
+  try {
+    const plans = await getFitnessPlans()
+    return plans.find(plan => plan.id === id) || null
+  } catch (error) {
+    console.error("Error fetching fitness plan by ID:", error)
+    throw error
+  }
+}
 
 export default function FitnessDetail() {
   const [fitnessPlan, setFitnessPlan] = useState<FitnessPlan | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const route = useRoute<FitnessScreenRouteProp>()
-  const { category } = route.params
+  const route = useRoute<FitnessDetailScreenRouteProp>()
+  const { planId } = route.params // Get planId instead of category
   const navigation = useNavigation<NavigationProp>()
 
   const scrollY = new Animated.Value(0)
@@ -63,11 +80,11 @@ export default function FitnessDetail() {
     const loadFitnessPlan = async () => {
       try {
         setLoading(true)
-        const plans = await getFitnessPlanByType(category)
-        if (plans && plans.length > 0) {
-          setFitnessPlan(plans[0])
+        const plan = await getFitnessPlanById(planId)
+        if (plan) {
+          setFitnessPlan(plan)
         } else {
-          setError("No fitness plan found for this category.")
+          setError("No fitness plan found with this ID.")
         }
       } catch (err) {
         console.error("Failed to load fitness plan:", err)
@@ -78,7 +95,7 @@ export default function FitnessDetail() {
     }
 
     loadFitnessPlan()
-  }, [category])
+  }, [planId])
 
   if (loading) {
     return (
@@ -218,8 +235,10 @@ export default function FitnessDetail() {
       </Animated.ScrollView>
 
       <View style={styles.footer}>
-        
-        <TouchableOpacity style={styles.startButton} onPress={() => navigation.navigate("SubCategories", { category })}>
+        <TouchableOpacity 
+          style={styles.startButton} 
+          onPress={() => navigation.navigate("SubCategories", { category: fitnessPlan.type })}
+        >
           <Text style={styles.startButtonText}>Rejoindre</Text>
         </TouchableOpacity>
       </View>

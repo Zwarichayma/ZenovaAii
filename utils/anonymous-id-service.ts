@@ -1,4 +1,4 @@
-import { storageFallback } from "../../utils/storage-fallback"
+import { storageFallback } from "./storage-fallback"
 
 // Key for storing the anonymous ID in local storage
 const ANONYMOUS_ID_KEY = "anonymousId"
@@ -7,22 +7,24 @@ const ANONYMOUS_ID_KEY = "anonymousId"
 let inMemoryAnonymousId: string | null = null
 
 /**
- * Generates a device-specific unique ID
- * This implementation focuses on creating a stable ID for each device
+ * Generates a simple unique ID without relying on crypto.getRandomValues()
  */
-function generateDeviceUniqueId(): string {
-  // Create a timestamp-based prefix
-  const timestamp = new Date().getTime().toString()
-
-  // Add some randomness
+function generateSimpleUniqueId(length = 24): string {
   const chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-  let randomPart = ""
-  for (let i = 0; i < 16; i++) {
+  const timestamp = new Date().getTime().toString()
+  let result = ""
+
+  // Add timestamp to ensure uniqueness
+  result += timestamp
+
+  // Add random characters to complete the desired length
+  const remainingLength = length - timestamp.length
+  for (let i = 0; i < remainingLength; i++) {
     const randomIndex = Math.floor(Math.random() * chars.length)
-    randomPart += chars[randomIndex]
+    result += chars[randomIndex]
   }
 
-  return `${timestamp}${randomPart}`
+  return result
 }
 
 /**
@@ -36,7 +38,6 @@ export const anonymousIdService = {
   async getAnonymousId(): Promise<string> {
     // Return cached ID if available
     if (inMemoryAnonymousId) {
-      console.log("Using cached anonymous ID:", inMemoryAnonymousId)
       return inMemoryAnonymousId
     }
 
@@ -47,17 +48,17 @@ export const anonymousIdService = {
       if (storedId) {
         // Use existing ID if found
         inMemoryAnonymousId = storedId
-        console.log("Retrieved anonymous ID from storage:", storedId)
+        console.log("Anonymous ID retrieved from storage:", storedId)
         return storedId
       }
 
       // Generate a new ID if none exists
-      const newId = generateDeviceUniqueId()
+      const newId = generateSimpleUniqueId()
 
       // Save to storage with proper error handling
       try {
         await storageFallback.setItem(ANONYMOUS_ID_KEY, newId)
-        console.log("Saved new anonymous ID to storage:", newId)
+        console.log("New anonymous ID saved to storage:", newId)
       } catch (storageError) {
         console.error("Failed to save anonymous ID to storage:", storageError)
         // Continue with the new ID even if storage fails
@@ -65,15 +66,15 @@ export const anonymousIdService = {
 
       // Cache the new ID
       inMemoryAnonymousId = newId
-      console.log("Generated new anonymous ID:", newId)
+      console.log("New anonymous ID generated:", newId)
       return newId
     } catch (error) {
       console.error("Error managing anonymous ID:", error)
 
       // Generate a fallback ID if everything fails
       // Note: This will not persist across sessions
-      const fallbackId = generateDeviceUniqueId()
-      console.log("Generated fallback anonymous ID (non-persistent):", fallbackId)
+      const fallbackId = generateSimpleUniqueId()
+      console.log("Fallback anonymous ID generated (non-persistent):", fallbackId)
       return fallbackId
     }
   },
@@ -85,7 +86,7 @@ export const anonymousIdService = {
   async resetAnonymousId(): Promise<string> {
     try {
       // Generate a new ID
-      const newId = generateDeviceUniqueId()
+      const newId = generateSimpleUniqueId()
 
       // Save to storage
       await storageFallback.setItem(ANONYMOUS_ID_KEY, newId)
@@ -93,7 +94,7 @@ export const anonymousIdService = {
       // Update in-memory cache
       inMemoryAnonymousId = newId
 
-      console.log("Reset anonymous ID to:", newId)
+      console.log("Anonymous ID reset to:", newId)
       return newId
     } catch (error) {
       console.error("Error resetting anonymous ID:", error)
@@ -108,7 +109,7 @@ export const anonymousIdService = {
     try {
       await storageFallback.removeItem(ANONYMOUS_ID_KEY)
       inMemoryAnonymousId = null
-      console.log("Cleared anonymous ID from storage")
+      console.log("Anonymous ID cleared from storage")
     } catch (error) {
       console.error("Error clearing anonymous ID:", error)
       throw error

@@ -20,16 +20,11 @@ import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../types/navigation"
 import { authService } from "../api/auth/auth-service"
-import { storageFallback } from "../utils/storage-fallback"
-import { anonymousUserService } from "../api/anonymous/anonymous-service"
-// Add this import at the top of the file
+import { anonymousIdService } from "../api/anonymous/anonymous-service"
+import { anonymousUserService } from "../api/anonymous/anonymous-user-service"
 
 const { width, height } = Dimensions.get("window")
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
-
-// Constants for anonymous ID
-const ANONYMOUS_ID_KEY = "anonymousId"
-let inMemoryAnonymousId: string | null = null
 
 export default function SignUpScreen() {
   // Form state
@@ -42,6 +37,7 @@ export default function SignUpScreen() {
   const [isLoading, setIsLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [anonymousId, setAnonymousId] = useState<string | null>(null)
+  const [refreshingId, setRefreshingId] = useState(false)
 
   // Form validation state
   const [emailError, setEmailError] = useState("")
@@ -54,18 +50,18 @@ export default function SignUpScreen() {
 
   // Load anonymous ID when component mounts
   useEffect(() => {
-    const loadAnonymousId = async () => {
-      try {
-        const id = await authService.getAnonymousId()
-        setAnonymousId(id)
-        console.log("Anonymous ID loaded in SignUpScreen:", id)
-      } catch (error) {
-        console.error("Error loading anonymous ID in SignUpScreen:", error)
-      }
-    }
-
     loadAnonymousId()
   }, [])
+
+  const loadAnonymousId = async () => {
+    try {
+      const id = await anonymousIdService.getAnonymousId()
+      setAnonymousId(id)
+      console.log("Anonymous ID loaded in SignUpScreen:", id)
+    } catch (error) {
+      console.error("Error loading anonymous ID in SignUpScreen:", error)
+    }
+  }
 
   // Define validation functions
   const validateEmail = useCallback((email: string): boolean => {
@@ -173,7 +169,7 @@ export default function SignUpScreen() {
       // Now convert the anonymous user data to the registered user
       if (currentAnonymousId) {
         try {
-          await anonymousUserService.convertToUser(currentAnonymousId)
+          await anonymousUserService.convertToUser(currentAnonymousId, response.user.id)
           console.log("Anonymous data successfully migrated to user ID:", response.user.id)
         } catch (conversionError) {
           // Log the error but don't fail the registration process
@@ -225,18 +221,16 @@ export default function SignUpScreen() {
 
   // Function to refresh the anonymous ID
   const refreshAnonymousId = async () => {
+    setRefreshingId(true)
     try {
-      // Force regeneration by clearing the in-memory ID first
-      // This is just for demonstration - in a real app you might not want to do this
-      await storageFallback.removeItem(ANONYMOUS_ID_KEY)
-      inMemoryAnonymousId = null
-
-      const newId = await authService.getAnonymousId()
+      const newId = await anonymousIdService.resetAnonymousId()
       setAnonymousId(newId)
       Alert.alert("Success", "Anonymous ID refreshed")
     } catch (error) {
       console.error("Error refreshing anonymous ID:", error)
       Alert.alert("Error", "Failed to refresh anonymous ID")
+    } finally {
+      setRefreshingId(false)
     }
   }
 
@@ -260,8 +254,12 @@ export default function SignUpScreen() {
           <View style={styles.anonymousIdContainer}>
             <Text style={styles.anonymousIdLabel}>Anonymous ID:</Text>
             <Text style={styles.anonymousId}>{anonymousId || "Loading..."}</Text>
-            <TouchableOpacity onPress={refreshAnonymousId} style={styles.refreshButton}>
-              <Text style={styles.refreshButtonText}>Refresh ID</Text>
+            <TouchableOpacity onPress={refreshAnonymousId} style={styles.refreshButton} disabled={refreshingId}>
+              {refreshingId ? (
+                <ActivityIndicator size="small" color="#555" />
+              ) : (
+                <Text style={styles.refreshButtonText}>Refresh ID</Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -440,6 +438,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#f0f0f0",
     padding: 5,
     borderRadius: 5,
+    minWidth: 70,
+    alignItems: "center",
   },
   refreshButtonText: {
     fontSize: 10,
@@ -522,7 +522,6 @@ const styles = StyleSheet.create({
     width: 19,
     height: 19,
     marginRight: 8,
-    resizeMode: "contain",
+    resizeContent: "contain",
   },
 })
-

@@ -17,7 +17,7 @@ import {
 import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../types/navigation"
-import { authService } from "../api/auth/route"
+import { authService } from "../api/auth/auth-service" // Fixed import path
 
 const { width, height } = Dimensions.get("window")
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
@@ -229,4 +229,3 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
   },
 })
-
