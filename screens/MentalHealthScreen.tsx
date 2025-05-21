@@ -282,9 +282,9 @@ export default function HomeScreen({ navigation }: any) {
         } else if (lowerType === "music" || lowerType === "sound") {
           navigation.navigate("MusicDetail", { id })
         } else if (lowerType === "quote") {
-          navigation.navigate("QuoteDetail", { id })
+          navigation.navigate("Quote", { id })
         } else if (lowerType === "mental") {
-          navigation.navigate("MentalDetail", { id })
+          navigation.navigate("Test", { id })
         } else {
           console.warn(`Unknown content type: ${type}`)
         }

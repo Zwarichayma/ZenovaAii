@@ -2,16 +2,78 @@ import axios from "axios"
 import { storageFallback } from "../../utils/storage-fallback"
 import { generateSimpleUuid, isValidUuid } from "../../utils/simple-id-generator"
 import { API_URL, API_KEY } from "@env"
+console.log(API_URL); 
+console.log(API_KEY); 
+
+// Fonction simple pour générer un UUID sans dépendance externe
+function generateDeviceUuid() {
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
+}
 
 // Storage keys
 const USER_KEY = "user_data"
 const ANONYMOUS_ID_KEY = "anonymous_id"
 const ANONYMOUS_ID_TIMESTAMP_KEY = "anonymous_id_timestamp"
+const DEVICE_UUID_KEY = "device_uuid"
 
-// In-memory fallback for anonymous ID in case storage fails completely
+// In-memory fallback for IDs in case storage fails completely
 let inMemoryAnonymousId: string | null = null
+let inMemoryDeviceUUID: string | null = null
 
 export const authService = {
+  // Get or generate device UUID
+  getDeviceUUID: async (): Promise<string> => {
+    try {
+      // If we already have an in-memory UUID, use it
+      if (inMemoryDeviceUUID) {
+        console.log("Using in-memory device UUID:", inMemoryDeviceUUID)
+        return inMemoryDeviceUUID
+      }
+
+      // Try to get from storage
+      let deviceUUID = await storageFallback.getItem(DEVICE_UUID_KEY)
+
+      // Validate the stored UUID
+      if (deviceUUID && isValidUuid(deviceUUID)) {
+        console.log("Retrieved existing device UUID:", deviceUUID)
+
+        // Store in memory for future use
+        inMemoryDeviceUUID = deviceUUID
+        return deviceUUID
+      } else {
+        // Generate a new UUID if none exists or if invalid
+        deviceUUID = generateDeviceUuid()
+
+        // Store with error handling
+        try {
+          await storageFallback.setItem(DEVICE_UUID_KEY, deviceUUID)
+          console.log("Generated and stored new device UUID:", deviceUUID)
+        } catch (storageError) {
+          console.error("Failed to store device UUID:", storageError)
+          // Continue with the new UUID even if storage fails
+        }
+
+        // Keep a copy in memory
+        inMemoryDeviceUUID = deviceUUID
+        return deviceUUID
+      }
+    } catch (error) {
+      console.error("Error getting device UUID:", error)
+
+      // Last resort fallback - generate a new one in memory
+      if (!inMemoryDeviceUUID) {
+        inMemoryDeviceUUID = generateDeviceUuid()
+        console.log("Using new fallback device UUID:", inMemoryDeviceUUID)
+      }
+
+      return inMemoryDeviceUUID
+    }
+  },
+
   // Get or generate anonymous ID with improved persistence
   getAnonymousId: async (): Promise<string> => {
     try {
@@ -99,6 +161,53 @@ export const authService = {
     try {
       await storageFallback.setItem(API_KEY, token)
       await storageFallback.setItem(USER_KEY, JSON.stringify(userData))
+      
+      // Store device session in Strapi
+      try {
+        const deviceUUID = await authService.getDeviceUUID()
+        const deviceName = "Mobile Device" // Vous pourriez récupérer le nom réel de l'appareil
+        
+        // Create authenticated client
+        const client = axios.create({
+          baseURL: API_URL,
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+        })
+        
+        // Check if session already exists
+        const existingSessionResponse = await client.get(
+          `/device-sessions?filters[deviceUuid][$eq]=${deviceUUID}&filters[user][id][$eq]=${userData.id}`
+        )
+        
+        if (existingSessionResponse.data && 
+            existingSessionResponse.data.data && 
+            existingSessionResponse.data.data.length > 0) {
+          // Update existing session
+          const sessionId = existingSessionResponse.data.data[0].id
+          await client.put(`/device-sessions/${sessionId}`, {
+            data: {
+              lastActive: new Date().toISOString()
+            }
+          })
+          console.log("Updated existing device session")
+        } else {
+          // Create new session
+          await client.post('/device-sessions', {
+            data: {
+              deviceUuid: deviceUUID,
+              deviceName: deviceName,
+              user: userData.id,
+              lastActive: new Date().toISOString()
+            }
+          })
+          console.log("Created new device session")
+        }
+      } catch (sessionError) {
+        console.error("Error managing device session:", sessionError)
+        // Continue even if session management fails
+      }
     } catch (error) {
       console.error("Error storing auth data:", error)
       throw error
@@ -129,9 +238,43 @@ export const authService = {
   // Clear the stored token and user data (logout)
   clearAuthData: async (): Promise<void> => {
     try {
+      // Try to remove device session before clearing auth data
+      try {
+        const token = await authService.getToken()
+        const userData = await authService.getUserData()
+        const deviceUUID = await authService.getDeviceUUID()
+        
+        if (token && userData && deviceUUID) {
+          // Create authenticated client
+          const client = axios.create({
+            baseURL: API_URL,
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
+          
+          // Find and delete the session
+          const sessionResponse = await client.get(
+            `/device-sessions?filters[deviceUuid][$eq]=${deviceUUID}&filters[user][id][$eq]=${userData.id}`
+          )
+          
+          if (sessionResponse.data && 
+              sessionResponse.data.data && 
+              sessionResponse.data.data.length > 0) {
+            const sessionId = sessionResponse.data.data[0].id
+            await client.delete(`/device-sessions/${sessionId}`)
+            console.log("Deleted device session during logout")
+          }
+        }
+      } catch (sessionError) {
+        console.error("Error removing device session during logout:", sessionError)
+        // Continue with logout even if session removal fails
+      }
+      
       await storageFallback.removeItem(API_KEY)
       await storageFallback.removeItem(USER_KEY)
-      // Note: We don't clear the anonymous ID to maintain user's anonymous data
+      // Note: We don't clear the anonymous ID or device UUID to maintain identity
     } catch (error) {
       console.error("Error clearing auth data:", error)
       throw error
@@ -142,8 +285,10 @@ export const authService = {
   register: async (email: string, username: string, password: string) => {
     try {
       const anonymousId = await authService.getAnonymousId()
+      const deviceUUID = await authService.getDeviceUUID()
 
       console.log("Registering user with anonymous ID:", anonymousId)
+      console.log("Device UUID:", deviceUUID)
 
       const response = await axios.post(
         `${API_URL}/auth/local/register`,
@@ -156,6 +301,7 @@ export const authService = {
           headers: {
             "Content-Type": "application/json",
             "X-Anonymous-ID": anonymousId,
+            "X-Device-UUID": deviceUUID,
           },
         },
       )
@@ -194,8 +340,10 @@ export const authService = {
   login: async (identifier: string, password: string) => {
     try {
       const anonymousId = await authService.getAnonymousId()
+      const deviceUUID = await authService.getDeviceUUID()
 
       console.log("Logging in with anonymous ID:", anonymousId)
+      console.log("Device UUID:", deviceUUID)
 
       const response = await axios.post(
         `${API_URL}/auth/local`,
@@ -207,6 +355,7 @@ export const authService = {
           headers: {
             "Content-Type": "application/json",
             "X-Anonymous-ID": anonymousId,
+            "X-Device-UUID": deviceUUID,
           },
         },
       )
@@ -245,8 +394,10 @@ export const authService = {
   googleAuth: async (idToken: string) => {
     try {
       const anonymousId = await authService.getAnonymousId()
+      const deviceUUID = await authService.getDeviceUUID()
 
       console.log("Google auth with anonymous ID:", anonymousId)
+      console.log("Device UUID:", deviceUUID)
 
       const response = await axios.post(
         `${API_URL}/auth/google/mobile`,
@@ -257,6 +408,7 @@ export const authService = {
           headers: {
             "Content-Type": "application/json",
             "X-Anonymous-ID": anonymousId,
+            "X-Device-UUID": deviceUUID,
           },
           timeout: 10000, // 10 second timeout
         },
@@ -289,20 +441,178 @@ export const authService = {
     }
   },
 
-  // Check if user is authenticated
+  // Check if user is authenticated by token
+  isAuthenticatedByToken: async (): Promise<boolean> => {
+    try {
+      const token = await authService.getToken()
+      
+      if (!token) {
+        return false
+      }
+      
+      // Create authenticated client
+      const client = axios.create({
+        baseURL: API_URL,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+      
+      // Verify token by making a request to /users/me
+      const response = await client.get('/users/me')
+      
+      return response.status === 200
+    } catch (error) {
+      console.error("Error checking token authentication:", error)
+      return false
+    }
+  },
+
+  // Check if user is authenticated by UUID
+  isAuthenticatedByUUID: async (): Promise<boolean> => {
+    try {
+      const deviceUUID = await authService.getDeviceUUID()
+      const userData = await authService.getUserData()
+      const token = await authService.getToken()
+      
+      if (!userData || !token) {
+        return false
+      }
+      
+      // Create authenticated client
+      const client = axios.create({
+        baseURL: API_URL,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+      
+      // Check if this UUID is associated with the user
+      const response = await client.get(
+        `/device-sessions?filters[deviceUuid][$eq]=${deviceUUID}&filters[user][id][$eq]=${userData.id}`
+      )
+      
+      if (response.data && 
+          response.data.data && 
+          response.data.data.length > 0) {
+        // Update last active timestamp
+        const sessionId = response.data.data[0].id
+        await client.put(`/device-sessions/${sessionId}`, {
+          data: {
+            lastActive: new Date().toISOString()
+          }
+        })
+        
+        return true
+      }
+      
+      return false
+    } catch (error) {
+      console.error("Error checking UUID authentication:", error)
+      return false
+    }
+  },
+
+  // Check if user is authenticated (by token or UUID)
   isAuthenticated: async (): Promise<boolean> => {
-    const token = await authService.getToken()
-    return token !== null
+    try {
+      // First try token authentication
+      const isAuthByToken = await authService.isAuthenticatedByToken()
+      
+      if (isAuthByToken) {
+        console.log("User authenticated by token")
+        return true
+      }
+      
+      // If token auth fails, try UUID auth
+      const isAuthByUUID = await authService.isAuthenticatedByUUID()
+      
+      if (isAuthByUUID) {
+        console.log("User authenticated by UUID")
+        return true
+      }
+      
+      console.log("Authentication failed")
+      return false
+    } catch (error) {
+      console.error("Error checking authentication:", error)
+      return false
+    }
+  },
+
+  // Get device sessions for the current user
+  getDeviceSessions: async (userId: number): Promise<any[]> => {
+    try {
+      const token = await authService.getToken()
+      
+      if (!token) {
+        return []
+      }
+      
+      // Create authenticated client
+      const client = axios.create({
+        baseURL: API_URL,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+      
+      // Get all device sessions for this user
+      const response = await client.get(
+        `/device-sessions?filters[user][id][$eq]=${userId}&sort=lastActive:desc`
+      )
+      
+      if (response.data && response.data.data) {
+        return response.data.data
+      }
+      
+      return []
+    } catch (error) {
+      console.error("Error getting device sessions:", error)
+      return []
+    }
+  },
+
+  // Remove a device session
+  removeDeviceSession: async (sessionId: string): Promise<void> => {
+    try {
+      const token = await authService.getToken()
+      
+      if (!token) {
+        throw new Error("No authentication token found")
+      }
+      
+      // Create authenticated client
+      const client = axios.create({
+        baseURL: API_URL,
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+      })
+      
+      // Delete the session
+      await client.delete(`/device-sessions/${sessionId}`)
+      console.log("Device session removed successfully")
+    } catch (error) {
+      console.error("Error removing device session:", error)
+      throw error
+    }
   },
 
   // Create API client with auth headers
   createAuthenticatedClient: async () => {
     const token = await authService.getToken()
     const anonymousId = await authService.getAnonymousId()
+    const deviceUUID = await authService.getDeviceUUID()
 
     console.log("Creating authenticated client with headers:", {
       Authorization: token ? `Bearer ${token}` : "None",
       "X-Anonymous-ID": anonymousId,
+      "X-Device-UUID": deviceUUID,
     })
 
     return axios.create({
@@ -310,6 +620,7 @@ export const authService = {
       headers: {
         Authorization: token ? `Bearer ${token}` : "",
         "X-Anonymous-ID": anonymousId,
+        "X-Device-UUID": deviceUUID,
       },
     })
   },

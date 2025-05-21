@@ -1,58 +1,94 @@
-// This is a fallback storage solution when AsyncStorage isn't available
-// It uses in-memory storage which will be lost when the app restarts
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
-// In-memory storage object
-const memoryStorage: Record<string, string> = {}
-
-// Flag to track if we've shown the warning
-let warningShown = false
-
-// Show a warning about using in-memory storage
-const showWarning = () => {
-  if (!warningShown) {
-    console.warn(
-      "Using in-memory storage fallback instead of AsyncStorage. " +
-        "Data will be lost when the app restarts. " +
-        "Fix AsyncStorage native module linking for persistence.",
-    )
-    warningShown = true
-  }
-}
-
+// Utilitaire de stockage avec fallback en mémoire
 export const storageFallback = {
-  // Store a value
-  setItem: async (key: string, value: string): Promise<void> => {
-    showWarning()
-    memoryStorage[key] = value
-    return Promise.resolve()
-  },
+  // Cache en mémoire pour les valeurs
+  memoryCache: new Map<string, string>(),
 
-  // Get a value
+  // Obtenir un élément du stockage avec fallback en mémoire
   getItem: async (key: string): Promise<string | null> => {
-    showWarning()
-    return Promise.resolve(memoryStorage[key] || null)
+    try {
+      // Essayer d'abord AsyncStorage
+      const value = await AsyncStorage.getItem(key);
+      
+      if (value !== null) {
+        // Mettre en cache la valeur récupérée
+        storageFallback.memoryCache.set(key, value);
+        return value;
+      }
+      
+      // Si pas dans AsyncStorage, vérifier le cache en mémoire
+      if (storageFallback.memoryCache.has(key)) {
+        return storageFallback.memoryCache.get(key) || null;
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`Error getting item ${key} from storage:`, error);
+      
+      // Fallback sur le cache en mémoire
+      if (storageFallback.memoryCache.has(key)) {
+        return storageFallback.memoryCache.get(key) || null;
+      }
+      
+      return null;
+    }
   },
 
-  // Remove a value
+  // Définir un élément dans le stockage avec fallback en mémoire
+  setItem: async (key: string, value: string): Promise<void> => {
+    try {
+      // Stocker dans AsyncStorage
+      await AsyncStorage.setItem(key, value);
+      
+      // Mettre à jour le cache en mémoire
+      storageFallback.memoryCache.set(key, value);
+    } catch (error) {
+      console.error(`Error setting item ${key} in storage:`, error);
+      
+      // Fallback sur le cache en mémoire
+      storageFallback.memoryCache.set(key, value);
+      
+      // Réessayer plus tard (optionnel)
+      setTimeout(async () => {
+        try {
+          await AsyncStorage.setItem(key, value);
+        } catch (retryError) {
+          console.error(`Retry failed for setting item ${key}:`, retryError);
+        }
+      }, 5000);
+    }
+  },
+
+  // Supprimer un élément du stockage
   removeItem: async (key: string): Promise<void> => {
-    showWarning()
-    delete memoryStorage[key]
-    return Promise.resolve()
+    try {
+      // Supprimer de AsyncStorage
+      await AsyncStorage.removeItem(key);
+      
+      // Supprimer du cache en mémoire
+      storageFallback.memoryCache.delete(key);
+    } catch (error) {
+      console.error(`Error removing item ${key} from storage:`, error);
+      
+      // Supprimer du cache en mémoire même en cas d'erreur
+      storageFallback.memoryCache.delete(key);
+    }
   },
 
-  // Clear all values
+  // Effacer tout le stockage
   clear: async (): Promise<void> => {
-    showWarning()
-    Object.keys(memoryStorage).forEach((key) => {
-      delete memoryStorage[key]
-    })
-    return Promise.resolve()
-  },
-
-  // Get all keys
-  getAllKeys: async (): Promise<string[]> => {
-    showWarning()
-    return Promise.resolve(Object.keys(memoryStorage))
-  },
-}
-
+    try {
+      // Effacer AsyncStorage
+      await AsyncStorage.clear();
+      
+      // Effacer le cache en mémoire
+      storageFallback.memoryCache.clear();
+    } catch (error) {
+      console.error('Error clearing storage:', error);
+      
+      // Effacer le cache en mémoire même en cas d'erreur
+      storageFallback.memoryCache.clear();
+    }
+  }
+};

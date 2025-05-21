@@ -18,7 +18,7 @@ import {
 } from "react-native"
 import { Search, Play, Pause, MoreVertical, ArrowLeft, Youtube, Heart, ChevronRight } from "lucide-react-native"
 import axios from "axios"
-import { API_BASE_URL } from "@env"
+import { API_BASE_URL } from "@/config"
 
 const { width, height } = Dimensions.get("window")
 

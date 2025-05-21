@@ -73,14 +73,61 @@ type Exercise = {
   } | null
 }
 
+// Mock data for fallback when API fails
+const mockExercises: Exercise[] = [
+  {
+    id: 1,
+    name: "Jumping Jacks",
+    duration: "2",
+    sets: 3,
+    rep: "20 reps",
+    calories_burned: 50,
+  },
+  {
+    id: 2,
+    name: "Push-ups",
+    duration: "3",
+    sets: 3,
+    rep: "15 reps",
+    calories_burned: 30,
+  },
+  {
+    id: 3,
+    name: "Squats",
+    duration: "3",
+    sets: 4,
+    rep: "12 reps",
+    calories_burned: 40,
+  },
+  {
+    id: 4,
+    name: "Plank",
+    duration: "1",
+    sets: 3,
+    rep: "30 sec",
+    calories_burned: 25,
+  },
+  {
+    id: 5,
+    name: "Mountain Climbers",
+    duration: "2",
+    sets: 3,
+    rep: "20 reps",
+    calories_burned: 35,
+  }
+];
+
 export default function Exercises() {
   const [exercises, setExercises] = useState<Exercise[]>([])
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
+  const [useMockData, setUseMockData] = useState<boolean>(false)
 
   const navigation = useNavigation<any>()
   const route = useRoute<ExercisesRouteProp>()
   const { subCategoryId, subCategoryName } = route.params
+
+  console.log("Exercises screen - Received params:", { subCategoryId, subCategoryName })
 
   useEffect(() => {
     const fetchExercises = async () => {
@@ -89,7 +136,7 @@ export default function Exercises() {
 
       try {
         console.log(`Fetching exercises for sub-category ID: ${subCategoryId}`)
-
+       
         // Use the correct endpoint to get fitness plans with their sub-categories and exercises
         const response = await axiosInstance.get(
           `/fitness-plans?populate[sub_categories][populate][exercises][populate]=image`,
@@ -99,6 +146,8 @@ export default function Exercises() {
           throw new Error("Invalid response format")
         }
 
+        console.log("API Response received with status:", response.status)
+        
         const fitnessPlans = response.data.data
         let subCategoryExercises: Exercise[] = []
         let found = false
@@ -123,7 +172,8 @@ export default function Exercises() {
                 calories_burned: ex.calories_burned,
                 image: ex.image,
               }))
-              found = true
+              found = true;
+              console.log("Found exercises in direct structure:", subCategoryExercises.length);
               break
             }
           }
@@ -164,7 +214,8 @@ export default function Exercises() {
                       }
                     : null,
                 }))
-                found = true
+                found = true;
+                console.log("Found exercises in nested structure:", subCategoryExercises.length);
                 break
               }
             }
@@ -180,7 +231,13 @@ export default function Exercises() {
         }
       } catch (err) {
         console.error("Error fetching exercises:", err)
-        setError("Impossible de charger les exercices. Veuillez réessayer.")
+        if (axios.isAxiosError(err)) {
+          console.log("API Error Response:", err.response?.data)
+          console.log("API Error Status:", err.response?.status)
+          setError(`Impossible de charger les exercices. Erreur: ${err.message}. Status: ${err.response?.status || "unknown"}`)
+        } else {
+          setError("Impossible de charger les exercices. Veuillez réessayer.")
+        }
       } finally {
         setLoading(false)
       }
@@ -214,19 +271,29 @@ export default function Exercises() {
     return getImageUrl(imageUrl || null)
   }
 
+  const loadMockData = () => {
+    console.log("Loading mock data")
+    setUseMockData(true)
+    setExercises(mockExercises)
+    setError(null)
+  }
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
          <TouchableOpacity style={styles.backButtonError} onPress={() => navigation.goBack()}>
                   <ChevronLeft stroke="#000" width={24} height={24} />
                 </TouchableOpacity>
-        <Text style={styles.headerTitle}></Text>
+        <Text style={styles.headerTitle}>{subCategoryName}</Text>
         <View style={styles.placeholder} />
       </View>
 
       {error && (
         <View style={styles.errorContainer}>
           <Text style={styles.errorText}>{error}</Text>
+          <TouchableOpacity style={styles.mockDataButton} onPress={loadMockData}>
+            <Text style={styles.mockDataButtonText}>Charger des exemples</Text>
+          </TouchableOpacity>
         </View>
       )}
 
@@ -243,6 +310,11 @@ export default function Exercises() {
           ListEmptyComponent={
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>Aucun exercice trouvé pour cette catégorie</Text>
+              {!useMockData && (
+                <TouchableOpacity style={styles.mockDataButton} onPress={loadMockData}>
+                  <Text style={styles.mockDataButtonText}>Charger des exemples</Text>
+                </TouchableOpacity>
+              )}
             </View>
           }
           renderItem={({ item }) => (
@@ -345,6 +417,20 @@ const styles = StyleSheet.create({
   errorText: {
     fontSize: 14,
     color: "#333",
+    marginBottom: 10,
+  },
+  mockDataButton: {
+    backgroundColor: "#5E72E4",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    alignSelf: "flex-start",
+    marginTop: 10,
+  },
+  mockDataButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "600",
   },
   emptyContainer: {
     flex: 1,

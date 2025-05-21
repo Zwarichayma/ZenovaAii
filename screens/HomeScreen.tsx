@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import {
   View,
   Text,
@@ -14,35 +14,40 @@ import {
   StatusBar,
   Platform,
 } from "react-native"
-import { useNavigation } from "@react-navigation/native"
+import { useNavigation, CommonActions } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import { User, Search, Bell, Heart } from "lucide-react-native"
-import { useRef } from "react"
 import { getCategories } from "../api/recipes/route"
 import { getPersonalizedDiets } from "../api/personalized-diets/route"
 import { getFitnessPlans } from "../api/fitness-plans/route"
 import { getMental } from "../api/mental/route"
-import { API_BASE_URL } from "@env"
+import type { RootStackParamList } from "./navigation"
+import { API_BASE_URL } from "@/config"
 
 const { width, height } = Dimensions.get("window")
+
+// Palette de couleurs noir et blanc
+const COLORS = {
+  primary: "#000000",
+  secondary: "#333333",
+  accent: "#555555",
+  background: "#FFFFFF",
+  backgroundAlt: "#F5F5F5",
+  border: "#E0E0E0",
+  text: "#000000",
+  textSecondary: "#555555",
+  textLight: "#FFFFFF",
+}
 
 // For debugging image URLs
 const DEBUG_IMAGES = false
 
-type RootStackParamList = {
+type TabParamList = {
   Home: undefined
   Profile: undefined
-  Recette: { category?: string }
-  Nutrition: undefined
-  Training: undefined
-  "Mental Health": undefined
-  Bot: undefined
-  Test: undefined
-  Music: undefined
-  "Mental Exercice": undefined
 }
 
-type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Home">
+type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList>
 
 type Category = {
   id: number
@@ -129,32 +134,40 @@ type Mental = {
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>()
-  const translateX = useRef(new Animated.Value(100)).current
+  const translateX = useRef(new Animated.Value(0)).current
   const fadeAnim = useRef(new Animated.Value(0)).current
   const [categories, setCategories] = useState<Category[]>([])
   const [diets, setDiets] = useState<PersonalizedDiet[]>([])
   const [fitnessPlans, setFitnessPlans] = useState<FitnessPlan[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [Mental, setMental] = useState<Mental[]>([])
+  const [favorites, setFavorites] = useState<string[]>([])
+  const [dataLoaded, setDataLoaded] = useState(false)
 
-  useEffect(() => {
-    fetchData()
-    // Animations
-    Animated.parallel([
-      Animated.timing(translateX, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
+  // Définir toutes les fonctions de navigation en dehors des conditions
+  const handleProfilePress = useCallback(() => {
+    navigation.navigate("Profile")
+  }, [navigation])
+
+  const handleSearchPress = useCallback(() => {
+    navigation.dispatch(
+      CommonActions.navigate({
+        name: "AllCategories",
       }),
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      }),
-    ]).start()
+    )
+  }, [navigation])
+
+  const toggleFavorite = useCallback((id: string) => {
+    setFavorites((prev) => {
+      if (prev.includes(id)) {
+        return prev.filter((itemId) => itemId !== id)
+      } else {
+        return [...prev, id]
+      }
+    })
   }, [])
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true)
     try {
       const [categoriesData, dietsData, fitnessData, mentalData] = await Promise.all([
@@ -188,15 +201,60 @@ export default function HomeScreen() {
       console.error("Error in fetchData:", error)
     } finally {
       setIsLoading(false)
+      setDataLoaded(true)
     }
-  }
+  }, [])
 
-  const handleProfilePress = () => {
-    navigation.navigate("Profile")
-  }
+  useEffect(() => {
+    fetchData()
+  }, [fetchData])
+
+  // Effet séparé pour l'animation de translation X
+  useEffect(() => {
+    // Seulement exécuter l'animation après le chargement des données
+    if (dataLoaded && !isLoading) {
+      // Réinitialiser la valeur avant de démarrer l'animation
+      translateX.setValue(100)
+
+      const animationX = Animated.timing(translateX, {
+        toValue: 0,
+        duration: 800,
+        useNativeDriver: true,
+      })
+
+      animationX.start()
+
+      // Nettoyage
+      return () => {
+        animationX.stop()
+      }
+    }
+  }, [dataLoaded, isLoading, translateX])
+
+  // Effet séparé pour l'animation de fondu
+  useEffect(() => {
+    // Seulement exécuter l'animation après le chargement des données
+    if (dataLoaded && !isLoading) {
+      // Réinitialiser la valeur avant de démarrer l'animation
+      fadeAnim.setValue(0)
+
+      const animationFade = Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 1000,
+        useNativeDriver: true,
+      })
+
+      animationFade.start()
+
+      // Nettoyage
+      return () => {
+        animationFade.stop()
+      }
+    }
+  }, [dataLoaded, isLoading, fadeAnim])
 
   // Helper function to extract image URL from various data structures
-  const getImageUrl = (item: any): string => {
+  const getImageUrl = useCallback((item: any): string => {
     let imageUrl = ""
 
     if (!item) return imageUrl
@@ -242,7 +300,7 @@ export default function HomeScreen() {
 
     // Add base URL if not already included
     if (imageUrl && !imageUrl.startsWith("http")) {
-      imageUrl = API_BASE_URL + imageUrl;
+      imageUrl = API_BASE_URL + imageUrl
     }
 
     if (DEBUG_IMAGES) {
@@ -250,149 +308,178 @@ export default function HomeScreen() {
     }
 
     return imageUrl
-  }
+  }, [])
 
-  const renderCard = (
-    item: Category | PersonalizedDiet | FitnessPlan | Mental,
-    navigateTo: keyof RootStackParamList,
-    showTitle = true,
-    size: "small" | "medium" | "large" = "medium",
-  ) => {
-    if (!item) return null
+  // Dans la fonction renderCard, mettre à jour la navigation vers FitnessPlanDetail
+  const renderCard = useCallback(
+    (
+      item: Category | PersonalizedDiet | FitnessPlan | Mental,
+      navigateTo: keyof RootStackParamList | keyof TabParamList,
+      showTitle = true,
+      size: "small" | "medium" | "large" = "medium",
+    ) => {
+      if (!item) return null
 
-    let title = ""
-    let documentId = ""
-    let subtitle = ""
+      let title = ""
+      let documentId = ""
+      let subtitle = ""
+      let id = ""
 
-    // Get image URL using helper function
-    const imageUrl = getImageUrl(item)
+      // Get image URL using helper function
+      const imageUrl = getImageUrl(item)
 
-    if ("attributes" in item) {
-      title = item.attributes?.title || ""
-      documentId = item.id?.toString() || ""
-    } else {
-      title = (item as any).title || ""
-      documentId = (item as any).documentId || ""
+      if ("attributes" in item) {
+        title = item.attributes?.title || ""
+        documentId = item.id?.toString() || ""
+        id = item.id?.toString() || ""
+      } else {
+        title = (item as any).title || ""
+        documentId = (item as any).documentId || ""
+        id = (item as any).id?.toString() || ""
 
-      // Add duration or calories as subtitle for fitness/mental
-      if ("duration" in item && item.duration) {
-        subtitle = `${item.duration} min`
-      } else if ("calories_burned" in item && item.calories_burned) {
-        subtitle = `${item.calories_burned} cal`
+        // Add duration or calories as subtitle for fitness/mental
+        if ("duration" in item && item.duration) {
+          subtitle = `${item.duration} min`
+        } else if ("calories_burned" in item && item.calories_burned) {
+          subtitle = `${item.calories_burned} cal`
+        }
       }
-    }
 
-    // Determine card style based on size
-    const cardStyle = size === "small" ? styles.cardSmall : size === "large" ? styles.cardLarge : styles.cardMedium
+      // Determine card style based on size
+      const cardStyle = size === "small" ? styles.cardSmall : size === "large" ? styles.cardLarge : styles.cardMedium
 
-    const imageStyle =
-      size === "small" ? styles.cardImageSmall : size === "large" ? styles.cardImageLarge : styles.cardImageMedium
+      const imageStyle =
+        size === "small" ? styles.cardImageSmall : size === "large" ? styles.cardImageLarge : styles.cardImageMedium
 
-    // Determine the actual navigation destination based on the item title
-    // This allows each mental health item to navigate to its specific page
-    let actualNavigateTo = navigateTo
+      // Determine the actual navigation destination based on the item title
+      // This allows each mental health item to navigate to its specific page
+      let actualNavigateTo = navigateTo
 
-    // For Mental items, check the title to determine where to navigate
-    if (navigateTo === "Mental Health" && title) {
-      if (title.toLowerCase().includes("music")) {
-        actualNavigateTo = "Music"
-      } else if (title.toLowerCase().includes("exercice") || title.toLowerCase().includes("exercise")) {
-        actualNavigateTo = "Quote"
-      } else if (title.toLowerCase().includes("test")) {
-        actualNavigateTo = "Test"
+      if (navigateTo === "Mental Health" && title) {
+        const lowerTitle = title.toLowerCase()
+
+        if (lowerTitle.includes("music")) {
+          actualNavigateTo = "Music"
+        } else if (lowerTitle.includes("exercice") || lowerTitle.includes("exercise")) {
+          actualNavigateTo = "Mental Exercice"
+        } else if (lowerTitle.includes("test")) {
+          actualNavigateTo = "Test"
+        } else {
+          actualNavigateTo = "Quote"
+        }
       }
-    }
 
-    return (
-      <TouchableOpacity
-        style={[styles.card, cardStyle]}
-        onPress={() => {
-          if (actualNavigateTo === "Recette") {
-            navigation.navigate(actualNavigateTo, { category: documentId })
-          } else {
-            navigation.navigate(actualNavigateTo)
-          }
-        }}
-      >
-        {imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={imageStyle}
-            onError={(e) => console.error("Image load error:", e.nativeEvent.error)}
-          />
-        ) : (
-          <View style={[imageStyle, styles.placeholderImage]} />
-        )}
+      const isFavorite = favorites.includes(id)
 
-        <View style={styles.categoryOverlay}>
-          <Text style={styles.cardTitle}>{title || "Untitled"}</Text>
-          {subtitle ? <Text style={styles.cardSubtitle}>{subtitle}</Text> : null}
-        </View>
+      return (
+        <TouchableOpacity
+          style={[styles.card, cardStyle]}
+          onPress={() => {
+            if (actualNavigateTo === "Recette") {
+              navigation.navigate(actualNavigateTo as any, { category: documentId })
+            } else if (actualNavigateTo === "Training" && id) {
+              // Convert string ID to number if needed
+              const numericId = Number.parseInt(id, 10)
+              // Utiliser la navigation vers le navigateur Stack parent
+              navigation.navigate("FitnessPlanDetail" as any, { planId: numericId })
+            } else {
+              navigation.navigate(actualNavigateTo as any)
+            }
+          }}
+        >
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={imageStyle}
+              onError={(e) => console.error("Image load error:", e.nativeEvent.error)}
+            />
+          ) : (
+            <View style={[imageStyle, styles.placeholderImage]} />
+          )}
 
-        <View style={styles.favoriteButton}>
-          <Heart size={18} color="#fff" />
-        </View>
-      </TouchableOpacity>
-    )
-  }
-
-  const renderFeaturedCard = (diet: PersonalizedDiet) => {
-    if (!diet) return null
-
-    const title = diet.attributes?.title
-
-    // Get image URL using helper function
-    const imageUrl = getImageUrl(diet)
-
-    return (
-      <TouchableOpacity style={styles.featuredCard} onPress={() => navigation.navigate("Bot")}>
-        {imageUrl ? (
-          <Image
-            source={{ uri: imageUrl }}
-            style={styles.featuredCardImage}
-            onError={(e) => console.error("Featured image load error:", e.nativeEvent.error)}
-          />
-        ) : (
-          <View style={[styles.featuredCardImage, styles.placeholderImage]} />
-        )}
-
-        <View style={styles.featuredOverlay}>
-          <View style={styles.featuredContent}>
-            <Text style={styles.featuredTitle}>{title}</Text>
-
-            <TouchableOpacity style={styles.featuredButton} onPress={() => navigation.navigate("Bot")}>
-              <Text style={styles.featuredButtonText}>Get Started</Text>
-            </TouchableOpacity>
+          <View style={styles.categoryOverlay}>
+            <Text style={styles.cardTitle}>{title || "Untitled"}</Text>
+            {subtitle ? <Text style={styles.cardSubtitle}>{subtitle}</Text> : null}
           </View>
-        </View>
-      </TouchableOpacity>
-    )
-  }
 
-  const renderSectionHeader = (title: string, showAll = true) => (
-    <View style={styles.sectionHeader}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {showAll && (
-        <TouchableOpacity>
-          <Text style={styles.seeAllText}>See all</Text>
+          <TouchableOpacity
+            style={[styles.favoriteButton, isFavorite && styles.favoriteButtonActive]}
+            onPress={(e) => {
+              e.stopPropagation()
+              toggleFavorite(id)
+            }}
+          >
+            <Heart size={18} color={isFavorite ? "#FF3B30" : COLORS.textLight} fill={isFavorite ? "#FF3B30" : "none"} />
+          </TouchableOpacity>
         </TouchableOpacity>
-      )}
-    </View>
+      )
+    },
+    [getImageUrl, favorites, toggleFavorite, navigation],
+  )
+
+  const renderFeaturedCard = useCallback(
+    (diet: PersonalizedDiet) => {
+      if (!diet) return null
+
+      const title = diet.attributes?.title
+
+      // Get image URL using helper function
+      const imageUrl = getImageUrl(diet)
+
+      return (
+        <TouchableOpacity style={styles.featuredCard} onPress={() => navigation.navigate("Bot")}>
+          {imageUrl ? (
+            <Image
+              source={{ uri: imageUrl }}
+              style={styles.featuredCardImage}
+              onError={(e) => console.error("Featured image load error:", e.nativeEvent.error)}
+            />
+          ) : (
+            <View style={[styles.featuredCardImage, styles.placeholderImage]} />
+          )}
+
+          <View style={styles.featuredOverlay}>
+            <View style={styles.featuredContent}>
+              <Text style={styles.featuredTitle}>{title}</Text>
+
+              <TouchableOpacity style={styles.featuredButton} onPress={() => navigation.navigate("Bot")}>
+                <Text style={styles.featuredButtonText}>Get Started</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      )
+    },
+    [getImageUrl, navigation],
+  )
+
+  const renderSectionHeader = useCallback(
+    (title: string, showAll = true, onSeeAllPress?: () => void) => (
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        {showAll && (
+          <TouchableOpacity onPress={onSeeAllPress}>
+            <Text style={styles.seeAllText}>See all</Text>
+          </TouchableOpacity>
+        )}
+      </View>
+    ),
+    [],
   )
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor="#fff" />
+      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       {/* Header */}
       <View style={styles.header}>
         <Text style={styles.logoText}>ZAI</Text>
         <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton}>
-            <Search size={22} color="#333" />
+          <TouchableOpacity style={styles.iconButton} onPress={handleSearchPress}>
+            <Search size={22} color={COLORS.text} />
           </TouchableOpacity>
           <TouchableOpacity style={styles.iconButton}>
-            <Bell size={22} color="#333" />
+            <Bell size={22} color={COLORS.text} />
           </TouchableOpacity>
           <TouchableOpacity
             style={styles.profileIcon}
@@ -400,7 +487,7 @@ export default function HomeScreen() {
             accessible={true}
             accessibilityLabel="Profile"
           >
-            <User size={22} color="#333" />
+            <User size={22} color={COLORS.text} />
           </TouchableOpacity>
         </View>
       </View>
@@ -408,10 +495,15 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
         {isLoading ? (
           <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color="#5271FF" />
+            <ActivityIndicator size="large" color={COLORS.primary} />
           </View>
         ) : (
-          <Animated.View style={{ opacity: fadeAnim }}>
+          <Animated.View
+            style={{
+              opacity: fadeAnim,
+              transform: [{ translateX: translateX }],
+            }}
+          >
             {/* Welcome Section */}
             <View style={styles.welcomeSection}>
               <Text style={styles.welcomeText}></Text>
@@ -424,29 +516,29 @@ export default function HomeScreen() {
 
             {/* Categories Section */}
             <View style={styles.section}>
-              {renderSectionHeader("All Categories")}
+              {renderSectionHeader("All Categories", true, () => navigation.navigate("AllRecipesScreen"))}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                <Animated.View style={[{ flexDirection: "row" }]}>
+                <View style={{ flexDirection: "row" }}>
                   {categories.map((category, index) => (
                     <View key={index} style={styles.cardWrapper}>
                       {renderCard(category, "Recette", true, "small")}
                     </View>
                   ))}
-                </Animated.View>
+                </View>
               </ScrollView>
             </View>
 
             {/* Fitness Plans Section */}
             <View style={styles.section}>
-              {renderSectionHeader("Fitness Plans")}
+              {renderSectionHeader("Fitness Plans", true, () => navigation.navigate("AllCategories"))}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                <Animated.View style={{ flexDirection: "row" }}>
-                  {fitnessPlans.slice(0,15).map((plan, index) => (
+                <View style={{ flexDirection: "row" }}>
+                  {fitnessPlans.slice(0, 15).map((plan, index) => (
                     <View key={index} style={styles.cardWrapper}>
                       {renderCard(plan, "Training", true, "small")}
                     </View>
                   ))}
-                </Animated.View>
+                </View>
               </ScrollView>
             </View>
 
@@ -454,13 +546,13 @@ export default function HomeScreen() {
             <View style={styles.section}>
               {renderSectionHeader("Mental Health")}
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                <Animated.View style={{ flexDirection: "row" }}>
+                <View style={{ flexDirection: "row" }}>
                   {Mental.map((mental, index) => (
                     <View key={index} style={styles.cardWrapper}>
                       {renderCard(mental, "Mental Health", true, "small")}
                     </View>
                   ))}
-                </Animated.View>
+                </View>
               </ScrollView>
             </View>
 
@@ -469,13 +561,13 @@ export default function HomeScreen() {
               <View style={styles.section}>
                 {renderSectionHeader("Recommended For You")}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                  <Animated.View style={{ flexDirection: "row" }}>
+                  <View style={{ flexDirection: "row" }}>
                     {diets.slice(1).map((diet, index) => (
                       <View key={index} style={styles.cardWrapper}>
                         {renderCard(diet, "Bot", true, "small")}
                       </View>
                     ))}
-                  </Animated.View>
+                  </View>
                 </ScrollView>
               </View>
             )}
@@ -489,7 +581,7 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
+    backgroundColor: COLORS.background,
   },
   header: {
     flexDirection: "row",
@@ -498,11 +590,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: width * 0.05,
     paddingTop: Platform.OS === "ios" ? 50 : 10,
     paddingBottom: 10,
-    backgroundColor: "white",
+    backgroundColor: COLORS.background,
     borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    borderBottomColor: COLORS.border,
     elevation: 2,
-    shadowColor: "#000",
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 3,
@@ -511,6 +603,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     letterSpacing: 1,
+    color: COLORS.text,
   },
   headerRight: {
     flexDirection: "row",
@@ -534,7 +627,7 @@ const styles = StyleSheet.create({
   profileIcon: {
     padding: 8,
     marginLeft: 5,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: COLORS.backgroundAlt,
     borderRadius: 20,
     width: 40,
     height: 40,
@@ -552,14 +645,14 @@ const styles = StyleSheet.create({
   },
   welcomeText: {
     fontSize: 16,
-    color: "#666",
+    color: COLORS.textSecondary,
     fontWeight: "400",
     alignItems: "center",
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   welcomeSubtitle: {
     fontSize: 16,
-    color: "#666",
+    color: COLORS.textSecondary,
     marginTop: 5,
   },
   featuredSection: {
@@ -586,9 +679,9 @@ const styles = StyleSheet.create({
   card: {
     borderRadius: 16,
     overflow: "hidden",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: COLORS.backgroundAlt,
     elevation: 3,
-    shadowColor: "#000",
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
@@ -631,7 +724,7 @@ const styles = StyleSheet.create({
   },
   cardTitle: {
     fontSize: 18,
-    color: "#fff",
+    color: COLORS.textLight,
     fontWeight: "bold",
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
@@ -644,35 +737,37 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 10,
     right: 10,
-    backgroundColor: "rgba(0, 0, 0, 0.2)",
+    backgroundColor: "rgba(0, 0, 0, 0.3)",
     borderRadius: 20,
     width: 36,
     height: 36,
     justifyContent: "center",
     alignItems: "center",
   },
+  favoriteButtonActive: {
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
+  },
   sectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#333",
+    color: COLORS.text,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   seeAllText: {
     fontSize: 14,
-    color: "#000",
+    color: COLORS.text,
     fontWeight: "500",
   },
   masterTitle: {
     fontSize: 25,
     fontWeight: "700",
-    color: "#333",
+    color: COLORS.text,
     marginTop: 2,
     alignItems: "center",
-
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
   placeholderImage: {
-    backgroundColor: "#e0e0e0",
+    backgroundColor: COLORS.backgroundAlt,
     justifyContent: "center",
     alignItems: "center",
   },
@@ -683,7 +778,7 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginTop: 10,
     elevation: 5,
-    shadowColor: "#000",
+    shadowColor: COLORS.primary,
     shadowOffset: { width: 0, height: 3 },
     shadowOpacity: 0.2,
     shadowRadius: 6,
@@ -707,7 +802,7 @@ const styles = StyleSheet.create({
     width: "100%",
   },
   featuredBadge: {
-    backgroundColor: "#000",
+    backgroundColor: COLORS.primary,
     paddingHorizontal: 10,
     paddingVertical: 5,
     borderRadius: 20,
@@ -715,14 +810,14 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
   featuredBadgeText: {
-    color: "white",
+    color: COLORS.textLight,
     fontSize: 12,
     fontWeight: "600",
   },
   featuredTitle: {
     fontSize: 22,
     fontWeight: "bold",
-    color: "white",
+    color: COLORS.textLight,
     marginBottom: 5,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
   },
@@ -732,14 +827,14 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   featuredButton: {
-    backgroundColor: "rgba(44, 41, 41, 0.4)",
+    backgroundColor: "rgba(0, 0, 0, 0.4)",
     paddingVertical: 10,
     paddingHorizontal: 20,
     borderRadius: 25,
     alignSelf: "flex-start",
   },
   featuredButtonText: {
-    color: "#fff",
+    color: COLORS.textLight,
     fontWeight: "600",
     fontSize: 14,
   },

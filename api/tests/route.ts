@@ -1,5 +1,9 @@
-import { API_KEY, API_URL } from "@env";
 import axios from "axios";
+import { API_URL, API_KEY } from '@env';
+
+console.log(API_URL); 
+console.log(API_KEY); 
+
 
 export interface ImageFormat {
   name: string;
@@ -13,6 +17,8 @@ export interface ImageFormat {
   sizeInBytes: number;
   url: string;
 }
+console.log(API_URL); 
+console.log(API_KEY); 
 
 export interface ImageData {
   id: number;

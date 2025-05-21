@@ -1,5 +1,6 @@
-import { API_BASE_URL, API_KEY, API_URL } from "@env";
 import axios from "axios";
+import { API_URL, API_KEY } from '@env';
+import { API_BASE_URL } from "@/config";
 
 const fitnessApi = axios.create({
   baseURL: API_URL, 
@@ -8,6 +9,8 @@ const fitnessApi = axios.create({
     "Authorization": `Bearer ${API_KEY}`, 
   },
 });
+
+
 
 // Interface for the image format
 interface ImageFormat {

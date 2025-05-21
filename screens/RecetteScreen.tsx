@@ -29,7 +29,7 @@ import {
   Share2,
 } from "lucide-react-native"
 import { getRecipes } from "../api/recipes/route"
-import { API_BASE_URL } from "@env"
+import { API_BASE_URL } from "@/config"
 
 const { width, height } = Dimensions.get("window")
 
@@ -253,7 +253,7 @@ export default function RecetteScreen({ navigation, route }: RecetteScreenProps)
               style={styles.card}
               activeOpacity={0.9}
               onPress={() => {
-                navigation.navigate("RecipeDetail", { recetteId: recipe.documentId })
+                navigation.navigate("RecipeDetail", { recipeId: recipe.documentId })
               }}
             >
               <ImageBackground
@@ -262,7 +262,6 @@ export default function RecetteScreen({ navigation, route }: RecetteScreenProps)
                 imageStyle={styles.imageStyle}
               >
                 <View style={styles.overlay}>
-                 
                   {recipe.dietary_tags && (
                     <View style={styles.tagContainer}>
                       {recipe.dietary_tags
@@ -457,7 +456,7 @@ const styles = StyleSheet.create({
     height: 80,
     zIndex: 1,
   },
-  
+
   difficultyText: {
     color: "#FFF",
     fontSize: 10,

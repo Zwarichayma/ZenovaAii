@@ -20,7 +20,6 @@ import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../types/navigation"
 import { authService } from "../api/auth/auth-service"
-import { anonymousIdService } from "../api/anonymous/anonymous-service"
 import { anonymousUserService } from "../api/anonymous/anonymous-user-service"
 
 const { width, height } = Dimensions.get("window")
@@ -36,8 +35,8 @@ export default function SignUpScreen() {
   // UI state
   const [isLoading, setIsLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  const [anonymousId, setAnonymousId] = useState<string | null>(null)
-  const [refreshingId, setRefreshingId] = useState(false)
+  
+  // Suppression des états liés à l'anonymousId et refreshingId
 
   // Form validation state
   const [emailError, setEmailError] = useState("")
@@ -48,20 +47,7 @@ export default function SignUpScreen() {
   // Navigation
   const navigation = useNavigation<AuthScreenNavigationProp>()
 
-  // Load anonymous ID when component mounts
-  useEffect(() => {
-    loadAnonymousId()
-  }, [])
-
-  const loadAnonymousId = async () => {
-    try {
-      const id = await anonymousIdService.getAnonymousId()
-      setAnonymousId(id)
-      console.log("Anonymous ID loaded in SignUpScreen:", id)
-    } catch (error) {
-      console.error("Error loading anonymous ID in SignUpScreen:", error)
-    }
-  }
+  // Suppression du useEffect pour charger l'anonymousId
 
   // Define validation functions
   const validateEmail = useCallback((email: string): boolean => {
@@ -157,25 +143,11 @@ export default function SignUpScreen() {
 
     setIsLoading(true)
     try {
-      // Get the current anonymous ID before registration
-      const currentAnonymousId = anonymousId
-
       // Call the register method from our auth service
       const response = await authService.register(email, username, password)
 
       // Registration successful
       console.log("Registration successful:", response.user)
-
-      // Now convert the anonymous user data to the registered user
-      if (currentAnonymousId) {
-        try {
-          await anonymousUserService.convertToUser(currentAnonymousId, response.user.id)
-          console.log("Anonymous data successfully migrated to user ID:", response.user.id)
-        } catch (conversionError) {
-          // Log the error but don't fail the registration process
-          console.error("Error migrating anonymous data:", conversionError)
-        }
-      }
 
       Alert.alert("Success", "Account created successfully", [
         { text: "OK", onPress: () => navigation.navigate("Profile") },
@@ -198,7 +170,7 @@ export default function SignUpScreen() {
     } finally {
       setIsLoading(false)
     }
-  }, [email, username, password, navigation, validateForm, anonymousId])
+  }, [email, username, password, navigation, validateForm])
 
   // Handle Google sign-in with a mock implementation
   const handleGoogleSignIn = useCallback(async () => {
@@ -219,20 +191,7 @@ export default function SignUpScreen() {
     }
   }, [])
 
-  // Function to refresh the anonymous ID
-  const refreshAnonymousId = async () => {
-    setRefreshingId(true)
-    try {
-      const newId = await anonymousIdService.resetAnonymousId()
-      setAnonymousId(newId)
-      Alert.alert("Success", "Anonymous ID refreshed")
-    } catch (error) {
-      console.error("Error refreshing anonymous ID:", error)
-      Alert.alert("Error", "Failed to refresh anonymous ID")
-    } finally {
-      setRefreshingId(false)
-    }
-  }
+  // Suppression de la fonction refreshAnonymousId
 
   return (
     <ImageBackground
@@ -243,25 +202,15 @@ export default function SignUpScreen() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.innerContainer}>
           {/* Logo (Return to HomeScreen) */}
-          <TouchableOpacity onPress={() => navigation.navigate("MainTabs", { screen: "Home" })}>
+          <TouchableOpacity onPress={() => navigation.navigate("MainTabs", { screen: "Home" })} style={styles.backContainer}>
             <Image source={require("../assets/images/33.png")} style={styles.logo} />
+            <Text style={styles.backText}>Retour à l'accueil</Text>
           </TouchableOpacity>
 
           <Text style={styles.title}>Sign up</Text>
           <Text style={styles.subtitle}>Create an account to get started</Text>
 
-          {/* Anonymous ID Display */}
-          <View style={styles.anonymousIdContainer}>
-            <Text style={styles.anonymousIdLabel}>Anonymous ID:</Text>
-            <Text style={styles.anonymousId}>{anonymousId || "Loading..."}</Text>
-            <TouchableOpacity onPress={refreshAnonymousId} style={styles.refreshButton} disabled={refreshingId}>
-              {refreshingId ? (
-                <ActivityIndicator size="small" color="#555" />
-              ) : (
-                <Text style={styles.refreshButtonText}>Refresh ID</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          {/* Suppression du conteneur anonymousId */}
 
           {/* Google Sign-Up Button */}
           <TouchableOpacity
@@ -392,11 +341,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  backContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginBottom: width * 0.04,
+  },
   logo: {
     width: width * 0.15,
     height: height * 0.08,
     resizeMode: "contain",
-    marginBottom: width * 0.02,
+  },
+  backText: {
+    fontSize: 14,
+    color: "#333",
+    marginLeft: 8,
+    textDecorationLine: "underline",
   },
   title: {
     fontSize: 15,
@@ -409,42 +369,7 @@ const styles = StyleSheet.create({
     color: "gray",
     marginBottom: width * 0.04,
   },
-  anonymousIdContainer: {
-    width: "100%",
-    backgroundColor: "#f8f8f8",
-    borderRadius: 10,
-    padding: 10,
-    marginBottom: width * 0.04,
-    borderWidth: 1,
-    borderColor: "#eee",
-  },
-  anonymousIdLabel: {
-    fontSize: 12,
-    fontWeight: "bold",
-    color: "#555",
-  },
-  anonymousId: {
-    fontSize: 11,
-    fontFamily: "monospace",
-    color: "#333",
-    padding: 5,
-    backgroundColor: "#eee",
-    borderRadius: 4,
-    marginTop: 5,
-    marginBottom: 5,
-  },
-  refreshButton: {
-    alignSelf: "flex-end",
-    backgroundColor: "#f0f0f0",
-    padding: 5,
-    borderRadius: 5,
-    minWidth: 70,
-    alignItems: "center",
-  },
-  refreshButtonText: {
-    fontSize: 10,
-    color: "#555",
-  },
+  // Suppression des styles liés à anonymousId
   googleButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -522,6 +447,6 @@ const styles = StyleSheet.create({
     width: 19,
     height: 19,
     marginRight: 8,
-    resizeContent: "contain",
+    resizeMode: "contain",
   },
 })

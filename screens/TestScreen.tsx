@@ -17,7 +17,7 @@ import type { StackNavigationProp } from "@react-navigation/stack"
 import { ArrowLeft } from "lucide-react-native"
 import { getTests } from "../api/tests/route"
 import { LinearGradient } from "expo-linear-gradient"
-import { API_BASE_URL } from "@env"
+import { API_BASE_URL } from "@/config"
 
 const { width } = Dimensions.get("window")
 const CARD_WIDTH = width * 0.44

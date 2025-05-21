@@ -600,7 +600,7 @@ const styles = StyleSheet.create({
   messageText: {
     fontSize: 15,
     lineHeight: 20,
-    color: "#fff",
+    color: "#000",
   },
   messageTextbot: {
     fontSize: 15,

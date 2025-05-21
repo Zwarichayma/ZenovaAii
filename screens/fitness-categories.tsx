@@ -28,6 +28,7 @@ type RootStackParamList = {
   AllCategories: undefined
   AllWorkouts: undefined
   AllRecommended: undefined
+  FitnessPlanDetail: { planId: string }
 }
 
 type NavigationProp = StackNavigationProp<RootStackParamList>
@@ -79,11 +80,11 @@ export default function FitnessCategories() {
       <TouchableOpacity
         style={styles.todayWorkoutCard}
         activeOpacity={0.9}
-        onPress={() => navigation.navigate("Fitness", { category: plan.type })}
+        onPress={() => navigation.navigate("FitnessPlanDetail", { planId: todayWorkout.id })}
       >
         <Image source={{ uri: imageUrl }} style={styles.todayWorkoutImage} />
-        <LinearGradient 
-          colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.7)", "rgba(0,0,0,0.9)"]} 
+        <LinearGradient
+          colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.7)", "rgba(0,0,0,0.9)"]}
           style={styles.todayWorkoutGradient}
         >
           <View style={styles.todayWorkoutContent}>
@@ -119,13 +120,10 @@ export default function FitnessCategories() {
         key={plan.id}
         style={styles.categoryCard}
         activeOpacity={0.9}
-        onPress={() => navigation.navigate("Fitness", { category: plan.type })}
+        onPress={() => navigation.navigate("FitnessPlanDetail", { planId: plan.id })}
       >
         <Image source={{ uri: imageUrl }} style={styles.categoryImage} />
-        <LinearGradient 
-          colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.7)"]} 
-          style={styles.categoryGradient}
-        >
+        <LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.7)"]} style={styles.categoryGradient}>
           <Text style={styles.categoryTitle}>{plan.title}</Text>
           <View style={styles.categoryMeta}>
             <Clock size={12} color="#fff" />
@@ -137,20 +135,8 @@ export default function FitnessCategories() {
   }
 
   const renderDifficultyButton = (title: string, isActive = false) => (
-    <TouchableOpacity 
-      style={[
-        styles.difficultyButton, 
-        isActive && styles.difficultyButtonActive
-      ]}
-    >
-      <Text 
-        style={[
-          styles.difficultyButtonText, 
-          isActive && styles.difficultyButtonTextActive
-        ]}
-      >
-        {title}
-      </Text>
+    <TouchableOpacity style={[styles.difficultyButton, isActive && styles.difficultyButtonActive]}>
+      <Text style={[styles.difficultyButtonText, isActive && styles.difficultyButtonTextActive]}>{title}</Text>
     </TouchableOpacity>
   )
 
@@ -209,10 +195,7 @@ export default function FitnessCategories() {
                 <Calendar size={18} color="#333" style={styles.sectionIcon} />
                 <Text style={styles.sectionTitle}>Today's Workout Plan</Text>
               </View>
-              <TouchableOpacity 
-                style={styles.viewAllButton}
-                onPress={() => navigation.navigate("AllWorkouts")}
-              >
+              <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllWorkouts")}>
                 <Text style={styles.viewAllText}>View All</Text>
                 <ChevronRight size={16} color="#5E72E4" />
               </TouchableOpacity>
@@ -224,10 +207,7 @@ export default function FitnessCategories() {
         <View style={styles.categoriesSection}>
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionTitle}>Workout Categories</Text>
-            <TouchableOpacity 
-              style={styles.viewAllButton}
-              onPress={() => navigation.navigate("AllCategories")}
-            >
+            <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllCategories")}>
               <Text style={styles.viewAllText}>See All</Text>
               <ChevronRight size={16} color="#5E72E4" />
             </TouchableOpacity>
@@ -250,10 +230,7 @@ export default function FitnessCategories() {
               <Flame size={18} color="#333" style={styles.sectionIcon} />
               <Text style={styles.sectionTitle}>Recommended</Text>
             </View>
-            <TouchableOpacity 
-              style={styles.viewAllButton}
-              onPress={() => navigation.navigate("AllRecommended")}
-            >
+            <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllRecommended")}>
               <Text style={styles.viewAllText}>See All</Text>
               <ChevronRight size={16} color="#5E72E4" />
             </TouchableOpacity>
@@ -269,7 +246,7 @@ export default function FitnessCategories() {
                 key={`recommended-${plan.id}`}
                 style={styles.recommendedCard}
                 activeOpacity={0.9}
-                onPress={() => navigation.navigate("Fitness", { category: plan.type })}
+                onPress={() => navigation.navigate("FitnessPlanDetail", { planId: plan.id })}
               >
                 <Image
                   source={{
@@ -465,7 +442,7 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#fff",
     marginBottom: 4,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
@@ -473,7 +450,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "rgba(255, 255, 255, 0.9)",
     marginBottom: 12,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
@@ -564,7 +541,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#fff",
     marginBottom: 6,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },
@@ -621,7 +598,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#fff",
     marginBottom: 6,
-    textShadowColor: 'rgba(0, 0, 0, 0.5)',
+    textShadowColor: "rgba(0, 0, 0, 0.5)",
     textShadowOffset: { width: 0, height: 1 },
     textShadowRadius: 3,
   },

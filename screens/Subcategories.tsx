@@ -8,7 +8,6 @@ import axios from "axios"
 import { ChevronLeft } from "lucide-react-native"
 import { API_KEY, API_URL } from "@env"
 
-
 // Create axios instance
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -54,9 +53,12 @@ export default function SubCategories() {
   const route = useRoute<SubCategoriesRouteProp>()
   const category = route.params?.category || "CROSSFIT" // Default to CROSSFIT if no params
 
+  console.log("SubCategories screen - Received category param:", category)
+
   useEffect(() => {
     const fetchSubCategories = async () => {
       setLoading(true)
+      
       try {
         console.log("Fetching sub-categories for category:", category)
 
@@ -135,7 +137,13 @@ export default function SubCategories() {
         }
       } catch (err) {
         console.error("Error loading sub-categories:", err)
-        setError("Failed to load sub-categories. Please try again.")
+        if (axios.isAxiosError(err)) {
+          console.log("API Error Response:", err.response?.data)
+          console.log("API Error Status:", err.response?.status)
+          setError(`Failed to load sub-categories: ${err.message}. Status: ${err.response?.status || "unknown"}`)
+        } else {
+          setError("Failed to load sub-categories. Please try again.")
+        }
       } finally {
         setLoading(false)
       }
@@ -231,12 +239,11 @@ export default function SubCategories() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-      <TouchableOpacity style={styles.backButtonError} onPress={() => navigation.goBack()}>
+        <TouchableOpacity style={styles.backButtonError} onPress={() => navigation.goBack()}>
           <ChevronLeft stroke="#000" width={24} height={24} />
         </TouchableOpacity>
 
         <Text style={styles.categoryTitle}>{category}</Text>
-        
       </View>
 
       {subCategories.length > 0 ? (
@@ -256,11 +263,9 @@ export default function SubCategories() {
                     <Text style={styles.placeholderText}>{subCategory.name.charAt(0)}</Text>
                   </View>
                 )}
-               
               </View>
               <View style={styles.textContainer}>
                 <Text style={styles.cardTitle}>{subCategory.name}</Text>
-          
               </View>
             </TouchableOpacity>
           ))}
@@ -321,7 +326,7 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "500",
     color: "#000",
-    paddingTop:20,
+    paddingTop: 20,
     textAlign: "center",
     flex: 1,
   },

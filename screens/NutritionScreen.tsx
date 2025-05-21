@@ -18,7 +18,7 @@ import { Search, Filter, Clock, ChevronRight, Heart, Star } from "lucide-react-n
 import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import { getCategories, getRecipes } from "../api/recipes/route"
-import { API_BASE_URL } from "@env"
+import { API_BASE_URL } from "@/config"
 
 const { width, height } = Dimensions.get("window")
 

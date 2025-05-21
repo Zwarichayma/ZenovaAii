@@ -17,7 +17,7 @@ import type { RouteProp } from "@react-navigation/native"
 import { ArrowLeft, Clock, Hourglass, Check, Bookmark, Share2, Calendar } from "lucide-react-native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import { getRecipe } from "../api/recipes/route"
-import { API_BASE_URL } from "@env"
+import { API_BASE_URL } from "@/config"
 
 const { width } = Dimensions.get("window")
 

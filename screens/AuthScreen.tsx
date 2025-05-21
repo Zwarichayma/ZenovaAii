@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   TextInput,
   TouchableOpacity,
@@ -17,7 +17,7 @@ import {
 import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../types/navigation"
-import { authService } from "../api/auth/auth-service" // Fixed import path
+import { authService } from "../api/auth/auth-service" 
 
 const { width, height } = Dimensions.get("window")
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
@@ -28,29 +28,36 @@ export default function AuthScreen() {
   const [isLoading, setIsLoading] = useState(false)
   const navigation = useNavigation<AuthScreenNavigationProp>()
 
+  // Suppression de la fonction loadDeviceUUID et de l'état deviceUUID
+
   const handleContinue = async () => {
     if (!email || !password) {
-      Alert.alert("Error", "Please enter both email and password")
+      Alert.alert("Erreur", "Veuillez saisir votre email et votre mot de passe")
       return
     }
 
     setIsLoading(true)
     try {
-      // Call the login method from our auth service
+      // Appeler la méthode de connexion de notre service d'authentification
       const response = await authService.login(email, password)
 
-      // Login successful
-      console.log("Login successful:", response.user)
+      // Connexion réussie
+      console.log("Connexion réussie:", response.user)
 
-      // Navigate to Profile screen
+      // Naviguer vers l'écran de profil
       navigation.navigate("Profile")
     } catch (error: any) {
-      // Handle login error
-      console.error("Login error:", error)
-      Alert.alert("Login Failed", error.message || "Please check your credentials and try again")
+      // Gérer l'erreur de connexion
+      console.error("Erreur de connexion:", error)
+      Alert.alert("Échec de la connexion", error.message || "Veuillez vérifier vos identifiants et réessayer")
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Fonction pour retourner à l'écran d'accueil
+  const goToHome = () => {
+    navigation.navigate("MainTabs", { screen: "Home" })
   }
 
   return (
@@ -60,26 +67,29 @@ export default function AuthScreen() {
       imageStyle={styles.backgroundImage}
     >
       <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.innerContainer}>
-        {/* Logo (Retour à HomeScreen) */}
-        <TouchableOpacity onPress={() => navigation.navigate("MainTabs", { screen: "Home" })}>
+        {/* Logo (Retour à HomeScreen) avec un texte explicite */}
+        <TouchableOpacity onPress={goToHome} style={styles.backContainer}>
           <Image source={require("../assets/images/33.png")} style={styles.logo} />
+          <Text style={styles.backText}>Retour à l'accueil</Text>
         </TouchableOpacity>
 
-        <Text style={styles.title}>Sign in</Text>
-        <Text style={styles.subtitle}>Welcome back! Please sign in to continue</Text>
+        <Text style={styles.title}>Connexion</Text>
+        <Text style={styles.subtitle}>Bienvenue ! Veuillez vous connecter pour continuer</Text>
 
-        {/* Google Sign-In Button */}
+        {/* Suppression de l'affichage de l'UUID */}
+
+        {/* Bouton de connexion Google */}
         <TouchableOpacity style={styles.googleButton}>
           <Image source={require("../assets/images/goo.png")} style={styles.googleLogo} />
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
+          <Text style={styles.googleButtonText}>Continuer avec Google</Text>
         </TouchableOpacity>
 
-        <Text style={styles.orText}>or</Text>
+        <Text style={styles.orText}>ou</Text>
 
-        {/* Email & Password Fields */}
+        {/* Champs Email et Mot de passe */}
         <TextInput
           style={styles.input}
-          placeholder="Email Address"
+          placeholder="Adresse email"
           value={email}
           onChangeText={setEmail}
           keyboardType="email-address"
@@ -88,14 +98,14 @@ export default function AuthScreen() {
         />
         <TextInput
           style={styles.input}
-          placeholder="Password"
+          placeholder="Mot de passe"
           value={password}
           onChangeText={setPassword}
           secureTextEntry
           editable={!isLoading}
         />
 
-        {/* Continue Button */}
+        {/* Bouton Continuer */}
         <TouchableOpacity
           style={[styles.button, isLoading && styles.buttonDisabled]}
           onPress={handleContinue}
@@ -104,14 +114,14 @@ export default function AuthScreen() {
           {isLoading ? (
             <ActivityIndicator size="small" color="#fff" />
           ) : (
-            <Text style={styles.buttonText}>Continue</Text>
+            <Text style={styles.buttonText}>Continuer</Text>
           )}
         </TouchableOpacity>
 
         <Text style={styles.signUpText}>
-          Don't have an account?{" "}
+          Vous n'avez pas de compte ?{" "}
           <Text style={styles.signUpLink} onPress={() => navigation.navigate("SignUp")}>
-            Sign up
+            S'inscrire
           </Text>
         </Text>
       </KeyboardAvoidingView>
@@ -144,11 +154,22 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
+  backContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    alignSelf: "flex-start",
+    marginBottom: width * 0.04,
+  },
   logo: {
     width: width * 0.15,
     height: height * 0.08,
     resizeMode: "contain",
-    marginBottom: width * 0.02,
+  },
+  backText: {
+    fontSize: 14,
+    color: "#333",
+    marginLeft: 8,
+    textDecorationLine: "underline",
   },
   title: {
     fontSize: 15,
@@ -161,6 +182,7 @@ const styles = StyleSheet.create({
     color: "gray",
     marginBottom: width * 0.08,
   },
+  // Suppression du style uuidText
   googleButton: {
     flexDirection: "row",
     alignItems: "center",

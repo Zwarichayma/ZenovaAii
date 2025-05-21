@@ -28,16 +28,11 @@ export type RootStackParamList = {
   Music: undefined
   Quote: undefined
   Fitness: undefined
-
-  // Recettes
   Recette: undefined
   RecipeDetail: undefined
-
-  // Tests
   Test: undefined
   TestDetail: undefined
-
-  // Navigation fitness
+  DeviceSessions: undefined
   SubCategories: { fitnessId: number; fitnessTitle: string }
   ExerciseList: { subCategory: SubCategory }
   ExerciseDetail: { exercise: Exercise; subCategoryName: string }

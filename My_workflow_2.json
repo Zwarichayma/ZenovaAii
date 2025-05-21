@@ -1,0 +1,182 @@
+{
+  "name": "My workflow 2",
+  "nodes": [
+    {
+      "parameters": {
+        "modelName": "models/gemini-2.0-flash",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatGoogleGemini",
+      "typeVersion": 1,
+      "position": [
+        -100,
+        200
+      ],
+      "id": "43f50231-b889-42d1-8b47-1244de1d997e",
+      "name": "Google Gemini Chat Model1",
+      "credentials": {
+        "googlePalmApi": {
+          "id": "3eN87EmIY8dHveZz",
+          "name": "Google Gemini(PaLM) Api account 2"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "8f2da8e3-f738-4163-9b77-8dcaa9a4fd2f",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -360,
+        100
+      ],
+      "id": "2fc10d4d-e79b-4359-8cf0-eb3bc4f685ae",
+      "name": "Webhook1",
+      "webhookId": "8f2da8e3-f738-4163-9b77-8dcaa9a4fd2f",
+      "notesInFlow": false
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es Zenova, un assistant intelligent de santé et bien-être connecté à une base de données utilisateur via une API Strapi. Tu accèdes à cette base en utilisant un outil HTTP.\n\nTa mission est d’accompagner les utilisateurs de façon personnalisée en analysant leurs données et leurs besoins. Voici ce que tu es capable de faire :\n\n1. ✅ Lorsque l’utilisateur te parle, récupère les informations personnelles pertinentes depuis la base Strapi via l’outil “HTTP Request” connecté à l’endpoint `/api/users`.\n\n2. 💪 Tu proposes un programme **d'exercices physiques personnalisé** en fonction de l’âge, du poids, de la taille, du niveau d’activité, des objectifs (perte de poids, gain musculaire, etc.) présents dans leur profil Strapi.\n\n3. 🥗 Tu conçois également un **plan alimentaire personnalisé**, adapté à leur régime (végétarien, végan, sans gluten, etc.), allergies, ou objectifs nutritionnels.\n\n4. 🧠 Tu es capable d’**analyser un bilan médical** (s’il est fourni dans la conversation), d’extraire les données clés (taux de cholestérol, glycémie, tension artérielle, etc.) et d’adapter ton accompagnement en conséquence.\n\n5. 📊 Si un utilisateur pose une question sur ses données personnelles, réponds toujours avec les informations à jour extraites depuis Strapi.\n\n6. ❌ Ne fais **aucune supposition** sans données. Si les informations manquent, demande-les ou indique à l’utilisateur de les compléter sur son profil Zenova.\n\n7. 🛠️ Tu n’inventes **jamais de données** : tu t’appuies uniquement sur l’outil “HTTP Request” pour interroger la base Strapi.\n\nSois toujours clair, bienveillant, motivant et professionnel.\n\nMessage de l’utilisateur :  \n**{{$json.body.input}}**\n",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.agent",
+      "typeVersion": 1.7,
+      "position": [
+        0,
+        0
+      ],
+      "id": "5b8f1694-5d9a-4c27-bfd2-2fe02de715b8",
+      "name": "AI Agent1",
+      "alwaysOutputData": false
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        700,
+        100
+      ],
+      "id": "7c0dfd0d-64e2-4327-b0b0-416d2ee31207",
+      "name": "Respond to Webhook1"
+    },
+    {
+      "parameters": {
+        "sessionIdType": "customKey",
+        "sessionKey": "1",
+        "contextWindowLength": 10
+      },
+      "type": "@n8n/n8n-nodes-langchain.memoryBufferWindow",
+      "typeVersion": 1.3,
+      "position": [
+        100,
+        220
+      ],
+      "id": "6795aa78-0243-4a83-aefb-607e6fc430b9",
+      "name": "Window Buffer Memory"
+    },
+    {
+      "parameters": {
+        "url": "https://b77e-197-3-98-183.ngrok-free.app/api/users",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBearerAuth",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequestTool",
+      "typeVersion": 4.2,
+      "position": [
+        260,
+        220
+      ],
+      "id": "fa8df81a-7fca-4791-b36f-610adf4e84d4",
+      "name": "HTTP Request",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "BcimkoeabGZl3tka",
+          "name": "Header Auth account"
+        },
+        "httpBearerAuth": {
+          "id": "X8FedbwSSpCOvCWY",
+          "name": "Bearer Auth account"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Google Gemini Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook1": {
+      "main": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Agent1": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Window Buffer Memory": {
+      "ai_memory": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_memory",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request": {
+      "ai_tool": [
+        [
+          {
+            "node": "AI Agent1",
+            "type": "ai_tool",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "versionId": "5970cc20-d769-4d72-9fe9-87f48823a038",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "a831b873d5b73cf12f4ede29b27206c908bbe457100d42502b95fdcbaf565b13"
+  },
+  "id": "y7XxbGHYBUYKML3e",
+  "tags": []
+}
