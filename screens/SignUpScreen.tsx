@@ -15,12 +15,13 @@ import {
   ActivityIndicator,
   ScrollView,
   View,
+  SafeAreaView,
 } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../types/navigation"
 import { authService } from "../api/auth/auth-service"
-import { anonymousUserService } from "../api/anonymous/anonymous-user-service"
+import { ArrowLeft } from "lucide-react-native"
 
 const { width, height } = Dimensions.get("window")
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
@@ -36,8 +37,6 @@ export default function SignUpScreen() {
   const [isLoading, setIsLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   
-  // Suppression des états liés à l'anonymousId et refreshingId
-
   // Form validation state
   const [emailError, setEmailError] = useState("")
   const [usernameError, setUsernameError] = useState("")
@@ -46,8 +45,6 @@ export default function SignUpScreen() {
 
   // Navigation
   const navigation = useNavigation<AuthScreenNavigationProp>()
-
-  // Suppression du useEffect pour charger l'anonymousId
 
   // Define validation functions
   const validateEmail = useCallback((email: string): boolean => {
@@ -191,7 +188,10 @@ export default function SignUpScreen() {
     }
   }, [])
 
-  // Suppression de la fonction refreshAnonymousId
+  // Function to go back to previous screen
+  const goBack = () => {
+    navigation.goBack()
+  }
 
   return (
     <ImageBackground
@@ -199,115 +199,119 @@ export default function SignUpScreen() {
       style={styles.container}
       imageStyle={styles.backgroundImage}
     >
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.innerContainer}>
-          {/* Logo (Return to HomeScreen) */}
-          <TouchableOpacity onPress={() => navigation.navigate("MainTabs", { screen: "Home" })} style={styles.backContainer}>
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header with back arrow */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={goBack} style={styles.backButton}>
+            <ArrowLeft size={24} color="#333" />
+          </TouchableOpacity>
+        </View>
+
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.innerContainer}>
+            {/* Centered Logo */}
             <Image source={require("../assets/images/33.png")} style={styles.logo} />
-            <Text style={styles.backText}>Retour à l'accueil</Text>
-          </TouchableOpacity>
 
-          <Text style={styles.title}>Sign up</Text>
-          <Text style={styles.subtitle}>Create an account to get started</Text>
+            <Text style={styles.title}>Sign up</Text>
+            <Text style={styles.subtitle}>Create an account to get started</Text>
 
-          {/* Suppression du conteneur anonymousId */}
+            {/* Google Sign-Up Button */}
+            <TouchableOpacity
+              style={styles.googleButton}
+              onPress={handleGoogleSignIn}
+              disabled={googleLoading || isLoading}
+            >
+              {googleLoading ? (
+                <ActivityIndicator size="small" color="#4285F4" />
+              ) : (
+                <>
+                  <Image source={require("../assets/images/goo.png")} style={styles.googleLogo} />
+                  <Text style={styles.googleButtonText}>Continue with Google</Text>
+                </>
+              )}
+            </TouchableOpacity>
 
-          {/* Google Sign-Up Button */}
-          <TouchableOpacity
-            style={styles.googleButton}
-            onPress={handleGoogleSignIn}
-            disabled={googleLoading || isLoading}
-          >
-            {googleLoading ? (
-              <ActivityIndicator size="small" color="#4285F4" />
-            ) : (
-              <>
-                <Image source={require("../assets/images/goo.png")} style={styles.googleLogo} />
-                <Text style={styles.googleButtonText}>Continue with Google</Text>
-              </>
-            )}
-          </TouchableOpacity>
+            <Text style={styles.orText}>or</Text>
 
-          <Text style={styles.orText}>or</Text>
+            {/* Email Field */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={[styles.input, emailError ? styles.inputError : null]}
+                placeholder="Email Address"
+                value={email}
+                onChangeText={handleEmailChange}
+                onBlur={() => validateEmail(email)}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                editable={!isLoading}
+              />
+              {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
+            </View>
 
-          {/* Email Field */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[styles.input, emailError ? styles.inputError : null]}
-              placeholder="Email Address"
-              value={email}
-              onChangeText={handleEmailChange}
-              onBlur={() => validateEmail(email)}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              editable={!isLoading}
-            />
-            {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
-          </View>
+            {/* Username Field */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={[styles.input, usernameError ? styles.inputError : null]}
+                placeholder="Username"
+                value={username}
+                onChangeText={handleUsernameChange}
+                onBlur={() => validateUsername(username)}
+                autoCapitalize="none"
+                editable={!isLoading}
+              />
+              {usernameError ? <Text style={styles.errorText}>{usernameError}</Text> : null}
+            </View>
 
-          {/* Username Field */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[styles.input, usernameError ? styles.inputError : null]}
-              placeholder="Username"
-              value={username}
-              onChangeText={handleUsernameChange}
-              onBlur={() => validateUsername(username)}
-              autoCapitalize="none"
-              editable={!isLoading}
-            />
-            {usernameError ? <Text style={styles.errorText}>{usernameError}</Text> : null}
-          </View>
+            {/* Password Field */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={[styles.input, passwordError ? styles.inputError : null]}
+                placeholder="Password"
+                value={password}
+                onChangeText={handlePasswordChange}
+                onBlur={() => validatePassword(password)}
+                secureTextEntry
+                editable={!isLoading}
+              />
+              {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
+            </View>
 
-          {/* Password Field */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[styles.input, passwordError ? styles.inputError : null]}
-              placeholder="Password"
-              value={password}
-              onChangeText={handlePasswordChange}
-              onBlur={() => validatePassword(password)}
-              secureTextEntry
-              editable={!isLoading}
-            />
-            {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
-          </View>
+            {/* Confirm Password Field */}
+            <View style={styles.inputContainer}>
+              <TextInput
+                style={[styles.input, confirmPasswordError ? styles.inputError : null]}
+                placeholder="Confirm Password"
+                value={confirmPassword}
+                onChangeText={handleConfirmPasswordChange}
+                onBlur={() => validateConfirmPassword(password, confirmPassword)}
+                secureTextEntry
+                editable={!isLoading}
+              />
+              {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
+            </View>
 
-          {/* Confirm Password Field */}
-          <View style={styles.inputContainer}>
-            <TextInput
-              style={[styles.input, confirmPasswordError ? styles.inputError : null]}
-              placeholder="Confirm Password"
-              value={confirmPassword}
-              onChangeText={handleConfirmPasswordChange}
-              onBlur={() => validateConfirmPassword(password, confirmPassword)}
-              secureTextEntry
-              editable={!isLoading}
-            />
-            {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
-          </View>
+            {/* Sign Up Button */}
+            <TouchableOpacity
+              style={[styles.button, isLoading && styles.buttonDisabled]}
+              onPress={handleSignUp}
+              disabled={isLoading || googleLoading}
+            >
+              {isLoading ? (
+                <ActivityIndicator size="small" color="#fff" />
+              ) : (
+                <Text style={styles.buttonText}>Sign Up</Text>
+              )}
+            </TouchableOpacity>
 
-          {/* Sign Up Button */}
-          <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
-            onPress={handleSignUp}
-            disabled={isLoading || googleLoading}
-          >
-            {isLoading ? (
-              <ActivityIndicator size="small" color="#fff" />
-            ) : (
-              <Text style={styles.buttonText}>Sign Up</Text>
-            )}
-          </TouchableOpacity>
-
-          <Text style={styles.signUpText}>
-            Already have an account?{" "}
-            <Text style={styles.signUpLink} onPress={() => navigation.navigate("Auth")}>
-              Sign in
+            <Text style={styles.signUpText}>
+              Already have an account?{" "}
+              <Text style={styles.signUpLink} onPress={() => navigation.navigate("Auth")}>
+                Sign in
+              </Text>
             </Text>
-          </Text>
-        </KeyboardAvoidingView>
-      </ScrollView>
+          </KeyboardAvoidingView>
+        </ScrollView>
+      </SafeAreaView>
     </ImageBackground>
   )
 }
@@ -315,19 +319,38 @@ export default function SignUpScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
+  },
+  safeArea: {
+    flex: 1,
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingVertical: 20,
+    paddingHorizontal: 20,
   },
   backgroundImage: {
     flex: 1,
     justifyContent: "center",
     resizeMode: "cover",
+  },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 40,
+    height: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 20,
   },
   innerContainer: {
     width: width * 0.9,
@@ -340,46 +363,36 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-  },
-  backContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    marginBottom: width * 0.04,
+    marginTop: 60, // Add space for the header
   },
   logo: {
-    width: width * 0.15,
-    height: height * 0.08,
+    width: width * 0.20,
+    height: height * 0.10,
     resizeMode: "contain",
-  },
-  backText: {
-    fontSize: 14,
-    color: "#333",
-    marginLeft: 8,
-    textDecorationLine: "underline",
+    marginBottom: width * 0.06,
   },
   title: {
-    fontSize: 15,
+    fontSize: 24,
     fontWeight: "bold",
     marginBottom: 5,
-    color: "#332",
+    color: "#333",
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: "gray",
-    marginBottom: width * 0.04,
+    marginBottom: width * 0.06,
+    textAlign: 'center',
   },
-  // Suppression des styles liés à anonymousId
   googleButton: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#eee",
     padding: width * 0.03,
-    borderRadius: 20,
+    borderRadius: 25,
     width: "100%",
     justifyContent: "center",
-    marginBottom: width * 0.01,
+    marginBottom: width * 0.04,
     backgroundColor: "#fff",
   },
   googleButtonText: {
@@ -393,14 +406,14 @@ const styles = StyleSheet.create({
   },
   inputContainer: {
     width: "100%",
-    marginBottom: width * 0.02,
+    marginBottom: width * 0.03,
   },
   input: {
     width: "100%",
-    height: width * 0.11,
+    height: width * 0.12,
     borderColor: "#eee",
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 25,
     paddingHorizontal: width * 0.04,
     backgroundColor: "#fff",
   },
@@ -418,9 +431,9 @@ const styles = StyleSheet.create({
     padding: width * 0.03,
     alignItems: "center",
     width: "100%",
-    borderRadius: 20,
+    borderRadius: 25,
     marginTop: width * 0.04,
-    height: width * 0.11,
+    height: width * 0.12,
     justifyContent: "center",
   },
   buttonDisabled: {
@@ -428,15 +441,14 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "white",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "bold",
   },
   signUpText: {
-    marginTop: width * 0.02,
+    marginTop: width * 0.04,
     fontSize: 14,
     color: "gray",
     textAlign: "center",
-    padding: width * 0.04,
   },
   signUpLink: {
     fontWeight: "bold",
@@ -444,8 +456,8 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
   googleLogo: {
-    width: 19,
-    height: 19,
+    width: 20,
+    height: 20,
     marginRight: 8,
     resizeMode: "contain",
   },

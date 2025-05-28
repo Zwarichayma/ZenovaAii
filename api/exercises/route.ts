@@ -25,8 +25,7 @@ export interface Exercise {
     };
   };
 }
-console.log(API_URL); 
-console.log(API_KEY); 
+ 
 
 const axiosInstance = axios.create({
   baseURL: API_URL,

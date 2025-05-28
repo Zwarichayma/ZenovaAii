@@ -2,9 +2,7 @@ import axios from "axios"
 import { API_URL, API_KEY } from '@env';
 
 console.log(API_URL); 
-console.log(API_KEY); 
-
-
+console.log(API_KEY);
 const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
@@ -13,8 +11,6 @@ const axiosInstance = axios.create({
   },
 })
 
-console.log(API_URL); 
-console.log(API_KEY); 
 // Fonction pour construire l'URL complète de l'image
 const buildFullImageUrl = (relativeUrl: string | undefined): string => {
   if (!relativeUrl) return ""

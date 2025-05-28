@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useRef, useCallback } from "react"
+import { useEffect, useState, useCallback } from "react"
 import {
   View,
   Text,
@@ -9,7 +9,6 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  Animated,
   ActivityIndicator,
   StatusBar,
   Platform,
@@ -37,6 +36,8 @@ const COLORS = {
   text: "#000000",
   textSecondary: "#555555",
   textLight: "#FFFFFF",
+  skeletonBackground: "#E8E8E8",  // Changed to light gray
+  skeletonHighlight: "#F5F5F5",   // Changed to lighter gray
 }
 
 // For debugging image URLs
@@ -132,17 +133,65 @@ type Mental = {
   }[]
 }
 
+// Skeleton Card Component - Animation Removed
+const SkeletonCard = ({ size = "small" }: { size?: "small" | "medium" | "large" }) => {
+  // Determine card style based on size
+  const cardStyle = size === "small" 
+    ? styles.cardSmall 
+    : size === "large" 
+      ? styles.cardLarge 
+      : styles.cardMedium;
+  
+  return (
+    <View style={[styles.card, cardStyle, styles.skeletonCard]}>
+      <View style={styles.skeletonTitleContainer}>
+        <View style={styles.skeletonTitle} />
+      </View>
+    </View>
+  );
+};
+
+// Skeleton Featured Card Component - Animation Removed
+const SkeletonFeaturedCard = () => {
+  return (
+    <View style={[styles.featuredCard, styles.skeletonFeaturedCard]}>
+      <View style={styles.skeletonFeaturedContent}>
+        <View style={styles.skeletonFeaturedTitle} />
+        <View style={styles.skeletonFeaturedButton} />
+      </View>
+    </View>
+  );
+};
+
+// Skeleton Section Component
+const SkeletonSection = ({ title, count = 3 }: { title: string, count?: number }) => {
+  return (
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>{title}</Text>
+        <Text style={styles.seeAllText}>See all</Text>
+      </View>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+        <View style={{ flexDirection: "row" }}>
+          {Array(count).fill(0).map((_, index) => (
+            <View key={index} style={styles.cardWrapper}>
+              <SkeletonCard size="small" />
+            </View>
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
+
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>()
-  const translateX = useRef(new Animated.Value(0)).current
-  const fadeAnim = useRef(new Animated.Value(0)).current
   const [categories, setCategories] = useState<Category[]>([])
   const [diets, setDiets] = useState<PersonalizedDiet[]>([])
   const [fitnessPlans, setFitnessPlans] = useState<FitnessPlan[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [Mental, setMental] = useState<Mental[]>([])
   const [favorites, setFavorites] = useState<string[]>([])
-  const [dataLoaded, setDataLoaded] = useState(false)
 
   // Définir toutes les fonctions de navigation en dehors des conditions
   const handleProfilePress = useCallback(() => {
@@ -201,57 +250,12 @@ export default function HomeScreen() {
       console.error("Error in fetchData:", error)
     } finally {
       setIsLoading(false)
-      setDataLoaded(true)
     }
   }, [])
 
   useEffect(() => {
     fetchData()
   }, [fetchData])
-
-  // Effet séparé pour l'animation de translation X
-  useEffect(() => {
-    // Seulement exécuter l'animation après le chargement des données
-    if (dataLoaded && !isLoading) {
-      // Réinitialiser la valeur avant de démarrer l'animation
-      translateX.setValue(100)
-
-      const animationX = Animated.timing(translateX, {
-        toValue: 0,
-        duration: 800,
-        useNativeDriver: true,
-      })
-
-      animationX.start()
-
-      // Nettoyage
-      return () => {
-        animationX.stop()
-      }
-    }
-  }, [dataLoaded, isLoading, translateX])
-
-  // Effet séparé pour l'animation de fondu
-  useEffect(() => {
-    // Seulement exécuter l'animation après le chargement des données
-    if (dataLoaded && !isLoading) {
-      // Réinitialiser la valeur avant de démarrer l'animation
-      fadeAnim.setValue(0)
-
-      const animationFade = Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 1000,
-        useNativeDriver: true,
-      })
-
-      animationFade.start()
-
-      // Nettoyage
-      return () => {
-        animationFade.stop()
-      }
-    }
-  }, [dataLoaded, isLoading, fadeAnim])
 
   // Helper function to extract image URL from various data structures
   const getImageUrl = useCallback((item: any): string => {
@@ -467,13 +471,34 @@ export default function HomeScreen() {
     [],
   )
 
+  // Render skeleton loading UI
+  const renderSkeletonUI = () => {
+    return (
+      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+        <View style={styles.welcomeSection}>
+          <View style={styles.skeletonMasterTitle} />
+          <View style={styles.skeletonSubtitle} />
+        </View>
+        
+        <View style={styles.featuredSection}>
+          <SkeletonFeaturedCard />
+        </View>
+        
+        <SkeletonSection title="All Categories" count={4} />
+        <SkeletonSection title="Fitness Plans" count={4} />
+        <SkeletonSection title="Mental Health" count={4} />
+        <SkeletonSection title="Recommended For You" count={4} />
+      </ScrollView>
+    );
+  };
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
 
       {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.logoText}>ZAI</Text>
+        <Image source={require('../assets/images/33.png')} style={styles.headerLogo} />
         <View style={styles.headerRight}>
           <TouchableOpacity style={styles.iconButton} onPress={handleSearchPress}>
             <Search size={22} color={COLORS.text} />
@@ -492,18 +517,11 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-        {isLoading ? (
-          <View style={styles.loadingContainer}>
-            <ActivityIndicator size="large" color={COLORS.primary} />
-          </View>
-        ) : (
-          <Animated.View
-            style={{
-              opacity: fadeAnim,
-              transform: [{ translateX: translateX }],
-            }}
-          >
+      {isLoading ? (
+        renderSkeletonUI()
+      ) : (
+        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+          <View>
             {/* Welcome Section */}
             <View style={styles.welcomeSection}>
               <Text style={styles.welcomeText}></Text>
@@ -571,9 +589,9 @@ export default function HomeScreen() {
                 </ScrollView>
               </View>
             )}
-          </Animated.View>
-        )}
-      </ScrollView>
+          </View>
+        </ScrollView>
+      )}
     </View>
   )
 }
@@ -620,8 +638,8 @@ const styles = StyleSheet.create({
     height: height * 0.7,
   },
   headerLogo: {
-    width: width * 0.13,
-    height: height * 0.031,
+    width: width * 0.12,
+    height: height * 0.05,
     resizeMode: "contain",
   },
   profileIcon: {
@@ -837,5 +855,57 @@ const styles = StyleSheet.create({
     color: COLORS.textLight,
     fontWeight: "600",
     fontSize: 14,
+  },
+  
+  // Skeleton styles - Updated to white/gray
+  skeletonCard: {
+    backgroundColor: COLORS.skeletonBackground,
+    justifyContent: 'flex-end',
+  },
+  skeletonTitleContainer: {
+    padding: 12,
+    paddingTop: 30,
+    backgroundColor: "rgba(0, 0, 0, 0.1)",
+  },
+  skeletonTitle: {
+    height: 18,
+    width: '70%',
+    backgroundColor: COLORS.skeletonHighlight,
+    borderRadius: 4,
+  },
+  skeletonFeaturedCard: {
+    backgroundColor: COLORS.skeletonBackground,
+    justifyContent: 'flex-end',
+  },
+  skeletonFeaturedContent: {
+    padding: 20,
+    width: '100%',
+  },
+  skeletonFeaturedTitle: {
+    height: 22,
+    width: '60%',
+    backgroundColor: COLORS.skeletonHighlight,
+    borderRadius: 4,
+    marginBottom: 15,
+  },
+  skeletonFeaturedButton: {
+    height: 36,
+    width: 120,
+    backgroundColor: COLORS.skeletonHighlight,
+    borderRadius: 25,
+  },
+  skeletonMasterTitle: {
+    height: 25,
+    width: '80%',
+    backgroundColor: COLORS.skeletonBackground,
+    borderRadius: 4,
+    marginBottom: 10,
+  },
+  skeletonSubtitle: {
+    height: 16,
+    width: '60%',
+    backgroundColor: COLORS.skeletonBackground,
+    borderRadius: 4,
+    marginTop: 5,
   },
 })

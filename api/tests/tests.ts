@@ -2,9 +2,6 @@ import { API_KEY, API_URL } from "@env"
 import axios from "axios"
 
 
-console.log(API_URL); 
-console.log(API_KEY); 
-
 const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
@@ -12,8 +9,6 @@ const axiosInstance = axios.create({
     "Content-Type": "application/json",
   },
 })
-console.log(API_URL); 
-console.log(API_KEY); 
 
 export interface Question {
   id: number

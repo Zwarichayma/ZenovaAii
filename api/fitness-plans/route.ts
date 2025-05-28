@@ -11,7 +11,6 @@ const fitnessApi = axios.create({
 });
 
 
-
 // Interface for the image format
 interface ImageFormat {
   name: string;

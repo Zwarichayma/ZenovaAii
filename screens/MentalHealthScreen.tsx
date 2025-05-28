@@ -13,7 +13,6 @@ import {
   StatusBar,
   ImageBackground,
   Platform,
-  ActivityIndicator,
   RefreshControl,
 } from "react-native"
 import { LinearGradient } from "expo-linear-gradient"
@@ -27,6 +26,12 @@ import { QuoteIcon } from "lucide-react-native"
 import { AnimatedQuoteCarousel } from "@/components/animated-quote-carousel"
 
 const { width, height } = Dimensions.get("window")
+
+// Colors for skeleton
+const SKELETON_COLORS = {
+  background: "#E8E8E8",
+  highlight: "#F5F5F5",
+}
 
 // Define card props interface
 interface CardProps {
@@ -75,6 +80,126 @@ const MOCK_QUOTES = [
     category: "Heart",
   },
 ]
+
+// Skeleton Components
+const SkeletonFeaturedCard = () => (
+  <View style={[styles.featuredCard, styles.skeletonCard]}>
+    <View style={styles.featuredGradient}>
+      {/* Skeleton tag */}
+      <View style={[styles.tagContainer, { backgroundColor: SKELETON_COLORS.highlight }]}>
+        <View style={[styles.skeletonText, { width: 60, height: 12 }]} />
+      </View>
+      {/* Skeleton title */}
+      <View style={[styles.skeletonText, { width: "70%", height: 28, backgroundColor: SKELETON_COLORS.highlight }]} />
+    </View>
+  </View>
+)
+
+const SkeletonCard = ({ size = "medium" }: { size?: "large" | "medium" | "small" }) => (
+  <View style={[styles.card, styles[`${size}Card`], styles.skeletonCard, styles.cardShadow]}>
+    <View style={styles.cardGradient}>
+      {/* Skeleton mini tag */}
+      <View style={[styles.miniTagContainer, { backgroundColor: SKELETON_COLORS.highlight }]}>
+        <View style={[styles.skeletonText, { width: 40, height: 10 }]} />
+      </View>
+      {/* Skeleton title */}
+      <View
+        style={[
+          styles.skeletonText,
+          { width: "80%", height: 17, backgroundColor: SKELETON_COLORS.highlight, alignSelf: "center" },
+        ]}
+      />
+    </View>
+  </View>
+)
+
+const SkeletonQuoteCarousel = () => (
+  <View style={styles.quoteCarouselSection}>
+    <View style={styles.quoteCarouselHeader}>
+      <View style={[styles.skeletonIcon, { width: 18, height: 18, borderRadius: 9 }]} />
+      <View style={[styles.skeletonText, { width: 120, height: 18, marginLeft: 8 }]} />
+    </View>
+    <View style={{ height: 100, justifyContent: "center", paddingHorizontal: 20 }}>
+      <View style={[styles.skeletonText, { width: "90%", height: 14, marginBottom: 8 }]} />
+      <View style={[styles.skeletonText, { width: "80%", height: 14, marginBottom: 8 }]} />
+      <View style={[styles.skeletonText, { width: "60%", height: 14 }]} />
+    </View>
+  </View>
+)
+
+const SkeletonSectionHeader = () => (
+  <View style={styles.sectionHeader}>
+    <View style={[styles.skeletonText, { width: 150, height: 18 }]} />
+    <View style={[styles.seeAllButton, { backgroundColor: SKELETON_COLORS.background }]}>
+      <View style={[styles.skeletonText, { width: 40, height: 14 }]} />
+      <View
+        style={{ width: 16, height: 16, backgroundColor: SKELETON_COLORS.highlight, borderRadius: 8, marginLeft: 4 }}
+      />
+    </View>
+  </View>
+)
+
+// Skeleton UI Component
+const SkeletonUI = () => (
+  <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+    <Text style={styles.dateText}>
+      {new Date().toLocaleDateString("en-US", {
+        weekday: "long",
+        month: "long",
+        day: "numeric",
+      })}
+    </Text>
+
+    <View>
+      <Text style={styles.welcomeTitle}>Start Your</Text>
+      <Text style={styles.welcomeSubtitle}>Mindfulness Journey</Text>
+    </View>
+
+    {/* Skeleton Featured Section */}
+    <View style={styles.featuredSection}>
+      <SkeletonFeaturedCard />
+    </View>
+
+    {/* Skeleton Quote Carousel */}
+    <SkeletonQuoteCarousel />
+
+    {/* Skeleton Tests Section */}
+    <View style={styles.section}>
+      <SkeletonSectionHeader />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={{ flexDirection: "row" }}>
+          {[1, 2, 3].map((_, index) => (
+            <SkeletonCard key={`skeleton-test-${index}`} size="medium" />
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+
+    {/* Skeleton Music Section */}
+    <View style={styles.section}>
+      <SkeletonSectionHeader />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={{ flexDirection: "row" }}>
+          {[1, 2, 3].map((_, index) => (
+            <SkeletonCard key={`skeleton-music-${index}`} size="medium" />
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+
+    {/* Skeleton Quotes Section */}
+    <View style={styles.section}>
+      <SkeletonSectionHeader />
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        <View style={{ flexDirection: "row" }}>
+          {[1, 2, 3].map((_, index) => (
+            <SkeletonCard key={`skeleton-quote-${index}`} size="medium" />
+          ))}
+        </View>
+      </ScrollView>
+    </View>
+  </ScrollView>
+)
 
 // Enhanced featured card with shadow and better gradient
 const FeaturedCard = ({ image, title, subtitle, onPress, style }: CardProps) => {
@@ -344,9 +469,6 @@ export default function HomeScreen({ navigation }: any) {
   // Get featured item
   const featuredItem = getFeaturedItem()
 
-  // Nous n'utilisons plus de rendu conditionnel pour tout l'écran
-  // Le chargement sera affiché uniquement dans les sections de contenu
-
   // Render error state
   if (error) {
     return (
@@ -401,217 +523,193 @@ export default function HomeScreen({ navigation }: any) {
         </View>
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.content}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2f4f4f" colors={["#2f4f4f"]} />
-        }
-      >
-        <Text style={styles.dateText}>{currentDate}</Text>
-
-        <Animated.View
-          style={{
-            opacity: fadeValue,
-            transform: [{ translateY: translateYValue }],
-          }}
+      {loading ? (
+        <SkeletonUI />
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#2f4f4f" colors={["#2f4f4f"]} />
+          }
         >
-          <Text style={styles.welcomeTitle}>Start Your</Text>
-          <Text style={styles.welcomeSubtitle}>Mindfulness Journey</Text>
-        </Animated.View>
+          <Text style={styles.dateText}>{currentDate}</Text>
 
-        {/* Featured Section */}
-        <View style={styles.featuredSection}>
-          {loading ? (
-            <View
-              style={[
-                styles.featuredCard,
-                styles.featuredCardShadow,
-                { justifyContent: "center", alignItems: "center" },
-              ]}
-            >
-              <ActivityIndicator size="small" color="#333" />
-            </View>
-          ) : featuredItem ? (
-            <FeaturedCard
-              image={getSafeImageUrl(featuredItem) || require("../assets/images/yooga.jpg")}
-              title={getTitle(featuredItem)}
-              subtitle={getSubtitle(featuredItem, "Featured")}
-              onPress={() =>
-                navigateToContent(featuredItem.attributes?.type || featuredItem.type || "mental", featuredItem.id)
-              }
-              style={styles.featuredCardShadow}
-            />
-          ) : (
-            <FeaturedCard
-              image={require("../assets/images/yooga.jpg")}
-              title="Mindfulness Meditation"
-              subtitle="Featured"
-              onPress={() => {
-                try {
-                  navigation.navigate("Mental")
-                } catch (error) {
-                  console.error("Navigation error:", error)
+          <Animated.View
+            style={{
+              opacity: fadeValue,
+              transform: [{ translateY: translateYValue }],
+            }}
+          >
+            <Text style={styles.welcomeTitle}>Start Your</Text>
+            <Text style={styles.welcomeSubtitle}>Mindfulness Journey</Text>
+          </Animated.View>
+
+          {/* Featured Section */}
+          <View style={styles.featuredSection}>
+            {featuredItem ? (
+              <FeaturedCard
+                image={getSafeImageUrl(featuredItem) || require("../assets/images/yooga.jpg")}
+                title={getTitle(featuredItem)}
+                subtitle={getSubtitle(featuredItem, "Featured")}
+                onPress={() =>
+                  navigateToContent(featuredItem.attributes?.type || featuredItem.type || "mental", featuredItem.id)
                 }
-              }}
-              style={styles.featuredCardShadow}
-            />
-          )}
-        </View>
-
-        {/* Quote Carousel Section */}
-        <View style={styles.quoteCarouselSection}>
-          <View style={styles.quoteCarouselHeader}>
-            <QuoteIcon size={18} color="#2f4f4f" />
-            <Text style={styles.quoteCarouselTitle}>Daily Inspiration</Text>
+                style={styles.featuredCardShadow}
+              />
+            ) : (
+              <FeaturedCard
+                image={require("../assets/images/yooga.jpg")}
+                title="Mindfulness Meditation"
+                subtitle="Featured"
+                onPress={() => {
+                  try {
+                    navigation.navigate("Mental")
+                  } catch (error) {
+                    console.error("Navigation error:", error)
+                  }
+                }}
+                style={styles.featuredCardShadow}
+              />
+            )}
           </View>
-          {loading ? (
-            <View style={{ height: 100, justifyContent: "center", alignItems: "center" }}>
-              <ActivityIndicator size="small" color="#333" />
+
+          {/* Quote Carousel Section */}
+          <View style={styles.quoteCarouselSection}>
+            <View style={styles.quoteCarouselHeader}>
+              <QuoteIcon size={18} color="#2f4f4f" />
+              <Text style={styles.quoteCarouselTitle}>Daily Inspiration</Text>
             </View>
-          ) : (
             <AnimatedQuoteCarousel
               quotes={MOCK_QUOTES}
               duration={5000}
               onQuotePress={(id) => navigateToContent("quote", id)}
             />
-          )}
-        </View>
+          </View>
 
-        {/* Tests Section */}
-        <View style={styles.section}>
-          <SectionHeader
-            title="Self-Discovery Tests"
-            onSeeAll={() => {
-              try {
-                navigation.navigate("Test")
-              } catch (error) {
-                console.error("Navigation error:", error)
-              }
-            }}
-          />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <Animated.View
-              style={{
-                flexDirection: "row",
-                transform: [{ translateX: translateXValue }],
+          {/* Tests Section */}
+          <View style={styles.section}>
+            <SectionHeader
+              title="Self-Discovery Tests"
+              onSeeAll={() => {
+                try {
+                  navigation.navigate("Test")
+                } catch (error) {
+                  console.error("Navigation error:", error)
+                }
               }}
-            >
-              {loading ? (
-                <View style={[styles.emptyStateContainer, { width: width * 0.44 * 2 + 18 }]}>
-                  <ActivityIndicator size="small" color="#333" />
-                </View>
-              ) : testData.length > 0 ? (
-                testData.map((item) => (
-                  <Card
-                    key={item.id}
-                    image={getSafeImageUrl(item)}
-                    title={getTitle(item)}
-                    onPress={() => navigateToContent("test", item.id)}
-                    style={styles.cardShadow}
-                  />
-                ))
-              ) : (
-                <View style={styles.emptyStateContainer}>
-                  <Text style={styles.emptyStateText}>No tests available</Text>
-                </View>
-              )}
-            </Animated.View>
-          </ScrollView>
-        </View>
-
-        {/* Music Section */}
-        <View style={styles.section}>
-          <SectionHeader
-            title="Music for Meditation"
-            onSeeAll={() => {
-              try {
-                navigation.navigate("Music")
-              } catch (error) {
-                console.error("Navigation error:", error)
-              }
-            }}
-          />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <Animated.View
-              style={{
-                flexDirection: "row",
-                transform: [{ translateX: translateXValue }],
-              }}
-            >
-              {loading ? (
-                <View style={[styles.emptyStateContainer, { width: width * 0.44 * 2 + 18 }]}>
-                  <ActivityIndicator size="small" color="#333" />
-                </View>
-              ) : musicData.length > 0 ? (
-                musicData.map((item) => {
-                  const imageUrl = getSafeImageUrl(item)
-                  return (
+            />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <Animated.View
+                style={{
+                  flexDirection: "row",
+                  transform: [{ translateX: translateXValue }],
+                }}
+              >
+                {testData.length > 0 ? (
+                  testData.map((item) => (
                     <Card
                       key={item.id}
-                      image={imageUrl}
+                      image={getSafeImageUrl(item)}
                       title={getTitle(item)}
-                      onPress={() => navigateToContent("music", item.id)}
+                      onPress={() => navigateToContent("test", item.id)}
                       style={styles.cardShadow}
                     />
-                  )
-                })
-              ) : (
-                <View style={styles.emptyStateContainer}>
-                  <Text style={styles.emptyStateText}>No music available</Text>
-                </View>
-              )}
-            </Animated.View>
-          </ScrollView>
-        </View>
+                  ))
+                ) : (
+                  <View style={styles.emptyStateContainer}>
+                    <Text style={styles.emptyStateText}>No tests available</Text>
+                  </View>
+                )}
+              </Animated.View>
+            </ScrollView>
+          </View>
 
-        {/* Quotes Section */}
-        <View style={styles.section}>
-          <SectionHeader
-            title="All Quotes"
-            onSeeAll={() => {
-              try {
-                navigation.navigate("Quote")
-              } catch (error) {
-                console.error("Navigation error:", error)
-              }
-            }}
-          />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-            <Animated.View
-              style={{
-                flexDirection: "row",
-                transform: [{ translateX: translateXValue }],
+          {/* Music Section */}
+          <View style={styles.section}>
+            <SectionHeader
+              title="Music for Meditation"
+              onSeeAll={() => {
+                try {
+                  navigation.navigate("Music")
+                } catch (error) {
+                  console.error("Navigation error:", error)
+                }
               }}
-            >
-              {loading ? (
-                <View style={[styles.emptyStateContainer, { width: width * 0.44 * 2 + 18 }]}>
-                  <ActivityIndicator size="small" color="#333" />
-                </View>
-              ) : quoteData.length > 0 ? (
-                quoteData.map((item) => (
-                  <Card
-                    key={item.id}
-                    image={getSafeImageUrl(item)}
-                    onPress={() => navigateToContent("quote", item.id)}
-                    style={styles.cardShadow}
-                  />
-                ))
-              ) : (
-                // If no API data, use mock quotes
-                MOCK_QUOTES.map((item) => (
-                  <Card
-                    key={item.id}
-                    title={item.text.substring(0, 30) + "..."}
-                    onPress={() => handleQuotePress(item.id)}
-                    style={styles.cardShadow}
-                  />
-                ))
-              )}
-            </Animated.View>
-          </ScrollView>
-        </View>
-      </ScrollView>
+            />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <Animated.View
+                style={{
+                  flexDirection: "row",
+                  transform: [{ translateX: translateXValue }],
+                }}
+              >
+                {musicData.length > 0 ? (
+                  musicData.map((item) => {
+                    const imageUrl = getSafeImageUrl(item)
+                    return (
+                      <Card
+                        key={item.id}
+                        image={imageUrl}
+                        title={getTitle(item)}
+                        onPress={() => navigateToContent("music", item.id)}
+                        style={styles.cardShadow}
+                      />
+                    )
+                  })
+                ) : (
+                  <View style={styles.emptyStateContainer}>
+                    <Text style={styles.emptyStateText}>No music available</Text>
+                  </View>
+                )}
+              </Animated.View>
+            </ScrollView>
+          </View>
+
+          {/* Quotes Section */}
+          <View style={styles.section}>
+            <SectionHeader
+              title="All Quotes"
+              onSeeAll={() => {
+                try {
+                  navigation.navigate("Quote")
+                } catch (error) {
+                  console.error("Navigation error:", error)
+                }
+              }}
+            />
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+              <Animated.View
+                style={{
+                  flexDirection: "row",
+                  transform: [{ translateX: translateXValue }],
+                }}
+              >
+                {quoteData.length > 0
+                  ? quoteData.map((item) => (
+                      <Card
+                        key={item.id}
+                        image={getSafeImageUrl(item)}
+                        title={getTitle(item)}
+                        onPress={() => navigateToContent("quote", item.id)}
+                        style={styles.cardShadow}
+                      />
+                    ))
+                  : // If no API data, use mock quotes
+                    MOCK_QUOTES.map((item) => (
+                      <Card
+                        key={item.id}
+                        image={null}
+                        title={item.text.substring(0, 30) + "..."}
+                        onPress={() => handleQuotePress(item.id)}
+                        style={styles.cardShadow}
+                      />
+                    ))}
+              </Animated.View>
+            </ScrollView>
+          </View>
+        </ScrollView>
+      )}
     </View>
   )
 }
@@ -944,5 +1042,17 @@ const styles = StyleSheet.create({
     color: "#000",
     marginLeft: 8,
     fontFamily: Platform.OS === "ios" ? "Georgia" : "serif",
+  },
+
+  // Skeleton styles
+  skeletonCard: {
+    backgroundColor: SKELETON_COLORS.background,
+  },
+  skeletonText: {
+    backgroundColor: SKELETON_COLORS.highlight,
+    borderRadius: 4,
+  },
+  skeletonIcon: {
+    backgroundColor: SKELETON_COLORS.highlight,
   },
 })

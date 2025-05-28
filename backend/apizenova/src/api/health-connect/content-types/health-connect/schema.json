@@ -1,0 +1,90 @@
+{
+  "kind": "collectionType",
+  "collectionName": "health_connects",
+  "info": {
+    "singularName": "health-connect",
+    "pluralName": "health-connects",
+    "displayName": "health connect",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "active_calories_burned": {
+      "type": "string"
+    },
+    "Exercise": {
+      "type": "string"
+    },
+    "elevation_gained": {
+      "type": "string"
+    },
+    "Distance": {
+      "type": "string"
+    },
+    "Cervical_mucus": {
+      "type": "string"
+    },
+    "Bone_mass": {
+      "type": "string"
+    },
+    "Body_water_mass": {
+      "type": "string"
+    },
+    "Body_temperature": {
+      "type": "string"
+    },
+    "Body_fat": {
+      "type": "string"
+    },
+    "Blood_pressure": {
+      "type": "string"
+    },
+    "Blood_glucose": {
+      "type": "string"
+    },
+    "Basal_metabolic_rate": {
+      "type": "string"
+    },
+    "Basal_body_temperature": {
+      "type": "string"
+    },
+    "Wheelchair_pushes": {
+      "type": "string"
+    },
+    "Weight": {
+      "type": "string"
+    },
+    "VO2_max": {
+      "type": "string"
+    },
+    "Total_calories_burned": {
+      "type": "string"
+    },
+    "Steps": {
+      "type": "string"
+    },
+    "Spotting": {
+      "type": "string"
+    },
+    "Speed": {
+      "type": "string"
+    },
+    "Sleep": {
+      "type": "string"
+    },
+    "Sexual_activity": {
+      "type": "string"
+    },
+    "Resting_heart_rate": {
+      "type": "string"
+    },
+    "Respiratory_rate": {
+      "type": "string"
+    },
+    "Power": {
+      "type": "string"
+    }
+  }
+}

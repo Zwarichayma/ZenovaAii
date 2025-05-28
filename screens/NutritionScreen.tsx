@@ -9,7 +9,6 @@ import {
   Dimensions,
   TouchableOpacity,
   Image,
-  ActivityIndicator,
   ImageBackground,
   Animated,
   StatusBar,
@@ -21,6 +20,12 @@ import { getCategories, getRecipes } from "../api/recipes/route"
 import { API_BASE_URL } from "@/config"
 
 const { width, height } = Dimensions.get("window")
+
+// Colors for skeleton
+const SKELETON_COLORS = {
+  background: "#E8E8E8",
+  highlight: "#F5F5F5",
+}
 
 type RootStackParamList = {
   Home: undefined
@@ -88,6 +93,201 @@ type Category = {
     }
   }
 }
+
+// Skeleton Components
+const SkeletonCategoryCard = () => (
+  <View style={[styles.categoryCard, styles.skeletonCard]}>
+    {/* Skeleton overlay to match the gradient overlay */}
+    <View style={[styles.categoryOverlay, { backgroundColor: "rgba(232, 232, 232, 0.3)" }]} />
+
+    {/* Skeleton badge in top right to match selected badge */}
+    <View
+      style={[
+        styles.selectedBadge,
+        { backgroundColor: SKELETON_COLORS.highlight, borderColor: SKELETON_COLORS.highlight },
+      ]}
+    />
+
+    {/* Content at bottom matching actual card */}
+    <View style={styles.categoryContent}>
+      <View style={[styles.skeletonTitle, { width: "70%", height: 22, marginBottom: 4 }]} />
+      <View style={[styles.skeletonSubtitle, { width: "50%", height: 12 }]} />
+    </View>
+  </View>
+)
+
+const SkeletonRecipeCard = () => (
+  <View style={[styles.recipeCard, styles.skeletonCard]}>
+    <View style={styles.recipeImageContainer}>
+      <View style={[styles.skeletonImage, { height: 180 }]} />
+      {/* Skeleton favorite button */}
+      <View style={[styles.favoriteButton, { backgroundColor: SKELETON_COLORS.highlight }]} />
+    </View>
+    <View style={styles.recipeContent}>
+      <View style={[styles.skeletonTitle, { width: "80%", height: 16, marginBottom: 12 }]} />
+      <View style={styles.recipeInfo}>
+        <View style={[styles.recipeTime, styles.skeletonTime]} />
+        <View style={styles.nutritionInfo}>
+          <View style={styles.nutritionItem}>
+            <View style={[styles.skeletonSubtitle, { width: 30, height: 14 }]} />
+            <View style={[styles.skeletonSubtitle, { width: 20, height: 10, marginTop: 2 }]} />
+          </View>
+          <View style={styles.nutritionItem}>
+            <View style={[styles.skeletonSubtitle, { width: 25, height: 14 }]} />
+            <View style={[styles.skeletonSubtitle, { width: 35, height: 10, marginTop: 2 }]} />
+          </View>
+          <View style={styles.nutritionItem}>
+            <View style={[styles.skeletonSubtitle, { width: 25, height: 14 }]} />
+            <View style={[styles.skeletonSubtitle, { width: 30, height: 10, marginTop: 2 }]} />
+          </View>
+          <View style={styles.nutritionItem}>
+            <View style={[styles.skeletonSubtitle, { width: 20, height: 14 }]} />
+            <View style={[styles.skeletonSubtitle, { width: 15, height: 10, marginTop: 2 }]} />
+          </View>
+        </View>
+      </View>
+    </View>
+  </View>
+)
+
+const SkeletonGridRecipeCard = () => (
+  <View style={[styles.gridRecipeCard, styles.skeletonCard]}>
+    <View style={styles.gridRecipeImageContainer}>
+      <View style={[styles.skeletonImage, { height: 140 }]} />
+      {/* Skeleton favorite button */}
+      <View style={[styles.gridFavoriteButton, { backgroundColor: SKELETON_COLORS.highlight }]} />
+    </View>
+    <View style={styles.gridRecipeContent}>
+      <View style={[styles.skeletonTitle, { width: "90%", height: 14, marginBottom: 8 }]} />
+      <View style={styles.gridRecipeInfo}>
+        <View style={[styles.gridRecipeTime, styles.skeletonTime, { width: 60, height: 20 }]} />
+        <View style={[styles.skeletonSubtitle, { width: 45, height: 10 }]} />
+      </View>
+    </View>
+  </View>
+)
+
+const SkeletonHealthyRecipeCard = () => (
+  <View style={[styles.healthyRecipeCard, styles.skeletonCard]}>
+    <View
+      style={[styles.skeletonImage, { width: 120, height: 120, borderTopLeftRadius: 16, borderBottomLeftRadius: 16 }]}
+    />
+    <View style={styles.healthyRecipeContent}>
+      <View style={[styles.skeletonTitle, { width: "80%", height: 16, marginBottom: 4 }]} />
+      <View style={[styles.skeletonSubtitle, { width: "90%", height: 12, marginBottom: 4 }]} />
+      <View style={[styles.skeletonSubtitle, { width: "70%", height: 12, marginBottom: 8 }]} />
+      <View style={styles.nutritionInfo}>
+        <View style={styles.nutritionItem}>
+          <View style={[styles.skeletonSubtitle, { width: 30, height: 14 }]} />
+          <View style={[styles.skeletonSubtitle, { width: 20, height: 10, marginTop: 2 }]} />
+        </View>
+        <View style={styles.nutritionItem}>
+          <View style={[styles.skeletonSubtitle, { width: 25, height: 14 }]} />
+          <View style={[styles.skeletonSubtitle, { width: 35, height: 10, marginTop: 2 }]} />
+        </View>
+        <View style={styles.nutritionItem}>
+          <View style={[styles.skeletonSubtitle, { width: 25, height: 14 }]} />
+          <View style={[styles.skeletonSubtitle, { width: 30, height: 10, marginTop: 2 }]} />
+        </View>
+        <View style={styles.nutritionItem}>
+          <View style={[styles.skeletonSubtitle, { width: 20, height: 14 }]} />
+          <View style={[styles.skeletonSubtitle, { width: 15, height: 10, marginTop: 2 }]} />
+        </View>
+      </View>
+    </View>
+    {/* Skeleton arrow */}
+    <View
+      style={[
+        styles.healthyRecipeArrow,
+        { width: 20, height: 20, backgroundColor: SKELETON_COLORS.highlight, borderRadius: 10 },
+      ]}
+    />
+  </View>
+)
+
+// Skeleton UI Component
+const SkeletonUI = () => (
+  <ScrollView showsVerticalScrollIndicator={false}>
+    <View style={styles.searchContainer}>
+      <View style={styles.searchBar}>
+        <Search size={20} color="#777777" />
+        <Text style={styles.searchPlaceholder}>Find your recipe</Text>
+      </View>
+      <View style={styles.filterButton}>
+        <Filter size={20} color="#777777" />
+      </View>
+    </View>
+
+    {/* Skeleton Nutrition Categories */}
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Meal Plans</Text>
+        <View style={styles.seeAllButton}>
+          <Text style={styles.seeAllText}>See more</Text>
+          <ChevronRight size={16} color="#777777" />
+        </View>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoriesContainer}>
+        {[1, 2, 3].map((_, index) => (
+          <View key={`skeleton-category-${index}`} style={{ marginRight: 16 }}>
+            <SkeletonCategoryCard />
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+
+    {/* Skeleton Featured Recipes */}
+    <View style={styles.section}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>New Recipes</Text>
+        <View style={styles.seeAllButton}>
+          <Text style={styles.seeAllText}>See more</Text>
+          <ChevronRight size={16} color="#777777" />
+        </View>
+      </View>
+
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {[1, 2, 3].map((_, index) => (
+          <View key={`skeleton-featured-${index}`} style={{ marginRight: 20 }}>
+            <SkeletonRecipeCard />
+          </View>
+        ))}
+      </ScrollView>
+    </View>
+
+    {/* Skeleton All Recipes Grid */}
+    <View style={[styles.section, styles.allRecipesSection]}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>All Recipes</Text>
+      </View>
+
+      <View style={styles.recipesGrid}>
+        {[1, 2, 3, 4].map((_, index) => (
+          <SkeletonGridRecipeCard key={`skeleton-grid-${index}`} />
+        ))}
+      </View>
+    </View>
+
+    {/* Skeleton Healthy Recipes */}
+    <View style={[styles.section, styles.healthySection]}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Healthy Recipes</Text>
+        <View style={styles.seeAllButton}>
+          <Text style={styles.seeAllText}>See more</Text>
+          <ChevronRight size={16} color="#777777" />
+        </View>
+      </View>
+
+      {[1, 2, 3].map((_, index) => (
+        <SkeletonHealthyRecipeCard key={`skeleton-healthy-${index}`} />
+      ))}
+    </View>
+
+    {/* Bottom padding */}
+    <View style={{ height: 30 }} />
+  </ScrollView>
+)
 
 export default function NutritionScreen() {
   const navigation = useNavigation<NutritionScreenNavigationProp>()
@@ -204,7 +404,7 @@ export default function NutritionScreen() {
           <View style={[styles.categoryOverlay, isSelected && styles.selectedCategoryOverlay]} />
           <View style={styles.categoryContent}>
             <Text style={styles.categoryTitle}>{title.toUpperCase()}</Text>
-            <Text style={styles.categoryDescription}>1 SEMAINE - 2 PERSONNES</Text>
+            <Text style={styles.categoryDescription}>1 WEEK - 2 PEOPLE</Text>
           </View>
           {isSelected && (
             <View style={styles.selectedBadge}>
@@ -271,16 +471,13 @@ export default function NutritionScreen() {
       <Animated.View style={[styles.headerBackground, { opacity: headerOpacity }]} />
 
       {isLoading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#FFFFFF" />
-          <Text style={styles.loadingText}>Chargement des recettes...</Text>
-        </View>
+        <SkeletonUI />
       ) : (
         <Animated.ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16}>
           <View style={styles.searchContainer}>
             <TouchableOpacity style={styles.searchBar} activeOpacity={0.8}>
               <Search size={20} color="#777777" />
-              <Text style={styles.searchPlaceholder}>Trouve ta recette</Text>
+              <Text style={styles.searchPlaceholder}>Find your recipe</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.filterButton}>
               <Filter size={20} color="#777777" />
@@ -291,9 +488,9 @@ export default function NutritionScreen() {
           {categories.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Plans alimentaires</Text>
+                <Text style={styles.sectionTitle}>Meal Plans</Text>
                 <TouchableOpacity style={styles.seeAllButton}>
-                  <Text style={styles.seeAllText}>Voir plus</Text>
+                  <Text style={styles.seeAllText}>See more</Text>
                   <ChevronRight size={16} color="#777777" />
                 </TouchableOpacity>
               </View>
@@ -310,9 +507,9 @@ export default function NutritionScreen() {
           {featuredRecipes.length > 0 && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Nouvelles recettes</Text>
+                <Text style={styles.sectionTitle}>New Recipes</Text>
                 <TouchableOpacity style={styles.seeAllButton}>
-                  <Text style={styles.seeAllText}>Voir plus</Text>
+                  <Text style={styles.seeAllText}>See more</Text>
                   <ChevronRight size={16} color="#777777" />
                 </TouchableOpacity>
               </View>
@@ -328,10 +525,10 @@ export default function NutritionScreen() {
           {/* All Recipes Grid */}
           <View style={[styles.section, styles.allRecipesSection]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Toutes les recettes</Text>
+              <Text style={styles.sectionTitle}>All Recipes</Text>
               {selectedCategory && (
                 <TouchableOpacity style={styles.clearFilterButton} onPress={() => setSelectedCategory(null)}>
-                  <Text style={styles.clearFilterText}>Effacer le filtre</Text>
+                  <Text style={styles.clearFilterText}>Clear filter</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -383,9 +580,9 @@ export default function NutritionScreen() {
           {healthyRecipes.length > 0 && (
             <View style={[styles.section, styles.healthySection]}>
               <View style={styles.sectionHeader}>
-                <Text style={styles.sectionTitle}>Recettes santé</Text>
+                <Text style={styles.sectionTitle}>Healthy Recipes</Text>
                 <TouchableOpacity style={styles.seeAllButton}>
-                  <Text style={styles.seeAllText}>Voir plus</Text>
+                  <Text style={styles.seeAllText}>See more</Text>
                   <ChevronRight size={16} color="#777777" />
                 </TouchableOpacity>
               </View>
@@ -415,8 +612,7 @@ export default function NutritionScreen() {
                       {recipe.title}
                     </Text>
                     <Text style={styles.healthyRecipeDescription} numberOfLines={2}>
-                      {recipe.description ||
-                        `Une délicieuse recette ${recipe.category} avec une grande valeur nutritionnelle.`}
+                      {recipe.description || `A delicious ${recipe.category} recipe with great nutritional value.`}
                     </Text>
                     {renderNutritionInfo(recipe)}
                   </View>
@@ -853,5 +1049,35 @@ const styles = StyleSheet.create({
   footerSubtext: {
     fontSize: 12,
     color: "#555555",
+  },
+
+  // Skeleton styles
+  skeletonCard: {
+    backgroundColor: SKELETON_COLORS.background,
+  },
+  skeletonTitle: {
+    backgroundColor: SKELETON_COLORS.highlight,
+    borderRadius: 4,
+  },
+  skeletonSubtitle: {
+    backgroundColor: SKELETON_COLORS.highlight,
+    borderRadius: 4,
+  },
+  skeletonImage: {
+    backgroundColor: SKELETON_COLORS.background,
+    height: 180,
+  },
+  skeletonTime: {
+    backgroundColor: SKELETON_COLORS.highlight,
+    width: 70,
+    height: 24,
+    borderRadius: 12,
+  },
+  skeletonCategoryContent: {
+    position: "absolute",
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 16,
   },
 })

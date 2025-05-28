@@ -9,7 +9,6 @@ import {
   TouchableOpacity,
   Dimensions,
   ScrollView,
-  ActivityIndicator,
   StatusBar,
   SafeAreaView,
   RefreshControl,
@@ -23,6 +22,12 @@ import { LinearGradient } from "expo-linear-gradient"
 
 const { width } = Dimensions.get("window")
 
+// Colors for skeleton
+const SKELETON_COLORS = {
+  background: "#E8E8E8",
+  highlight: "#F5F5F5",
+}
+
 type RootStackParamList = {
   Fitness: { category: string }
   AllCategories: undefined
@@ -32,6 +37,117 @@ type RootStackParamList = {
 }
 
 type NavigationProp = StackNavigationProp<RootStackParamList>
+
+// Skeleton Components
+const SkeletonTodayWorkout = () => (
+  <View style={[styles.todayWorkoutCard, styles.skeletonCard]}>
+    <View style={styles.skeletonTodayContent}>
+      <View style={[styles.skeletonTitle, { width: '60%', height: 24, marginBottom: 8 }]} />
+      <View style={[styles.skeletonSubtitle, { width: '40%', height: 14, marginBottom: 12 }]} />
+      <View style={styles.todayWorkoutMetrics}>
+        <View style={[styles.todayWorkoutMetric, styles.skeletonMetric]} />
+        <View style={[styles.todayWorkoutMetric, styles.skeletonMetric]} />
+        <View style={[styles.todayWorkoutMetric, styles.skeletonMetric]} />
+      </View>
+    </View>
+  </View>
+)
+
+const SkeletonCategoryCard = () => (
+  <View style={[styles.categoryCard, styles.skeletonCard]}>
+    <View style={styles.skeletonCategoryContent}>
+      <View style={[styles.skeletonTitle, { width: '70%', height: 16 }]} />
+      <View style={styles.categoryMeta}>
+        <View style={[styles.skeletonSubtitle, { width: 50, height: 12 }]} />
+      </View>
+    </View>
+  </View>
+)
+
+const SkeletonRecommendedCard = () => (
+  <View style={[styles.recommendedCard, styles.skeletonCard]}>
+    <View style={styles.recommendedContent}>
+      <View style={[styles.skeletonTitle, { width: '80%', height: 16, marginBottom: 6 }]} />
+      <View style={styles.recommendedMeta}>
+        <View style={[styles.skeletonSubtitle, { width: 60, height: 12 }]} />
+        <View style={styles.recommendedMetaDot} />
+        <View style={[styles.skeletonSubtitle, { width: 60, height: 12 }]} />
+      </View>
+    </View>
+  </View>
+)
+
+const SkeletonDifficultyButton = () => (
+  <View style={[styles.difficultyButton, styles.skeletonButton]}>
+    <View style={[styles.skeletonTitle, { width: 70, height: 14 }]} />
+  </View>
+)
+
+const SkeletonUI = () => (
+  <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+    {/* Today's Workout Section */}
+    <View style={styles.todaySection}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionTitleWrapper}>
+          <Calendar size={18} color="#333" style={styles.sectionIcon} />
+          <Text style={styles.sectionTitle}>Today's Workout Plan</Text>
+        </View>
+        <View style={styles.viewAllButton}>
+          <Text style={styles.viewAllText}>View All</Text>
+          <ChevronRight size={16} color="#5E72E4" />
+        </View>
+      </View>
+      <SkeletonTodayWorkout />
+    </View>
+
+    {/* Categories Section */}
+    <View style={styles.categoriesSection}>
+      <View style={styles.sectionHeader}>
+        <Text style={styles.sectionTitle}>Workout Categories</Text>
+        <View style={styles.viewAllButton}>
+          <Text style={styles.viewAllText}>See All</Text>
+          <ChevronRight size={16} color="#5E72E4" />
+        </View>
+      </View>
+
+      <View style={styles.difficultyFilter}>
+        <SkeletonDifficultyButton />
+        <SkeletonDifficultyButton />
+        <SkeletonDifficultyButton />
+      </View>
+
+      <View style={styles.categoriesGrid}>
+        {[1, 2, 3, 4].map((_, index) => (
+          <SkeletonCategoryCard key={`skeleton-category-${index}`} />
+        ))}
+      </View>
+    </View>
+
+    {/* Recommended Section */}
+    <View style={styles.recommendedSection}>
+      <View style={styles.sectionHeader}>
+        <View style={styles.sectionTitleWrapper}>
+          <Flame size={18} color="#333" style={styles.sectionIcon} />
+          <Text style={styles.sectionTitle}>Recommended</Text>
+        </View>
+        <View style={styles.viewAllButton}>
+          <Text style={styles.viewAllText}>See All</Text>
+          <ChevronRight size={16} color="#5E72E4" />
+        </View>
+      </View>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.recommendedScrollContent}
+      >
+        {[1, 2, 3].map((_, index) => (
+          <SkeletonRecommendedCard key={`skeleton-recommended-${index}`} />
+        ))}
+      </ScrollView>
+    </View>
+  </ScrollView>
+)
 
 export default function FitnessCategories() {
   const [fitnessPlans, setFitnessPlans] = useState<FitnessPlan[]>([])
@@ -140,16 +256,6 @@ export default function FitnessCategories() {
     </TouchableOpacity>
   )
 
-  if (loading && !refreshing) {
-    return (
-      <View style={styles.loadingContainer}>
-        <StatusBar barStyle="dark-content" backgroundColor="#ffffff" />
-        <ActivityIndicator size="large" color="#5E72E4" />
-        <Text style={styles.loadingText}>Loading workouts...</Text>
-      </View>
-    )
-  }
-
   if (error) {
     return (
       <View style={styles.errorContainer}>
@@ -181,100 +287,105 @@ export default function FitnessCategories() {
         </TouchableOpacity>
       </View>
 
-      <Animated.ScrollView
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#5E72E4"]} />}
-        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
-        scrollEventThrottle={16}
-      >
-        {todayWorkout && (
-          <View style={styles.todaySection}>
-            <View style={styles.sectionHeader}>
-              <View style={styles.sectionTitleWrapper}>
-                <Calendar size={18} color="#333" style={styles.sectionIcon} />
-                <Text style={styles.sectionTitle}>Today's Workout Plan</Text>
+      {loading && !refreshing ? (
+        <SkeletonUI />
+      ) : (
+        <Animated.ScrollView
+          showsVerticalScrollIndicator={false}
+          contentContainerStyle={styles.scrollContent}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#5E72E4"]} />}
+          onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })}
+          scrollEventThrottle={16}
+        >
+          {todayWorkout && (
+            <View style={styles.todaySection}>
+              <View style={styles.sectionHeader}>
+                <View style={styles.sectionTitleWrapper}>
+                  <Calendar size={18} color="#333" style={styles.sectionIcon} />
+                  <Text style={styles.sectionTitle}>Today's Workout Plan</Text>
+                </View>
+                <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllWorkouts")}>
+                  <Text style={styles.viewAllText}>View All</Text>
+                  <ChevronRight size={16} color="#5E72E4" />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllWorkouts")}>
-                <Text style={styles.viewAllText}>View All</Text>
+              {renderTodayWorkout(todayWorkout)}
+            </View>
+          )}
+
+          <View style={styles.categoriesSection}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Workout Categories</Text>
+              <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllCategories")}>
+                <Text style={styles.viewAllText}>See All</Text>
                 <ChevronRight size={16} color="#5E72E4" />
               </TouchableOpacity>
             </View>
-            {renderTodayWorkout(todayWorkout)}
-          </View>
-        )}
 
-        <View style={styles.categoriesSection}>
-          <View style={styles.sectionHeader}>
-            <Text style={styles.sectionTitle}>Workout Categories</Text>
-            <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllCategories")}>
-              <Text style={styles.viewAllText}>See All</Text>
-              <ChevronRight size={16} color="#5E72E4" />
-            </TouchableOpacity>
-          </View>
-
-          <View style={styles.difficultyFilter}>
-            {renderDifficultyButton("Beginner", true)}
-            {renderDifficultyButton("Intermediate")}
-            {renderDifficultyButton("Advanced")}
-          </View>
-
-          <View style={styles.categoriesGrid}>
-            {fitnessPlans.slice(0, 4).map((plan, index) => renderCategoryCard(plan, index))}
-          </View>
-        </View>
-
-        <View style={styles.recommendedSection}>
-          <View style={styles.sectionHeader}>
-            <View style={styles.sectionTitleWrapper}>
-              <Flame size={18} color="#333" style={styles.sectionIcon} />
-              <Text style={styles.sectionTitle}>Recommended</Text>
+            <View style={styles.difficultyFilter}>
+              {renderDifficultyButton("Beginner", true)}
+              {renderDifficultyButton("Intermediate")}
+              {renderDifficultyButton("Advanced")}
             </View>
-            <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllRecommended")}>
-              <Text style={styles.viewAllText}>See All</Text>
-              <ChevronRight size={16} color="#5E72E4" />
-            </TouchableOpacity>
+
+            <View style={styles.categoriesGrid}>
+              {fitnessPlans.slice(0, 4).map((plan, index) => renderCategoryCard(plan, index))}
+            </View>
           </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.recommendedScrollContent}
-          >
-            {fitnessPlans.slice(0, 5).map((plan, index) => (
-              <TouchableOpacity
-                key={`recommended-${plan.id}`}
-                style={styles.recommendedCard}
-                activeOpacity={0.9}
-                onPress={() => navigation.navigate("FitnessPlanDetail", { planId: plan.id })}
-              >
-                <Image
-                  source={{
-                    uri:
-                      plan.image && plan.image.length > 0
-                        ? getImageUrl(plan.image[0].url)
-                        : require("../assets/images/cardio.jpg"),
-                  }}
-                  style={styles.recommendedImage}
-                />
-                <View style={styles.recommendedContent}>
-                  <Text style={styles.recommendedTitle}>{plan.title}</Text>
-                  <View style={styles.recommendedMeta}>
-                    <Clock size={12} color="#fff" style={styles.recommendedMetaIcon} />
-                    <Text style={styles.recommendedMetaText}>{plan.duration} min</Text>
-                    <View style={styles.recommendedMetaDot} />
-                    <Flame size={12} color="#fff" style={styles.recommendedMetaIcon} />
-                    <Text style={styles.recommendedMetaText}>{plan.calories_burned} cal</Text>
-                  </View>
-                </View>
+          <View style={styles.recommendedSection}>
+            <View style={styles.sectionHeader}>
+              <View style={styles.sectionTitleWrapper}>
+                <Flame size={18} color="#333" style={styles.sectionIcon} />
+                <Text style={styles.sectionTitle}>Recommended</Text>
+              </View>
+              <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllRecommended")}>
+                <Text style={styles.viewAllText}>See All</Text>
+                <ChevronRight size={16} color="#5E72E4" />
               </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-      </Animated.ScrollView>
+            </View>
+
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={styles.recommendedScrollContent}
+            >
+              {fitnessPlans.slice(0, 5).map((plan, index) => (
+                <TouchableOpacity
+                  key={`recommended-${plan.id}`}
+                  style={styles.recommendedCard}
+                  activeOpacity={0.9}
+                  onPress={() => navigation.navigate("FitnessPlanDetail", { planId: plan.id })}
+                >
+                  <Image
+                    source={{
+                      uri:
+                        plan.image && plan.image.length > 0
+                          ? getImageUrl(plan.image[0].url)
+                          : require("../assets/images/cardio.jpg"),
+                    }}
+                    style={styles.recommendedImage}
+                  />
+                  <View style={styles.recommendedContent}>
+                    <Text style={styles.recommendedTitle}>{plan.title}</Text>
+                    <View style={styles.recommendedMeta}>
+                      <Clock size={12} color="#fff" style={styles.recommendedMetaIcon} />
+                      <Text style={styles.recommendedMetaText}>{plan.duration} min</Text>
+                      <View style={styles.recommendedMetaDot} />
+                      <Flame size={12} color="#fff" style={styles.recommendedMetaIcon} />
+                      <Text style={styles.recommendedMetaText}>{plan.calories_burned} cal</Text>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+        </Animated.ScrollView>
+      )}
     </SafeAreaView>
   )
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -619,5 +730,41 @@ const styles = StyleSheet.create({
     borderRadius: 1.5,
     backgroundColor: "rgba(255, 255, 255, 0.8)",
     marginHorizontal: 6,
+  },
+
+  // Skeleton styles
+  skeletonCard: {
+    backgroundColor: SKELETON_COLORS.background,
+  },
+  skeletonTitle: {
+    backgroundColor: SKELETON_COLORS.highlight,
+    borderRadius: 4,
+  },
+  skeletonSubtitle: {
+    backgroundColor: SKELETON_COLORS.highlight,
+    borderRadius: 4,
+  },
+  skeletonTodayContent: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 20,
+  },
+  skeletonMetric: {
+    backgroundColor: SKELETON_COLORS.highlight,
+    width: 70,
+    height: 28,
+  },
+  skeletonCategoryContent: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    padding: 16,
+  },
+  skeletonButton: {
+    backgroundColor: SKELETON_COLORS.background,
+    borderColor: SKELETON_COLORS.background,
   },
 })

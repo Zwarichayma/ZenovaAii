@@ -1,8 +1,8 @@
 import axios from 'axios';
 import { API_URL, API_KEY } from '@env';
 
-
-
+console.log(API_URL); 
+console.log(API_KEY);
 export const getRecipes = async (categoryDocumentId: string) => {
   try {
     let url = `${API_URL}/recipes?populate=*`;

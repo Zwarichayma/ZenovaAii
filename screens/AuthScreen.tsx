@@ -13,11 +13,14 @@ import {
   Dimensions,
   ImageBackground,
   ActivityIndicator,
+  View,
+  SafeAreaView,
 } from "react-native"
 import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../types/navigation"
 import { authService } from "../api/auth/auth-service" 
+import { ArrowLeft } from "lucide-react-native"
 
 const { width, height } = Dimensions.get("window")
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
@@ -28,34 +31,32 @@ export default function AuthScreen() {
   const [isLoading, setIsLoading] = useState(false)
   const navigation = useNavigation<AuthScreenNavigationProp>()
 
-  // Suppression de la fonction loadDeviceUUID et de l'état deviceUUID
-
   const handleContinue = async () => {
     if (!email || !password) {
-      Alert.alert("Erreur", "Veuillez saisir votre email et votre mot de passe")
+      Alert.alert("Error", "Please enter your email and password")
       return
     }
 
     setIsLoading(true)
     try {
-      // Appeler la méthode de connexion de notre service d'authentification
+      // Call the login method from our authentication service
       const response = await authService.login(email, password)
 
-      // Connexion réussie
-      console.log("Connexion réussie:", response.user)
+      // Successful login
+      console.log("Login successful:", response.user)
 
-      // Naviguer vers l'écran de profil
+      // Navigate to profile screen
       navigation.navigate("Profile")
     } catch (error: any) {
-      // Gérer l'erreur de connexion
-      console.error("Erreur de connexion:", error)
-      Alert.alert("Échec de la connexion", error.message || "Veuillez vérifier vos identifiants et réessayer")
+      // Handle login error
+      console.error("Login error:", error)
+      Alert.alert("Login failed", error.message || "Please check your credentials and try again")
     } finally {
       setIsLoading(false)
     }
   }
 
-  // Fonction pour retourner à l'écran d'accueil
+  // Function to return to home screen
   const goToHome = () => {
     navigation.navigate("MainTabs", { screen: "Home" })
   }
@@ -66,133 +67,155 @@ export default function AuthScreen() {
       style={styles.container}
       imageStyle={styles.backgroundImage}
     >
-      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.innerContainer}>
-        {/* Logo (Retour à HomeScreen) avec un texte explicite */}
-        <TouchableOpacity onPress={goToHome} style={styles.backContainer}>
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header with back arrow */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={goToHome} style={styles.backButton}>
+            <ArrowLeft size={24} color="#000" />
+          </TouchableOpacity>
+        </View>
+
+        <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.innerContainer}>
+          {/* Centered Logo */}
           <Image source={require("../assets/images/33.png")} style={styles.logo} />
-          <Text style={styles.backText}>Retour à l'accueil</Text>
-        </TouchableOpacity>
 
-        <Text style={styles.title}>Connexion</Text>
-        <Text style={styles.subtitle}>Bienvenue ! Veuillez vous connecter pour continuer</Text>
+          <Text style={styles.title}>Login</Text>
+          <Text style={styles.subtitle}>Welcome! Please login to continue</Text>
 
-        {/* Suppression de l'affichage de l'UUID */}
+          {/* Google login button */}
+          <TouchableOpacity style={styles.googleButton}>
+            <Image source={require("../assets/images/goo.png")} style={styles.googleLogo} />
+            <Text style={styles.googleButtonText}>Continue with Google</Text>
+          </TouchableOpacity>
 
-        {/* Bouton de connexion Google */}
-        <TouchableOpacity style={styles.googleButton}>
-          <Image source={require("../assets/images/goo.png")} style={styles.googleLogo} />
-          <Text style={styles.googleButtonText}>Continuer avec Google</Text>
-        </TouchableOpacity>
+          <Text style={styles.orText}>or</Text>
 
-        <Text style={styles.orText}>ou</Text>
+          {/* Email and Password fields */}
+          <TextInput
+            style={styles.input}
+            placeholder="Email address"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            editable={!isLoading}
+          />
+          <TextInput
+            style={styles.input}
+            placeholder="Password"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            editable={!isLoading}
+          />
 
-        {/* Champs Email et Mot de passe */}
-        <TextInput
-          style={styles.input}
-          placeholder="Adresse email"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-          autoCapitalize="none"
-          editable={!isLoading}
-        />
-        <TextInput
-          style={styles.input}
-          placeholder="Mot de passe"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-          editable={!isLoading}
-        />
+          {/* Continue button */}
+          <TouchableOpacity
+            style={[styles.button, isLoading && styles.buttonDisabled]}
+            onPress={handleContinue}
+            disabled={isLoading}
+          >
+            {isLoading ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <Text style={styles.buttonText}>Continue</Text>
+            )}
+          </TouchableOpacity>
 
-        {/* Bouton Continuer */}
-        <TouchableOpacity
-          style={[styles.button, isLoading && styles.buttonDisabled]}
-          onPress={handleContinue}
-          disabled={isLoading}
-        >
-          {isLoading ? (
-            <ActivityIndicator size="small" color="#fff" />
-          ) : (
-            <Text style={styles.buttonText}>Continuer</Text>
-          )}
-        </TouchableOpacity>
-
-        <Text style={styles.signUpText}>
-          Vous n'avez pas de compte ?{" "}
-          <Text style={styles.signUpLink} onPress={() => navigation.navigate("SignUp")}>
-            S'inscrire
+          <Text style={styles.signUpText}>
+            Don't have an account?{" "}
+            <Text style={styles.signUpLink} onPress={() => navigation.navigate("SignUp")}>
+              Sign up
+            </Text>
           </Text>
-        </Text>
-      </KeyboardAvoidingView>
+        </KeyboardAvoidingView>
+      </SafeAreaView>
     </ImageBackground>
   )
 }
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1, // Ensure the ImageBackground takes up the whole screen
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: 40, 
+    paddingVertical: 1, 
+  },
+  safeArea: {
     flex: 1,
+  },
+  scrollContainer: {
+    flexGrow: 1,
     justifyContent: "center",
     alignItems: "center",
-    paddingHorizontal: 40,
-    paddingVertical: 1,
+    paddingVertical: 20,
+    paddingHorizontal: 20,
   },
   backgroundImage: {
     flex: 1,
     justifyContent: "center",
     resizeMode: "cover",
   },
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    zIndex: 10,
+    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingHorizontal: 20,
+  },
+  backButton: {
+    width: 10,
+    height: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    borderRadius: 20,
+  },
   innerContainer: {
     width: width * 0.9,
-    backgroundColor: "rgba(255, 255, 255, 0.67)",
-    borderRadius: 25,
-    padding: width * 0.08,
-    alignItems: "center",
-    elevation: 3,
-    shadowColor: "#fff",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-  },
-  backContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    alignSelf: "flex-start",
-    marginBottom: width * 0.04,
+       backgroundColor: 'rgba(255, 255, 255, 0.67)', // Semi-transparent background to make content readable
+       borderRadius: 25,
+       padding: width * 0.08,
+       alignItems: 'center',
+       elevation: 3,
+       shadowColor: '#fff',
+       shadowOffset: { width: 0, height: 2 },
+       shadowOpacity: 0.1,
+       shadowRadius: 4,
+       marginTop: 120, // Add space for the header
+
   },
   logo: {
-    width: width * 0.15,
-    height: height * 0.08,
+    width: width * 0.20,
+    height: height * 0.10,
     resizeMode: "contain",
-  },
-  backText: {
-    fontSize: 14,
-    color: "#333",
-    marginLeft: 8,
-    textDecorationLine: "underline",
+    marginBottom: width * 0.06,
   },
   title: {
-    fontSize: 15,
+    fontSize: 24,
     fontWeight: "bold",
-    marginBottom: 5,
-    color: "#332",
+    marginBottom: 8,
+    color: "#333",
   },
   subtitle: {
-    fontSize: 13,
+    fontSize: 14,
     color: "gray",
     marginBottom: width * 0.08,
+    textAlign: 'center',
   },
-  // Suppression du style uuidText
   googleButton: {
     flexDirection: "row",
     alignItems: "center",
     borderWidth: 1,
     borderColor: "#eee",
     padding: width * 0.03,
-    borderRadius: 20,
-    width: "100%",
+    borderRadius: 25,
+    width: width * 0.8,
     justifyContent: "center",
-    marginBottom: width * 0.01,
+    marginBottom: width * 0.04,
     backgroundColor: "#fff",
   },
   googleButtonText: {
@@ -205,11 +228,11 @@ const styles = StyleSheet.create({
     color: "gray",
   },
   input: {
-    width: "100%",
-    height: width * 0.11,
+    width: width * 0.8,
+    height: width * 0.12,
     borderColor: "#eee",
     borderWidth: 1,
-    borderRadius: 20,
+    borderRadius: 25,
     paddingHorizontal: width * 0.04,
     marginBottom: width * 0.04,
     backgroundColor: "#fff",
@@ -218,10 +241,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#000",
     padding: width * 0.03,
     alignItems: "center",
-    width: "100%",
-    borderRadius: 20,
-    marginTop: width * 0.01,
-    height: width * 0.11,
+    width: width * 0.8,
+    borderRadius: 25,
+    marginTop: width * 0.02,
+    height: width * 0.12,
     justifyContent: "center",
   },
   buttonDisabled: {
@@ -229,15 +252,14 @@ const styles = StyleSheet.create({
   },
   buttonText: {
     color: "white",
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "bold",
   },
   signUpText: {
-    marginTop: width * 0.02,
+    marginTop: width * 0.04,
     fontSize: 14,
     color: "gray",
     textAlign: "center",
-    padding: width * 0.04,
   },
   signUpLink: {
     fontWeight: "bold",
@@ -245,8 +267,8 @@ const styles = StyleSheet.create({
     textDecorationLine: "underline",
   },
   googleLogo: {
-    width: 19,
-    height: 19,
+    width: 20,
+    height: 20,
     marginRight: 8,
     resizeMode: "contain",
   },

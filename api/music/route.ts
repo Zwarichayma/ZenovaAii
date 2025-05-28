@@ -1,7 +1,6 @@
 import axios from "axios"
 import { API_URL, API_KEY } from "@env"
 
-// Configuration de l'instance axios
 const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {

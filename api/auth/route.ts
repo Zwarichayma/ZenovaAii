@@ -1,8 +1,6 @@
 import axios from "axios"
 
 import { API_KEY, API_URL } from "@env"
-console.log(API_URL); 
-console.log(API_KEY); 
 
 // Types for authentication responses
 export interface AuthResponse {

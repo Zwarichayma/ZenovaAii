@@ -593,6 +593,60 @@ export interface ApiFitnessPlanFitnessPlan extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiHealthConnectHealthConnect
+  extends Struct.CollectionTypeSchema {
+  collectionName: 'health_connects';
+  info: {
+    description: '';
+    displayName: 'health connect';
+    pluralName: 'health-connects';
+    singularName: 'health-connect';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    active_calories_burned: Schema.Attribute.String;
+    Basal_body_temperature: Schema.Attribute.String;
+    Basal_metabolic_rate: Schema.Attribute.String;
+    Blood_glucose: Schema.Attribute.String;
+    Blood_pressure: Schema.Attribute.String;
+    Body_fat: Schema.Attribute.String;
+    Body_temperature: Schema.Attribute.String;
+    Body_water_mass: Schema.Attribute.String;
+    Bone_mass: Schema.Attribute.String;
+    Cervical_mucus: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    Distance: Schema.Attribute.String;
+    elevation_gained: Schema.Attribute.String;
+    Exercise: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::health-connect.health-connect'
+    > &
+      Schema.Attribute.Private;
+    Power: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    Respiratory_rate: Schema.Attribute.String;
+    Resting_heart_rate: Schema.Attribute.String;
+    Sexual_activity: Schema.Attribute.String;
+    Sleep: Schema.Attribute.String;
+    Speed: Schema.Attribute.String;
+    Spotting: Schema.Attribute.String;
+    Steps: Schema.Attribute.String;
+    Total_calories_burned: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    VO2_max: Schema.Attribute.String;
+    Weight: Schema.Attribute.String;
+    Wheelchair_pushes: Schema.Attribute.String;
+  };
+}
+
 export interface ApiInterpretationInterpretation
   extends Struct.CollectionTypeSchema {
   collectionName: 'interpretations';
@@ -1007,6 +1061,7 @@ export interface ApiSubCategorySubCategory extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    description: Schema.Attribute.String;
     exercises: Schema.Attribute.Relation<'oneToMany', 'api::exercise.exercise'>;
     fitness_plan: Schema.Attribute.Relation<
       'manyToOne',
@@ -1635,6 +1690,7 @@ declare module '@strapi/strapi' {
       'api::chatbot-conversation.chatbot-conversation': ApiChatbotConversationChatbotConversation;
       'api::exercise.exercise': ApiExerciseExercise;
       'api::fitness-plan.fitness-plan': ApiFitnessPlanFitnessPlan;
+      'api::health-connect.health-connect': ApiHealthConnectHealthConnect;
       'api::interpretation.interpretation': ApiInterpretationInterpretation;
       'api::mental-exercise.mental-exercise': ApiMentalExerciseMentalExercise;
       'api::mental.mental': ApiMentalMental;
