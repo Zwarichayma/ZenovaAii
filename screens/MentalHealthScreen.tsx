@@ -492,9 +492,7 @@ export default function HomeScreen({ navigation }: any) {
 
       {/* Enhanced header with search button */}
       <View style={styles.header}>
-        <View>
-          <Image source={require("../assets/images/33.png")} style={styles.headerLogo} resizeMode="contain" />
-        </View>
+        
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={styles.searchButton}
@@ -508,18 +506,7 @@ export default function HomeScreen({ navigation }: any) {
           >
             <Search size={20} color="#333" />
           </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileButton}
-            onPress={() => {
-              try {
-                navigation.navigate("Profile")
-              } catch (error) {
-                console.error("Navigation error:", error)
-              }
-            }}
-          >
-            <Image source={require("../assets/images/yooga.jpg")} style={styles.profileImage} />
-          </TouchableOpacity>
+          
         </View>
       </View>
 
@@ -690,7 +677,6 @@ export default function HomeScreen({ navigation }: any) {
                       <Card
                         key={item.id}
                         image={getSafeImageUrl(item)}
-                        title={getTitle(item)}
                         onPress={() => navigateToContent("quote", item.id)}
                         style={styles.cardShadow}
                       />
@@ -700,7 +686,6 @@ export default function HomeScreen({ navigation }: any) {
                       <Card
                         key={item.id}
                         image={null}
-                        title={item.text.substring(0, 30) + "..."}
                         onPress={() => handleQuotePress(item.id)}
                         style={styles.cardShadow}
                       />
@@ -783,7 +768,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#f7f7f7",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,

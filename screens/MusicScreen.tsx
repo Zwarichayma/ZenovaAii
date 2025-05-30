@@ -14,33 +14,35 @@ import {
   StatusBar,
   Platform,
   ImageBackground,
-  Animated, // Import Animated
+  Animated,
 } from "react-native"
 import { Search, Play, Pause, MoreVertical, ArrowLeft, Youtube, Heart, ChevronRight } from "lucide-react-native"
-import axios from "axios"
+import { getMusic, getFullImageUrl } from "@/api/music/route" // Import your API service
 import { API_BASE_URL } from "@/config"
 
 const { width, height } = Dimensions.get("window")
 
-// Define the Music type based on your API response
-type MusicTrack = {
+// Updated interface to match your actual API response
+interface MusicTrack {
   id: number
-  documentId: string
   title: string
   description: string | null
   duration: number | null
+  image: {
+    url: string
+    // other image properties...
+  }
+  url_spotify: string | null
+  url_youtube: string | null
   createdAt: string
   updatedAt: string
   publishedAt: string
-  url_audio?: string
-  url_spotify?: string | null
-  url_youtube?: string | null
 }
 
-// Placeholder image mapping for different music types
-const getImageForMusic = (title: string) => {
+// Fallback image for when API image is not available
+const getFallbackImage = (title: string) => {
   const lowerTitle = title.toLowerCase()
-
+  
   if (lowerTitle.includes("forest") || lowerTitle.includes("jungle") || lowerTitle.includes("birds")) {
     return require("../assets/images/paceful.jpeg")
   } else if (lowerTitle.includes("rain") || lowerTitle.includes("storm")) {
@@ -48,8 +50,39 @@ const getImageForMusic = (title: string) => {
   } else if (lowerTitle.includes("waves") || lowerTitle.includes("river") || lowerTitle.includes("water")) {
     return require("../assets/images/paceful.jpeg")
   } else {
-    // Default image
     return require("../assets/images/paceful.jpeg")
+  }
+}
+
+// Function to get image source (API or fallback) with proper null checks
+const getImageSource = (music: MusicTrack) => {
+  try {
+    // Check if music exists
+    if (!music) {
+      return getFallbackImage("default")
+    }
+
+    // Check if image exists and has url
+    if (music.image && music.image.url) {
+      // Create full image URL using your API base URL
+      const apiImageUrl = `${API_BASE_URL}${music.image.url}`
+      return { uri: apiImageUrl }
+    }
+    
+    // Fallback to local image based on title
+    return getFallbackImage(music.title || "default")
+  } catch (error) {
+    console.log("Error getting image source:", error)
+    return getFallbackImage("default")
+  }
+}
+
+// Safe function to get music attribute with fallback
+const getMusicAttribute = (music: MusicTrack, attribute: string, fallback: string = "") => {
+  try {
+    return music?.[attribute] || fallback
+  } catch (error) {
+    return fallback
   }
 }
 
@@ -65,58 +98,58 @@ export default function MusicWellnessScreen() {
 
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, 1],
-    extrapolate: "clamp",
-  })
 
-  const headerHeight = scrollY.interpolate({
-    inputRange: [0, 100],
-    outputRange: [0, Platform.OS === "ios" ? 90 : 60],
-    extrapolate: "clamp",
-  })
-
-
-
-  
   useEffect(() => {
-    fetchMusic()
+    fetchMusicData()
   }, [])
 
-  const fetchMusic = async () => {
+  const fetchMusicData = async () => {
     try {
       setIsLoading(true)
-      const response = await axios.get(`${API_BASE_URL}/api/musics`)
-  
-      if (response.data && response.data.data) {
-        const allTracks = response.data.data
-        setMusicList(allTracks)
-  
+      const musicData = await getMusic()
+      
+      console.log("Fetched music data:", musicData) // Debug log
+      
+      if (musicData && musicData.length > 0) {
+        // Filter out any invalid music items - Updated validation logic
+        const validMusicData = musicData.filter(item => 
+          item && 
+          item.title && // Check title directly, not item.attributes.title
+          typeof item.title === 'string'
+        )
+        
+        console.log("Valid music data:", validMusicData) // Debug log
+        
+        setMusicList(validMusicData)
+        
         // Set trending music (first 3 items)
-        setTrendingMusic(allTracks.slice(0, 3))
-  
-        // Filter tracks with streaming links
-        const tracksWithStreaming = allTracks.filter(
+        setTrendingMusic(validMusicData.slice(0, 3))
+        
+        // Filter tracks with streaming URLs
+        const tracksWithStreaming = validMusicData.filter(
           (track: MusicTrack) => track.url_spotify || track.url_youtube
         )
         setStreamingTracks(tracksWithStreaming)
-  
+        
         // Set initial current track
-        if (allTracks.length > 0) {
-          setCurrentTrack(allTracks[0])
+        if (validMusicData.length > 0) {
+          setCurrentTrack(validMusicData[0])
         }
+      } else {
+        console.log("No music data received")
       }
     } catch (error) {
-      console.error("Error fetching music:", error)
+      console.error("Error fetching music data:", error)
     } finally {
       setIsLoading(false)
     }
   }
-  
+
   const handlePlayTrack = (track: MusicTrack) => {
-    setCurrentTrack(track)
-    setIsPlaying(true)
+    if (track && track.title) {
+      setCurrentTrack(track)
+      setIsPlaying(true)
+    }
   }
 
   const openYoutubeLink = (url: string | undefined | null, e?: any) => {
@@ -144,24 +177,22 @@ export default function MusicWellnessScreen() {
   }
 
   const formatDuration = (duration: number | null) => {
-    if (!duration) return "3:00" // Default duration
-    const minutes = Math.floor(duration)
-    return `${minutes}:00`
+    if (!duration) return "3:00"
+    return `${duration}:00`
   }
 
   return (
     <View style={styles.container}>
-      {/* Modifier la barre d'état pour un thème clair */}
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
 
-      {/* Animated Header */}
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity style={styles.backButton}>
-          <ArrowLeft size={24} color="#fff" />
+          <ArrowLeft size={24} color="#333" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Wellness Sounds</Text>
         <TouchableOpacity style={styles.moreButton}>
-          <MoreVertical size={24} color="#fff" />
+          <MoreVertical size={24} color="#333" />
         </TouchableOpacity>
       </View>
 
@@ -174,7 +205,10 @@ export default function MusicWellnessScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Hero Section */}
           <View style={styles.heroSection}>
-            <ImageBackground source={require("../assets/images/paceful.jpeg")} style={styles.heroBackground}>
+            <ImageBackground 
+              source={musicList.length > 0 ? getImageSource(musicList[0]) : require("../assets/images/paceful.jpeg")} 
+              style={styles.heroBackground}
+            >
               <View style={styles.heroOverlay}>
                 <View style={styles.heroContent}>
                   <Text style={styles.heroTitle}>Wellness Sounds</Text>
@@ -190,84 +224,89 @@ export default function MusicWellnessScreen() {
           </View>
 
           {/* Featured Section */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>Featured</Text>
-              <TouchableOpacity style={styles.seeAllButton}>
-                <Text style={styles.seeAllText}>See all</Text>
-                <ChevronRight size={16} color="#1DB954" />
-              </TouchableOpacity>
-            </View>
+          {trendingMusic.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>Featured</Text>
+                <TouchableOpacity style={styles.seeAllButton}>
+                  <Text style={styles.seeAllText}>See all</Text>
+                  <ChevronRight size={16} color="#1DB954" />
+                </TouchableOpacity>
+              </View>
 
-            {/* Remplacer la FlatList par un ScrollView */}
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={styles.featuredList}
-              pagingEnabled
-              decelerationRate="fast"
-            >
-              {trendingMusic.map((item) => (
-                <TouchableOpacity
-                  key={item.id}
-                  style={styles.featuredCard}
-                  onPress={() => handlePlayTrack(item)}
-                  activeOpacity={0.9}
-                >
-                  <ImageBackground
-                    source={getImageForMusic(item.title)}
-                    style={styles.featuredImage}
-                    imageStyle={styles.featuredImageStyle}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.featuredList}
+                pagingEnabled
+                decelerationRate="fast"
+              >
+                {trendingMusic.map((item) => (
+                  <TouchableOpacity
+                    key={item.id}
+                    style={styles.featuredCard}
+                    onPress={() => handlePlayTrack(item)}
+                    activeOpacity={0.9}
                   >
-                    <View style={styles.featuredGradient}>
-                      <View style={styles.featuredContent}>
-                        <Text style={styles.featuredTitle}>{item.title}</Text>
-                        <Text style={styles.featuredSubtitle}>Nature Sounds</Text>
+                    <ImageBackground
+                      source={getImageSource(item)}
+                      style={styles.featuredImage}
+                      imageStyle={styles.featuredImageStyle}
+                    >
+                      <View style={styles.featuredGradient}>
+                        <View style={styles.featuredContent}>
+                          <Text style={styles.featuredTitle}>
+                            {item.title || "Unknown Title"}
+                          </Text>
+                          <Text style={styles.featuredSubtitle}>
+                            Nature Sounds
+                          </Text>
 
-                        <View style={styles.featuredControls}>
-                          <TouchableOpacity style={styles.featuredPlayButton} onPress={() => handlePlayTrack(item)}>
-                            <Play size={24} color="#fff" fill="#fff" />
-                          </TouchableOpacity>
+                          <View style={styles.featuredControls}>
+                            <TouchableOpacity style={styles.featuredPlayButton} onPress={() => handlePlayTrack(item)}>
+                              <Play size={24} color="#fff" fill="#fff" />
+                            </TouchableOpacity>
 
-                          <View style={styles.featuredServiceButtons}>
-                            {/* Modifier les icônes Spotify dans la section Featured */}
-                            {item.url_spotify && (
-                              <TouchableOpacity
-                                style={styles.featuredServiceButton}
-                                onPress={(e) => openSpotifyLink(item.url_spotify, e)}
-                              >
-                                <Image
-                                  source={require("../assets/images/spotify.png")}
-                                  style={[styles.featuredSpotifyIcon, { tintColor: "#1DB954" }]}
-                                />
-                              </TouchableOpacity>
-                            )}
-                            {item.url_youtube && (
-                              <TouchableOpacity
-                                style={styles.featuredServiceButton}
-                                onPress={(e) => openYoutubeLink(item.url_youtube, e)}
-                              >
-<Image
-                    source={require("../assets/images/youtube.png")}
-                    style={[styles.miniBadgeIcon]}
-                  />                              </TouchableOpacity>
-                            )}
+                            <View style={styles.featuredServiceButtons}>
+                              {item.url_spotify && (
+                                <TouchableOpacity
+                                  style={styles.featuredServiceButton}
+                                  onPress={(e) => openSpotifyLink(item.url_spotify, e)}
+                                >
+                                  <Image
+                                    source={require("../assets/images/spotify.png")}
+                                    style={[styles.featuredSpotifyIcon, { tintColor: "#1DB954" }]}
+                                  />
+                                </TouchableOpacity>
+                              )}
+                              {item.url_youtube && (
+                                <TouchableOpacity
+                                  style={styles.featuredServiceButton}
+                                  onPress={(e) => openYoutubeLink(item.url_youtube, e)}
+                                >
+                                  <Image
+                                    source={require("../assets/images/youtube.png")}
+                                    style={[styles.featuredSpotifyIcon]}
+                                  />
+                                </TouchableOpacity>
+                              )}
+                            </View>
                           </View>
                         </View>
-                      </View>
 
-                      <TouchableOpacity
-                        style={styles.featuredFavoriteButton}
-                        onPress={(e) => toggleFavorite(item.id, e)}
-                      >
-                        <Heart size={20} color="#fff" fill={favorites[item.id] ? "#fff" : "transparent"} />
-                      </TouchableOpacity>
-                    </View>
-                  </ImageBackground>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
+                        <TouchableOpacity
+                          style={styles.featuredFavoriteButton}
+                          onPress={(e) => toggleFavorite(item.id, e)}
+                        >
+                          <Heart size={20} color="#fff" fill={favorites[item.id] ? "#fff" : "transparent"} />
+                        </TouchableOpacity>
+                      </View>
+                    </ImageBackground>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
 
           {/* Streaming Section */}
           {streamingTracks.length > 0 && (
@@ -280,7 +319,6 @@ export default function MusicWellnessScreen() {
                 </TouchableOpacity>
               </View>
 
-              {/* Remplacer la FlatList par un ScrollView */}
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
@@ -293,17 +331,16 @@ export default function MusicWellnessScreen() {
                     onPress={() => handlePlayTrack(item)}
                     activeOpacity={0.9}
                   >
-                    <Image source={getImageForMusic(item.title)} style={styles.streamingImage} />
+                    <Image source={getImageSource(item)} style={styles.streamingImage} />
                     <View style={styles.streamingContent}>
                       <Text style={styles.streamingTitle} numberOfLines={1}>
-                        {item.title}
+                        {item.title || "Unknown Title"}
                       </Text>
                       <Text style={styles.streamingSubtitle} numberOfLines={1}>
                         Nature Sounds
                       </Text>
 
                       <View style={styles.streamingBadges}>
-                        {/* Modifier les icônes Spotify dans la section Streaming */}
                         {item.url_spotify && (
                           <TouchableOpacity
                             style={styles.streamingBadge}
@@ -321,9 +358,9 @@ export default function MusicWellnessScreen() {
                             onPress={(e) => openYoutubeLink(item.url_youtube, e)}
                           >
                             <Image
-                    source={require("../assets/images/youtube.png")}
-                    style={[styles.streamingBadgeIcon]}
-                  />
+                              source={require("../assets/images/youtube.png")}
+                              style={[styles.streamingBadgeIcon]}
+                            />
                           </TouchableOpacity>
                         )}
                       </View>
@@ -335,67 +372,82 @@ export default function MusicWellnessScreen() {
           )}
 
           {/* All Sounds */}
-          <View style={styles.section}>
-            <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>All Sounds</Text>
-              <View style={styles.categoryTabs}>
-                <TouchableOpacity onPress={() => setActiveCategory("Popular")}>
-                  <Text style={[styles.categoryTab, activeCategory === "Popular" && styles.activeTab]}>Popular</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setActiveCategory("Recent")}>
-                  <Text style={[styles.categoryTab, activeCategory === "Recent" && styles.activeTab]}>Recent</Text>
-                </TouchableOpacity>
+          {musicList.length > 0 && (
+            <View style={styles.section}>
+              <View style={styles.sectionHeader}>
+                <Text style={styles.sectionTitle}>All Sounds</Text>
+                <View style={styles.categoryTabs}>
+                  <TouchableOpacity onPress={() => setActiveCategory("Popular")}>
+                    <Text style={[styles.categoryTab, activeCategory === "Popular" && styles.activeTab]}>Popular</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity onPress={() => setActiveCategory("Recent")}>
+                    <Text style={[styles.categoryTab, activeCategory === "Recent" && styles.activeTab]}>Recent</Text>
+                  </TouchableOpacity>
+                </View>
               </View>
-            </View>
 
-            <View style={styles.tracksList}>
-              {musicList.map((track) => (
-                <TouchableOpacity
-                  key={track.id}
-                  style={styles.trackItem}
-                  onPress={() => handlePlayTrack(track)}
-                  activeOpacity={0.7}
-                >
-                  <Image source={getImageForMusic(track.title)} style={styles.trackImage} />
-                  <View style={styles.trackInfo}>
-                    <Text style={styles.trackTitle}>{track.title}</Text>
-                    <View style={styles.trackMeta}>
-                      <Text style={styles.trackArtist}>Nature Sounds</Text>
+              <View style={styles.tracksList}>
+                {musicList.map((track) => (
+                  <TouchableOpacity
+                    key={track.id}
+                    style={styles.trackItem}
+                    onPress={() => handlePlayTrack(track)}
+                    activeOpacity={0.7}
+                  >
+                    <Image source={getImageSource(track)} style={styles.trackImage} />
+                    <View style={styles.trackInfo}>
+                      <Text style={styles.trackTitle}>
+                        {track.title || "Unknown Title"}
+                      </Text>
+                      <View style={styles.trackMeta}>
+                        <Text style={styles.trackArtist}>
+                          Nature Sounds
+                        </Text>
 
-                      {/* Streaming badges */}
-                      <View style={styles.trackBadges}>
-                        {/* Modifier les icônes Spotify dans la liste des pistes */}
-                        {track.url_spotify && (
-                          <Image
-                            source={require("../assets/images/spotify.png")}
-                            style={[styles.trackBadgeIcon, { tintColor: "#1DB954" }]}
-                          />
-                        )}
-                        {track.url_youtube && <Image
-                    source={require("../assets/images/youtube.png")}
-                    style={[styles.trackBadgeIcon]}
-                  />}
+                        <View style={styles.trackBadges}>
+                          {track.url_spotify && (
+                            <Image
+                              source={require("../assets/images/spotify.png")}
+                              style={[styles.trackBadgeIcon, { tintColor: "#1DB954" }]}
+                            />
+                          )}
+                          {track.url_youtube && (
+                            <Image
+                              source={require("../assets/images/youtube.png")}
+                              style={[styles.trackBadgeIcon]}
+                            />
+                          )}
+                        </View>
                       </View>
                     </View>
-                  </View>
 
-                  <View style={styles.trackRightContent}>
-                    <Text style={styles.trackDuration}>{formatDuration(track.duration)}</Text>
+                    <View style={styles.trackRightContent}>
+                      <Text style={styles.trackDuration}>
+                        {formatDuration(track.duration)}
+                      </Text>
 
-                    <TouchableOpacity style={styles.trackFavoriteButton} onPress={(e) => toggleFavorite(track.id, e)}>
-                      <Heart
-                        size={16}
-                        color={favorites[track.id] ? "#1DB954" : "#888"}
-                        fill={favorites[track.id] ? "#1DB954" : "transparent"}
-                      />
-                    </TouchableOpacity>
-                  </View>
-                </TouchableOpacity>
-              ))}
+                      <TouchableOpacity style={styles.trackFavoriteButton} onPress={(e) => toggleFavorite(track.id, e)}>
+                        <Heart
+                          size={16}
+                          color={favorites[track.id] ? "#1DB954" : "#888"}
+                          fill={favorites[track.id] ? "#1DB954" : "transparent"}
+                        />
+                      </TouchableOpacity>
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </View>
             </View>
-          </View>
+          )}
 
-          {/* Extra space at bottom to account for player bar */}
+          {/* Show message if no music found */}
+          {!isLoading && musicList.length === 0 && (
+            <View style={styles.noDataContainer}>
+              <Text style={styles.noDataText}>No music found</Text>
+              <Text style={styles.noDataSubtext}>Please check your API connection</Text>
+            </View>
+          )}
+
           <View style={{ height: 100 }} />
         </ScrollView>
       )}
@@ -403,15 +455,17 @@ export default function MusicWellnessScreen() {
       {/* Currently Playing Bar */}
       {currentTrack && (
         <View style={styles.playingBar}>
-          <Image source={getImageForMusic(currentTrack.title)} style={styles.miniTrackImage} />
+          <Image source={getImageSource(currentTrack)} style={styles.miniTrackImage} />
           <View style={styles.miniTrackInfo}>
-            <Text style={styles.miniTrackTitle}>{currentTrack.title}</Text>
+            <Text style={styles.miniTrackTitle}>
+              {currentTrack.title || "Unknown Title"}
+            </Text>
             <View style={styles.miniTrackMeta}>
-              <Text style={styles.miniTrackArtist}>Nature Sounds</Text>
+              <Text style={styles.miniTrackArtist}>
+                Nature Sounds
+              </Text>
 
-              {/* Mini streaming badges */}
               <View style={styles.miniBadges}>
-                {/* Modifier les badges Spotify dans la barre de lecture */}
                 {currentTrack.url_spotify && (
                   <Image
                     source={require("../assets/images/spotify.png")}
@@ -419,23 +473,16 @@ export default function MusicWellnessScreen() {
                   />
                 )}
                 {currentTrack.url_youtube && (
-                  <TouchableOpacity
-                    style={styles.miniServiceButton}
-                    onPress={() => openYoutubeLink(currentTrack.url_youtube)}
-                  >
-                    <Image
+                  <Image
                     source={require("../assets/images/youtube.png")}
                     style={[styles.miniBadgeIcon]}
                   />
-                  </TouchableOpacity>
                 )}
               </View>
             </View>
           </View>
 
           <View style={styles.miniControls}>
-            {/* Mini music service icons */}
-            {/* Modifier les icônes Spotify dans la barre de lecture */}
             {currentTrack.url_spotify && (
               <TouchableOpacity
                 style={styles.miniServiceButton}
@@ -453,13 +500,11 @@ export default function MusicWellnessScreen() {
                 onPress={() => openYoutubeLink(currentTrack.url_youtube)}
               >
                 <Image
-                    source={require("../assets/images/youtube.png")}
-                    style={[styles.miniSpotifyIcon]}
-                  />
+                  source={require("../assets/images/youtube.png")}
+                  style={[styles.miniSpotifyIcon]}
+                />
               </TouchableOpacity>
             )}
-
-            
           </View>
         </View>
       )}
@@ -467,6 +512,7 @@ export default function MusicWellnessScreen() {
   )
 }
 
+// All your existing styles remain the same
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -506,6 +552,22 @@ const styles = StyleSheet.create({
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+    color: "#666",
+  },
+  noDataContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingVertical: 50,
+  },
+  noDataText: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#333",
+    marginBottom: 8,
+  },
+  noDataSubtext: {
+    fontSize: 14,
     color: "#666",
   },
   content: {
@@ -639,9 +701,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 10,
   },
-  featuredYoutubeButton: {
-    backgroundColor: "transparent",
-  },
   featuredSpotifyIcon: {
     width: 25,
     height: 25,
@@ -706,9 +765,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 8,
   },
-  youtubeBadge: {
-    backgroundColor: "transparent",
-  },
   streamingBadgeIcon: {
     width: 16,
     height: 14,
@@ -769,14 +825,6 @@ const styles = StyleSheet.create({
     height: 14,
     resizeMode: "contain",
     marginRight: 6,
-  },
-  trackYoutubeBadge: {
-    width: 16,
-    height: 16,
-    borderRadius: 8,
-    backgroundColor: "#FF0000",
-    justifyContent: "center",
-    alignItems: "center",
   },
   trackRightContent: {
     alignItems: "flex-end",
@@ -840,14 +888,6 @@ const styles = StyleSheet.create({
     resizeMode: "contain",
     marginRight: 4,
   },
-  miniYoutubeBadge: {
-    width: 14,
-    height: 14,
-    borderRadius: 7,
-    backgroundColor: "#FF0000",
-    justifyContent: "center",
-    alignItems: "center",
-  },
   miniControls: {
     flexDirection: "row",
     alignItems: "center",
@@ -861,37 +901,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginRight: 8,
   },
-  miniPlayButton: {
-    backgroundColor: "#000",
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  miniYoutubeButton: {
-    backgroundColor: "transparent",
-  },
   miniSpotifyIcon: {
     width: 18,
     height: 18,
     resizeMode: "contain",
   },
-  animatedHeader: {
-    position: "absolute",
-    top: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: "#121212",
-    zIndex: 100,
-    justifyContent: "flex-end",
-  },
-  headerContent: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingBottom: 10,
-  }
 })
-

@@ -12,8 +12,10 @@ import {
   ImageBackground,
   Animated,
   StatusBar,
+  TextInput,
+  Platform,
 } from "react-native"
-import { Search, Filter, Clock, ChevronRight, Heart, Star } from "lucide-react-native"
+import { Search, Clock, ChevronRight, Heart, Star, X } from "lucide-react-native"
 import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import { getCategories, getRecipes } from "../api/recipes/route"
@@ -208,16 +210,6 @@ const SkeletonHealthyRecipeCard = () => (
 // Skeleton UI Component
 const SkeletonUI = () => (
   <ScrollView showsVerticalScrollIndicator={false}>
-    <View style={styles.searchContainer}>
-      <View style={styles.searchBar}>
-        <Search size={20} color="#777777" />
-        <Text style={styles.searchPlaceholder}>Find your recipe</Text>
-      </View>
-      <View style={styles.filterButton}>
-        <Filter size={20} color="#777777" />
-      </View>
-    </View>
-
     {/* Skeleton Nutrition Categories */}
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -294,9 +286,12 @@ export default function NutritionScreen() {
   const [featuredRecipes, setFeaturedRecipes] = useState<Recipe[]>([])
   const [healthyRecipes, setHealthyRecipes] = useState<Recipe[]>([])
   const [allRecipes, setAllRecipes] = useState<Recipe[]>([])
+  const [filteredRecipes, setFilteredRecipes] = useState<Recipe[]>([])
   const [categories, setCategories] = useState<Category[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
+  const [showSearch, setShowSearch] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
 
   // Use useRef to ensure the Animated.Value persists across renders
   const scrollY = useRef(new Animated.Value(0)).current
@@ -311,12 +306,33 @@ export default function NutritionScreen() {
     }
   }, [])
 
+  // Filter recipes based on search query
+  useEffect(() => {
+    if (searchQuery.trim() === "") {
+      setFilteredRecipes(
+        selectedCategory ? allRecipes.filter((recipe) => recipe.category === selectedCategory) : allRecipes,
+      )
+    } else {
+      const filtered = allRecipes.filter(
+        (recipe) =>
+          recipe.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          (recipe.description && recipe.description.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (recipe.dietary_tags && recipe.dietary_tags.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          recipe.category.toLowerCase().includes(searchQuery.toLowerCase()),
+      )
+      setFilteredRecipes(
+        selectedCategory ? filtered.filter((recipe) => recipe.category === selectedCategory) : filtered,
+      )
+    }
+  }, [searchQuery, allRecipes, selectedCategory])
+
   const fetchData = async () => {
     setIsLoading(true)
     try {
       // Fetch recipes
       const recipesData = await getRecipes()
       setAllRecipes(recipesData)
+      setFilteredRecipes(recipesData)
 
       // Filter recipes with nutrition information
       const recipesWithNutrition = recipesData.filter((recipe: Recipe) => recipe.nutrition?.calories?.per_serving)
@@ -338,6 +354,13 @@ export default function NutritionScreen() {
       console.error("Error fetching data:", error)
     } finally {
       setIsLoading(false)
+    }
+  }
+
+  const toggleSearch = () => {
+    setShowSearch(!showSearch)
+    if (showSearch) {
+      setSearchQuery("")
     }
   }
 
@@ -458,10 +481,6 @@ export default function NutritionScreen() {
     </TouchableOpacity>
   ))
 
-  const filteredRecipes = selectedCategory
-    ? allRecipes.filter((recipe) => recipe.category === selectedCategory)
-    : allRecipes
-
   // Create a stable callback for the scroll event
   const handleScroll = Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true })
 
@@ -470,22 +489,49 @@ export default function NutritionScreen() {
       <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
       <Animated.View style={[styles.headerBackground, { opacity: headerOpacity }]} />
 
+      {/* Enhanced header with search functionality */}
+      <View style={styles.header}>
+        {!showSearch ? (
+          <>
+            <View style={styles.headerLeft} />
+            <TouchableOpacity onPress={toggleSearch} style={styles.searchButton}>
+              <Search size={20} color="#333" />
+            </TouchableOpacity>
+          </>
+        ) : (
+          <>
+            <TouchableOpacity onPress={toggleSearch} style={styles.backButton}>
+              <X size={20} color="#333" />
+            </TouchableOpacity>
+            <View style={styles.searchContainer}>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search recipes..."
+                placeholderTextColor="#999"
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                autoFocus
+              />
+            </View>
+          </>
+        )}
+      </View>
+
+      {/* Recipe count when searching */}
+      {searchQuery.trim() !== "" && (
+        <View style={styles.recipeCountContainer}>
+          <Text style={styles.recipeCount}>
+            {filteredRecipes.length} {filteredRecipes.length === 1 ? "recipe found" : "recipes found"}
+          </Text>
+        </View>
+      )}
+
       {isLoading ? (
         <SkeletonUI />
       ) : (
         <Animated.ScrollView showsVerticalScrollIndicator={false} onScroll={handleScroll} scrollEventThrottle={16}>
-          <View style={styles.searchContainer}>
-            <TouchableOpacity style={styles.searchBar} activeOpacity={0.8}>
-              <Search size={20} color="#777777" />
-              <Text style={styles.searchPlaceholder}>Find your recipe</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.filterButton}>
-              <Filter size={20} color="#777777" />
-            </TouchableOpacity>
-          </View>
-
           {/* Nutrition Categories */}
-          {categories.length > 0 && (
+          {categories.length > 0 && !searchQuery && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Meal Plans</Text>
@@ -504,7 +550,7 @@ export default function NutritionScreen() {
           )}
 
           {/* Featured Recipes */}
-          {featuredRecipes.length > 0 && (
+          {featuredRecipes.length > 0 && !searchQuery && (
             <View style={styles.section}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>New Recipes</Text>
@@ -525,8 +571,8 @@ export default function NutritionScreen() {
           {/* All Recipes Grid */}
           <View style={[styles.section, styles.allRecipesSection]}>
             <View style={styles.sectionHeader}>
-              <Text style={styles.sectionTitle}>All Recipes</Text>
-              {selectedCategory && (
+              <Text style={styles.sectionTitle}>{searchQuery ? "Search Results" : "All Recipes"}</Text>
+              {selectedCategory && !searchQuery && (
                 <TouchableOpacity style={styles.clearFilterButton} onPress={() => setSelectedCategory(null)}>
                   <Text style={styles.clearFilterText}>Clear filter</Text>
                 </TouchableOpacity>
@@ -577,7 +623,7 @@ export default function NutritionScreen() {
           </View>
 
           {/* Healthy Recipes */}
-          {healthyRecipes.length > 0 && (
+          {healthyRecipes.length > 0 && !searchQuery && (
             <View style={[styles.section, styles.healthySection]}>
               <View style={styles.sectionHeader}>
                 <Text style={styles.sectionTitle}>Healthy Recipes</Text>
@@ -653,18 +699,71 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 10,
-    paddingBottom: 10,
+    paddingTop: Platform.OS === "ios" ? 50 : 20,
+    paddingBottom: 15,
     backgroundColor: "transparent",
     zIndex: 2,
   },
+  headerLeft: {
+    width: 44,
+  },
   headerTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#000000",
-    letterSpacing: 1.5,
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000",
+    textAlign: "center",
+    flex: 1,
+  },
+  backButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: "#f7f7f7",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  searchContainer: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f7f7f7",
+    borderRadius: 8,
+    marginLeft: 10,
+    paddingHorizontal: 10,
+    height: 36,
+  },
+  searchInput: {
+    flex: 1,
+    height: 36,
+    color: "#000",
+    fontSize: 14,
+  },
+  searchButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#f7f7f7",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 5,
+    elevation: 3,
+  },
+  recipeCountContainer: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "#FFF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#EEEEEE",
+  },
+  recipeCount: {
+    fontSize: 14,
+    color: "#555",
+    fontWeight: "500",
   },
   loadingContainer: {
     flex: 1,
@@ -676,37 +775,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#000000",
     fontWeight: "500",
-  },
-  searchContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    marginTop: 16,
-    marginBottom: 24,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#f5f5f5",
-    borderRadius: 30,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    marginRight: 12,
-  },
-  searchPlaceholder: {
-    marginLeft: 10,
-    color: "#777777",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  filterButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#f5f5f5",
-    alignItems: "center",
-    justifyContent: "center",
   },
   section: {
     marginBottom: 30,

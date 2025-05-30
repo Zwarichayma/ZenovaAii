@@ -1,4 +1,4 @@
 // API configuration
-export const API_BASE_URL = "http://192.168.1.38:1337"
+export const API_BASE_URL = "http://192.168.1.20:1337"
 export const API_URL = `${API_BASE_URL}/api`
 export const API_KEY ="6e3e7d4353b4e4ad2db82c3a91145ae7b9245c7eb5318dcf77db9a9267f621066c24d9cfea255f458117486715465f7aff103744afa4ce13f128dfed55220257b949a558e83f963f14c68991ec3389ad8fbf34a23da5911d2b23a02820bdd6033f5fae80a90916ee82ca7e839e9a4ff74fceb51bfc1c5b5afa2a7e2d948aeaed"

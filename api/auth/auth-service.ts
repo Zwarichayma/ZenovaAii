@@ -3,6 +3,8 @@ import { storageFallback } from "../../utils/storage-fallback"
 import { generateSimpleUuid, isValidUuid } from "../../utils/simple-id-generator"
 import { API_URL, API_KEY } from "@env"
 
+console.log(API_URL); 
+console.log(API_KEY);
 
 // Fonction simple pour générer un UUID sans dépendance externe
 function generateDeviceUuid() {

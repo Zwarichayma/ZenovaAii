@@ -1,5 +1,7 @@
 import axios from "axios"
 import { API_URL, API_KEY } from "@env"
+console.log(API_URL); 
+console.log(API_KEY);
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -8,7 +10,6 @@ const axiosInstance = axios.create({
     "Content-Type": "application/json",
   },
 })
-
 
 // Interfaces pour les images
 export interface ImageFormat {

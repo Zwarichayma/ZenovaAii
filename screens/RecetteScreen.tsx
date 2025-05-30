@@ -73,7 +73,7 @@ export default function RecetteScreen({ navigation, route }: RecetteScreenProps)
   const [isLoading, setIsLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
   const [category, setCategory] = useState(route.params?.category || "")
-  const [categoryName, setCategoryName] = useState("Recettes")
+  const [categoryName, setCategoryName] = useState("Recipes")
   const [searchQuery, setSearchQuery] = useState("")
   const [showSearch, setShowSearch] = useState(false)
   const recipeIds = route.params?.recipeIds || []
@@ -81,22 +81,22 @@ export default function RecetteScreen({ navigation, route }: RecetteScreenProps)
   useEffect(() => {
     fetchRecipes()
 
-    // Déterminer le nom de la catégorie pour l'affichage
+    // Determine category name for display
     if (category) {
       const categoryMap: Record<string, string> = {
-        breakfast: "Petit-déjeuner",
-        lunch: "Déjeuner",
-        dinner: "Dîner",
+        breakfast: "Breakfast",
+        lunch: "Lunch",
+        dinner: "Dinner",
         dessert: "Desserts",
-        snack: "Collations",
-        vegetarian: "Végétarien",
+        snack: "Snacks",
+        vegetarian: "Vegetarian",
         vegan: "Vegan",
-        "gluten-free": "Sans gluten",
+        "gluten-free": "Gluten-Free",
       }
 
-      setCategoryName(categoryMap[category] || "Recettes")
+      setCategoryName(categoryMap[category] || "Recipes")
     } else if (recipeIds.length > 0) {
-      setCategoryName("Sélection de recettes")
+      setCategoryName("Recipe Selection")
     }
   }, [])
 
@@ -123,7 +123,7 @@ export default function RecetteScreen({ navigation, route }: RecetteScreenProps)
       setRecipes(filteredRecipes)
       setFilteredRecipes(filteredRecipes)
     } catch (error) {
-      console.error("Erreur lors de la récupération des recettes:", error)
+      console.error("Error fetching recipes:", error)
     } finally {
       setIsLoading(false)
       setRefreshing(false)
@@ -138,11 +138,14 @@ export default function RecetteScreen({ navigation, route }: RecetteScreenProps)
   const getDifficultyLabel = (difficulty: string) => {
     switch (difficulty.toLowerCase()) {
       case "facile":
-        return "Facile"
+      case "easy":
+        return "Easy"
       case "moyen":
-        return "Intermédiaire"
+      case "medium":
+        return "Medium"
       case "difficile":
-        return "Avancé"
+      case "hard":
+        return "Hard"
       default:
         return difficulty
     }
@@ -182,7 +185,7 @@ export default function RecetteScreen({ navigation, route }: RecetteScreenProps)
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000" />
-        <Text style={styles.loadingText}>Chargement des recettes...</Text>
+        <Text style={styles.loadingText}>Loading recipes...</Text>
       </View>
     )
   }
@@ -207,7 +210,7 @@ export default function RecetteScreen({ navigation, route }: RecetteScreenProps)
           <View style={styles.searchContainer}>
             <TextInput
               style={styles.searchInput}
-              placeholder="Rechercher..."
+              placeholder="Search recipes..."
               placeholderTextColor="#999"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -220,25 +223,23 @@ export default function RecetteScreen({ navigation, route }: RecetteScreenProps)
         )}
       </View>
 
-      {/* Nombre de recettes */}
+      {/* Recipe count */}
       <View style={styles.recipeCountContainer}>
         <Text style={styles.recipeCount}>
-          {filteredRecipes.length} {filteredRecipes.length > 1 ? "recettes trouvées" : "recette trouvée"}
+          {filteredRecipes.length} {filteredRecipes.length === 1 ? "recipe found" : "recipes found"}
         </Text>
         <TouchableOpacity style={styles.filterButton}>
           <Filter size={16} color="#000" />
-          <Text style={styles.filterText}>Filtrer</Text>
+          <Text style={styles.filterText}>Filter</Text>
         </TouchableOpacity>
       </View>
 
       {filteredRecipes.length === 0 ? (
         <View style={styles.emptyContainer}>
           <ChefHat size={60} color="#333" />
-          <Text style={styles.emptyText}>
-            {searchQuery ? "Aucune recette ne correspond à votre recherche" : "Aucune recette disponible"}
-          </Text>
+          <Text style={styles.emptyText}>{searchQuery ? "No recipes match your search" : "No recipes available"}</Text>
           <TouchableOpacity style={styles.refreshButton} onPress={fetchRecipes}>
-            <Text style={styles.refreshButtonText}>Rafraîchir</Text>
+            <Text style={styles.refreshButtonText}>Refresh</Text>
           </TouchableOpacity>
         </View>
       ) : (
@@ -311,11 +312,11 @@ export default function RecetteScreen({ navigation, route }: RecetteScreenProps)
                 <View style={styles.buttons}>
                   <TouchableOpacity style={styles.actionButton}>
                     <BookmarkPlus size={16} color="#000" />
-                    <Text style={styles.actionButtonText}>Sauvegarder</Text>
+                    <Text style={styles.actionButtonText}>Save</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.actionButton}>
                     <CalendarRange size={16} color="#000" />
-                    <Text style={styles.actionButtonText}>Planifier</Text>
+                    <Text style={styles.actionButtonText}>Plan</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={styles.shareButton}>
                     <Share2 size={16} color="#FFF" />
@@ -456,7 +457,6 @@ const styles = StyleSheet.create({
     height: 80,
     zIndex: 1,
   },
-
   difficultyText: {
     color: "#FFF",
     fontSize: 10,

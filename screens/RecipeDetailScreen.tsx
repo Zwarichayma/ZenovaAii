@@ -96,7 +96,7 @@ const NUTRIENT_COLORS = {
 
 export default function RecipeDetailScreen({ route, navigation }: RecipeDetailScreenProps) {
   const [activeTab, setActiveTab] = useState("about")
-  const { recipeId } = route.params // Make sure we're using recipeId, not recetteId
+  const { recipeId } = route.params
   const [recipe, setRecipe] = useState<Recipe | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -111,11 +111,11 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
         if (data) {
           setRecipe(data)
         } else {
-          setError("Recette non trouvée")
+          setError("Recipe not found")
         }
       } catch (error) {
         console.error("Error fetching recipe details:", error)
-        setError("Erreur lors du chargement de la recette")
+        setError("Error loading recipe")
       } finally {
         setIsLoading(false)
       }
@@ -124,7 +124,7 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
     if (recipeId) {
       fetchRecipe()
     } else {
-      setError("ID de recette manquant")
+      setError("Recipe ID missing")
       setIsLoading(false)
     }
   }, [recipeId])
@@ -133,7 +133,7 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000" />
-        <Text style={styles.loadingText}>Chargement de la recette...</Text>
+        <Text style={styles.loadingText}>Loading recipe...</Text>
       </View>
     )
   }
@@ -141,9 +141,9 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
   if (error || !recipe) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>{error || "Recette non trouvée"}</Text>
+        <Text style={styles.errorText}>{error || "Recipe not found"}</Text>
         <TouchableOpacity style={styles.backButtonError} onPress={() => navigation.goBack()}>
-          <Text style={styles.backButtonText}>Retour</Text>
+          <Text style={styles.backButtonText}>Go Back</Text>
         </TouchableOpacity>
       </View>
     )
@@ -157,48 +157,64 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
             <Text style={styles.description}>{recipe.description}</Text>
             {recipe.nutrition && (
               <View style={styles.nutritionSection}>
-                <Text style={styles.sectionTitle}>Valeurs nutritionnelles</Text>
+                <Text style={styles.sectionTitle}>Nutritional Information</Text>
                 <View style={styles.nutritionCard}>
                   <View style={styles.nutritionHeader}>
-                    <Text style={styles.nutritionColumnHeader}>Macronutriments</Text>
-                    <Text style={styles.nutritionColumnHeader}>Par portion</Text>
-                    <Text style={styles.nutritionColumnHeader}>Pour 100g</Text>
+                    <Text style={[styles.nutritionColumnHeader, styles.nutrientColumn]}>Macronutrients</Text>
+                    <Text style={[styles.nutritionColumnHeader, styles.valueColumn]}>Per Serving</Text>
+                    <Text style={[styles.nutritionColumnHeader, styles.valueColumn]}>Per 100g</Text>
                   </View>
 
                   <View style={styles.nutritionRow}>
-                    <View style={styles.nutrientNameContainer}>
+                    <View style={[styles.nutrientNameContainer, styles.nutrientColumn]}>
                       <View style={[styles.nutrientDot, { backgroundColor: NUTRIENT_COLORS.calories }]} />
                       <Text style={styles.nutritionText}>Calories</Text>
                     </View>
-                    <Text style={styles.nutritionValue}>{recipe.nutrition?.calories?.per_serving ?? "N/A"} kcal</Text>
-                    <Text style={styles.nutritionValue}>{recipe.nutrition?.calories?.per_100g ?? "N/A"} kcal</Text>
+                    <Text style={[styles.nutritionValue, styles.valueColumn]}>
+                      {recipe.nutrition?.calories?.per_serving ?? "N/A"} kcal
+                    </Text>
+                    <Text style={[styles.nutritionValue, styles.valueColumn]}>
+                      {recipe.nutrition?.calories?.per_100g ?? "N/A"} kcal
+                    </Text>
                   </View>
 
                   <View style={styles.nutritionRow}>
-                    <View style={styles.nutrientNameContainer}>
+                    <View style={[styles.nutrientNameContainer, styles.nutrientColumn]}>
                       <View style={[styles.nutrientDot, { backgroundColor: NUTRIENT_COLORS.proteins }]} />
-                      <Text style={styles.nutritionText}>Protéines</Text>
+                      <Text style={styles.nutritionText}>Protein</Text>
                     </View>
-                    <Text style={styles.nutritionValue}>{recipe.nutrition?.protein?.per_serving ?? "N/A"} g</Text>
-                    <Text style={styles.nutritionValue}>{recipe.nutrition?.protein?.per_100g ?? "N/A"} g</Text>
+                    <Text style={[styles.nutritionValue, styles.valueColumn]}>
+                      {recipe.nutrition?.protein?.per_serving ?? "N/A"} g
+                    </Text>
+                    <Text style={[styles.nutritionValue, styles.valueColumn]}>
+                      {recipe.nutrition?.protein?.per_100g ?? "N/A"} g
+                    </Text>
                   </View>
 
                   <View style={styles.nutritionRow}>
-                    <View style={styles.nutrientNameContainer}>
+                    <View style={[styles.nutrientNameContainer, styles.nutrientColumn]}>
                       <View style={[styles.nutrientDot, { backgroundColor: NUTRIENT_COLORS.carbs }]} />
-                      <Text style={styles.nutritionText}>Glucides</Text>
+                      <Text style={styles.nutritionText}>Carbohydrates</Text>
                     </View>
-                    <Text style={styles.nutritionValue}>{recipe.nutrition?.carbs?.per_serving ?? "N/A"} g</Text>
-                    <Text style={styles.nutritionValue}>{recipe.nutrition?.carbs?.per_100g ?? "N/A"} g</Text>
+                    <Text style={[styles.nutritionValue, styles.valueColumn]}>
+                      {recipe.nutrition?.carbs?.per_serving ?? "N/A"} g
+                    </Text>
+                    <Text style={[styles.nutritionValue, styles.valueColumn]}>
+                      {recipe.nutrition?.carbs?.per_100g ?? "N/A"} g
+                    </Text>
                   </View>
 
                   <View style={styles.nutritionRow}>
-                    <View style={styles.nutrientNameContainer}>
+                    <View style={[styles.nutrientNameContainer, styles.nutrientColumn]}>
                       <View style={[styles.nutrientDot, { backgroundColor: NUTRIENT_COLORS.lipids }]} />
-                      <Text style={styles.nutritionText}>Lipides</Text>
+                      <Text style={styles.nutritionText}>Fat</Text>
                     </View>
-                    <Text style={styles.nutritionValue}>{recipe.nutrition?.fat?.per_serving ?? "N/A"} g</Text>
-                    <Text style={styles.nutritionValue}>{recipe.nutrition?.fat?.per_100g ?? "N/A"} g</Text>
+                    <Text style={[styles.nutritionValue, styles.valueColumn]}>
+                      {recipe.nutrition?.fat?.per_serving ?? "N/A"} g
+                    </Text>
+                    <Text style={[styles.nutritionValue, styles.valueColumn]}>
+                      {recipe.nutrition?.fat?.per_100g ?? "N/A"} g
+                    </Text>
                   </View>
                 </View>
               </View>
@@ -218,7 +234,7 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
                 </View>
               ))
             ) : (
-              <Text style={styles.noContentText}>Aucun ingrédient disponible</Text>
+              <Text style={styles.noContentText}>No ingredients available</Text>
             )}
           </View>
         )
@@ -237,7 +253,7 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
                 </View>
               ))
             ) : (
-              <Text style={styles.noContentText}>Aucune instruction disponible</Text>
+              <Text style={styles.noContentText}>No instructions available</Text>
             )}
           </View>
         )
@@ -294,19 +310,19 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
         <View style={styles.actionButtons}>
           <TouchableOpacity style={styles.actionButton}>
             <Check size={20} color="#000" />
-            <Text style={styles.actionButtonText}>Faite</Text>
+            <Text style={styles.actionButtonText}>Done</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
             <Bookmark size={20} color="#000" />
-            <Text style={styles.actionButtonText}>Favoris</Text>
+            <Text style={styles.actionButtonText}>Favorite</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
             <Calendar size={20} color="#000" />
-            <Text style={styles.actionButtonText}>Planifier</Text>
+            <Text style={styles.actionButtonText}>Schedule</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
             <Share2 size={20} color="#000" />
-            <Text style={styles.actionButtonText}>Partager</Text>
+            <Text style={styles.actionButtonText}>Share</Text>
           </TouchableOpacity>
         </View>
 
@@ -315,19 +331,19 @@ export default function RecipeDetailScreen({ route, navigation }: RecipeDetailSc
             style={[styles.tab, activeTab === "about" && styles.activeTab]}
             onPress={() => setActiveTab("about")}
           >
-            <Text style={[styles.tabText, activeTab === "about" && styles.activeTabText]}>À propos</Text>
+            <Text style={[styles.tabText, activeTab === "about" && styles.activeTabText]}>About</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === "ingredients" && styles.activeTab]}
             onPress={() => setActiveTab("ingredients")}
           >
-            <Text style={[styles.tabText, activeTab === "ingredients" && styles.activeTabText]}>Ingrédients</Text>
+            <Text style={[styles.tabText, activeTab === "ingredients" && styles.activeTabText]}>Ingredients</Text>
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.tab, activeTab === "preparation" && styles.activeTab]}
             onPress={() => setActiveTab("preparation")}
           >
-            <Text style={[styles.tabText, activeTab === "preparation" && styles.activeTabText]}>Préparation</Text>
+            <Text style={[styles.tabText, activeTab === "preparation" && styles.activeTabText]}>Instructions</Text>
           </TouchableOpacity>
         </View>
 
@@ -520,7 +536,6 @@ const styles = StyleSheet.create({
   },
   nutritionHeader: {
     flexDirection: "row",
-    justifyContent: "space-between",
     paddingBottom: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
@@ -528,21 +543,27 @@ const styles = StyleSheet.create({
   nutritionColumnHeader: {
     fontSize: 14,
     color: "#6B7280",
-    flex: 1,
-    textAlign: "left",
+    fontWeight: "600",
   },
   nutritionRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
     paddingVertical: 12,
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
   },
+  nutrientColumn: {
+    flex: 2,
+    minWidth: 120,
+  },
+  valueColumn: {
+    flex: 1.5,
+    textAlign: "center",
+    minWidth: 80,
+  },
   nutrientNameContainer: {
     flexDirection: "row",
     alignItems: "center",
-    flex: 1,
   },
   nutrientDot: {
     width: 8,
@@ -553,12 +574,12 @@ const styles = StyleSheet.create({
   nutritionText: {
     fontSize: 16,
     color: "#1F2937",
+    flex: 1,
   },
   nutritionValue: {
-    flex: 1,
     fontSize: 16,
     color: "#1F2937",
-    textAlign: "left",
+    fontWeight: "500",
   },
   ingredientItem: {
     paddingVertical: 12,

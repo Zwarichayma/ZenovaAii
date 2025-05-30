@@ -63,6 +63,7 @@ export default function App() {
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [permissionType, setPermissionType] = useState<"initialize" | "permission">("permission")
   const [currentScreen, setCurrentScreen] = useState<"health" | "training">("health")
+  const [permissionsSkipped, setPermissionsSkipped] = useState(false)
   const scrollY = useRef(new Animated.Value(0)).current
   const [isSearchBarVisible, setIsSearchBarVisible] = useState(true)
   const searchBarHeight = 50
@@ -107,7 +108,10 @@ export default function App() {
   }
 
   const getActivityValue = (activity: string) => {
-    if (!dailyData) return "0"
+    if (!dailyData) {
+      // Return zeros when no permissions
+      return "0"
+    }
     switch (activity) {
       case "Walking":
         return dailyData.steps?.toString() || "0"
@@ -349,17 +353,14 @@ export default function App() {
         if (existingPermissions.length > 0) {
           const data = await fetchDailyData(selectedDate)
           setDailyData(data)
-        } else {
-          setPermissionType("permission")
-          setShowPermissionModal(true)
         }
+        // Ne plus afficher automatiquement le modal de permission
       } else {
-        setPermissionType("initialize")
-        setShowPermissionModal(true)
+        // Ne plus afficher automatiquement le modal d'installation
       }
     } catch (error) {
       console.error("Erreur d'initialisation:", error)
-      Alert.alert("Erreur", "Impossible d'initialiser Health Connect. Veuillez réessayer.", [{ text: "OK" }])
+      // Ne plus afficher d'alerte automatique
     }
   }
 
@@ -386,13 +387,14 @@ export default function App() {
       }
     } catch (error) {
       console.error("Erreur de permission:", error)
-      Alert.alert("Erreur", "Impossible d'obtenir les permissions. Veuillez réessayer.", [{ text: "OK" }])
+      Alert.alert("Error", "Unable to get permissions. Please try again.", [{ text: "OK" }])
     }
   }
 
   const handleSettingsPress = () => {
     if (!isInitialized) {
-      checkInitialization()
+      setPermissionType("initialize")
+      setShowPermissionModal(true)
     } else if (!hasPermissions) {
       setPermissionType("permission")
       setShowPermissionModal(true)
@@ -403,8 +405,10 @@ export default function App() {
 
   const handleDateChange = async (newDate: Date) => {
     setSelectedDate(newDate)
-    const data = await fetchDailyData(newDate)
-    setDailyData(data)
+    if (hasPermissions) {
+      const data = await fetchDailyData(newDate)
+      setDailyData(data)
+    }
   }
 
   const handlePrevMonth = () => {
@@ -438,6 +442,7 @@ export default function App() {
 
   const handleLater = () => {
     setShowPermissionModal(false)
+    setPermissionsSkipped(true)
   }
 
   const handleAccept = () => {
@@ -449,7 +454,7 @@ export default function App() {
     }
   }
 
-  // Refresh data periodically
+  // Refresh data periodically only if permissions are granted
   useEffect(() => {
     if (isInitialized && hasPermissions) {
       const refreshInterval = setInterval(async () => {
@@ -465,11 +470,11 @@ export default function App() {
     <SafeAreaView style={styles.container}>
       {showPermissionModal && (
         <PermissionRequest
-          title={permissionType === "initialize" ? "Installation requise" : "Autorisation requise"}
+          title={permissionType === "initialize" ? "Health Connect Required" : "Permission Required"}
           message={
             permissionType === "initialize"
-              ? "Pour suivre vos activités, l'application a besoin d'installer Health Connect. Voulez-vous l'installer maintenant ?"
-              : "Pour suivre vos activités, l'application a besoin d'accéder à vos données de santé. Voulez-vous autoriser l'accès ?"
+              ? "To track your activities, the app needs to install Health Connect. Would you like to install it now?"
+              : "To track your activities, the app needs access to your health data. Would you like to grant access?"
           }
           onAccept={handleAccept}
           onLater={handleLater}
@@ -487,101 +492,88 @@ export default function App() {
         </View>
       </View>
 
-      {!isInitialized || !hasPermissions ? (
-        <View style={styles.placeholderContainer}>
-          <View style={styles.placeholderIcon}>
-            <Text style={styles.placeholderIconText}>🔒</Text>
+      {/* Toujours afficher l'interface principale */}
+      <>
+        <View style={styles.calendarContainer}>
+          <View style={styles.monthSelector}>
+            <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
+              <ChevronLeft stroke="#000" width={20} height={20} />
+            </TouchableOpacity>
+            <Text style={styles.monthTitle}>{getMonthName(currentMonth)}</Text>
+            <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
+              <ChevronRight size={20} color="#000" />
+            </TouchableOpacity>
           </View>
-          <Text style={styles.placeholderTitle}>
-            {!isInitialized ? "Installation requise" : "Autorisation requise"}
-          </Text>
-          <Text style={styles.placeholderText}>
-            {!isInitialized
-              ? "Pour suivre vos activités, l'application a besoin d'installer Health Connect."
-              : "Pour suivre vos activités, l'application a besoin d'accéder à vos données de santé."}
-          </Text>
-          <TouchableOpacity
-            style={styles.setupButton}
-            onPress={!isInitialized ? handleAccept : requestHealthPermissions}
+
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.calendar}
+            contentContainerStyle={styles.calendarContent}
           >
-            <Text style={styles.setupButtonText}>
-              {!isInitialized ? "Installer Health Connect" : "Autoriser l'accès"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <>
-          <View style={styles.calendarContainer}>
-            <View style={styles.monthSelector}>
-              <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
-                <ChevronLeft stroke="#000" width={20} height={20} />
-              </TouchableOpacity>
-              <Text style={styles.monthTitle}>{getMonthName(currentMonth)}</Text>
-              <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
-                <ChevronRight size={20} color="#000" />
-              </TouchableOpacity>
-            </View>
-
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              style={styles.calendar}
-              contentContainerStyle={styles.calendarContent}
-            >
-              {getDaysInMonth(currentMonth).map((date, index) => (
-                <TouchableOpacity
-                  key={index}
+            {getDaysInMonth(currentMonth).map((date, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.dayButton,
+                  isSameDay(date, selectedDate) && styles.selectedDay,
+                  isToday(date) && styles.todayButton,
+                ]}
+                onPress={() => handleDateChange(date)}
+              >
+                <Text
                   style={[
-                    styles.dayButton,
-                    isSameDay(date, selectedDate) && styles.selectedDay,
-                    isToday(date) && styles.todayButton,
+                    styles.dayText,
+                    isSameDay(date, selectedDate) && styles.selectedDayText,
+                    isToday(date) && styles.todayText,
                   ]}
-                  onPress={() => handleDateChange(date)}
                 >
-                  <Text
-                    style={[
-                      styles.dayText,
-                      isSameDay(date, selectedDate) && styles.selectedDayText,
-                      isToday(date) && styles.todayText,
-                    ]}
-                  >
-                    {date.toLocaleDateString("en-US", { weekday: "short" })}
-                  </Text>
-                  <Text
-                    style={[
-                      styles.dateText,
-                      isSameDay(date, selectedDate) && styles.selectedDayText,
-                      isToday(date) && styles.todayText,
-                    ]}
-                  >
-                    {date.getDate()}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-          </View>
-
-          <ScrollView style={styles.content}>
-            <View style={styles.grid}>
-              {ACTIVITIES.map((activity, index) => (
-                <View key={index} style={[styles.activityCard, { backgroundColor: activity.color }]}>
-                  <View style={styles.activityIcon}>
-                    <Text style={styles.activityIconText}>{activity.icon}</Text>
-                  </View>
-                  <View style={styles.activityInfo}>
-                    <Text style={styles.activityName}>{activity.name}</Text>
-                    <Text style={styles.activityValue}>
-                      {getActivityValue(activity.name)}{" "}
-                      <Text style={{ fontSize: 14, color: "#666" }}>{activity.unit}</Text>
-                    </Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-            <FitnessCategories />
+                  {date.toLocaleDateString("en-US", { weekday: "short" })}
+                </Text>
+                <Text
+                  style={[
+                    styles.dateText,
+                    isSameDay(date, selectedDate) && styles.selectedDayText,
+                    isToday(date) && styles.todayText,
+                  ]}
+                >
+                  {date.getDate()}
+                </Text>
+              </TouchableOpacity>
+            ))}
           </ScrollView>
-        </>
-      )}
+        </View>
+
+        <ScrollView style={styles.content}>
+          {/* Afficher un message discret si pas de permissions */}
+          {!hasPermissions && !showPermissionModal && (
+            <View style={styles.permissionBanner}>
+              <Text style={styles.permissionBannerText}>
+                💡 Want real data? Open settings to enable Health Connect
+              </Text>
+             
+            </View>
+          )}
+
+          <View style={styles.grid}>
+            {ACTIVITIES.map((activity, index) => (
+              <View key={index} style={[styles.activityCard, { backgroundColor: activity.color }]}>
+                <View style={styles.activityIcon}>
+                  <Text style={styles.activityIconText}>{activity.icon}</Text>
+                </View>
+                <View style={styles.activityInfo}>
+                  <Text style={styles.activityName}>{activity.name}</Text>
+                  <Text style={styles.activityValue}>
+                    {getActivityValue(activity.name)}{" "}
+                    <Text style={{ fontSize: 14, color: "#666" }}>{activity.unit}</Text>
+                  </Text>
+                </View>
+              </View>
+            ))}
+          </View>
+          <FitnessCategories />
+        </ScrollView>
+      </>
     </SafeAreaView>
   )
 }
@@ -684,6 +676,31 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 20,
   },
+  permissionBanner: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    backgroundColor: "#E3F2FD",
+    padding: 12,
+    borderRadius: 12,
+    marginBottom: 16,
+  },
+  permissionBannerText: {
+    fontSize: 14,
+    color: "#1976D2",
+    flex: 1,
+  },
+  connectButton: {
+    backgroundColor: "#1976D2",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  connectButtonText: {
+    color: "#fff",
+    fontSize: 14,
+    fontWeight: "500",
+  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -732,6 +749,12 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "600",
     color: "#000",
+  },
+  demoLabel: {
+    fontSize: 10,
+    color: "#999",
+    marginTop: 4,
+    fontStyle: "italic",
   },
   placeholderContainer: {
     flex: 1,

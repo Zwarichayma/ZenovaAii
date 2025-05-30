@@ -33,9 +33,7 @@ const axiosInstance = axios.create({
     "Content-Type": "application/json",
   },
 })
-console.log(API_URL); 
-console.log(API_KEY); 
-// Helper function to get image URL
+
 const getImageUrl = (url: string | null) => {
   if (!url) return null
   // If the URL is already absolute, return it as is

@@ -2,6 +2,8 @@ import axios from "axios";
 import { API_URL, API_KEY } from '@env';
 import { API_BASE_URL } from "@/config";
 
+console.log(API_URL); 
+console.log(API_KEY);
 const fitnessApi = axios.create({
   baseURL: API_URL, 
   headers: {
