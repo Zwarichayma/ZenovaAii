@@ -3,18 +3,18 @@ import { storageFallback } from "../../utils/storage-fallback"
 import { generateSimpleUuid, isValidUuid } from "../../utils/simple-id-generator"
 import { API_URL, API_KEY } from "@env"
 
-console.log(API_URL); 
-console.log(API_KEY);
+
 
 // Fonction simple pour générer un UUID sans dépendance externe
 function generateDeviceUuid() {
-  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-    const r = Math.random() * 16 | 0;
-    const v = c === 'x' ? r : (r & 0x3 | 0x8);
-    return v.toString(16);
-  });
+  return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, (c) => {
+    const r = (Math.random() * 16) | 0
+    const v = c === "x" ? r : (r & 0x3) | 0x8
+    return v.toString(16)
+  })
 }
-
+console.log(API_URL)
+console.log(API_KEY)
 // Storage keys
 const USER_KEY = "user_data"
 const ANONYMOUS_ID_KEY = "anonymous_id"
@@ -162,12 +162,12 @@ export const authService = {
     try {
       await storageFallback.setItem(API_KEY, token)
       await storageFallback.setItem(USER_KEY, JSON.stringify(userData))
-      
+
       // Store device session in Strapi
       try {
         const deviceUUID = await authService.getDeviceUUID()
         const deviceName = "Mobile Device" // Vous pourriez récupérer le nom réel de l'appareil
-        
+
         // Create authenticated client
         const client = axios.create({
           baseURL: API_URL,
@@ -176,32 +176,34 @@ export const authService = {
             "Content-Type": "application/json",
           },
         })
-        
+
         // Check if session already exists
         const existingSessionResponse = await client.get(
-          `/device-sessions?filters[deviceUuid][$eq]=${deviceUUID}&filters[user][id][$eq]=${userData.id}`
+          `/device-sessions?filters[deviceUuid][$eq]=${deviceUUID}&filters[user][id][$eq]=${userData.id}`,
         )
-        
-        if (existingSessionResponse.data && 
-            existingSessionResponse.data.data && 
-            existingSessionResponse.data.data.length > 0) {
+
+        if (
+          existingSessionResponse.data &&
+          existingSessionResponse.data.data &&
+          existingSessionResponse.data.data.length > 0
+        ) {
           // Update existing session
           const sessionId = existingSessionResponse.data.data[0].id
           await client.put(`/device-sessions/${sessionId}`, {
             data: {
-              lastActive: new Date().toISOString()
-            }
+              lastActive: new Date().toISOString(),
+            },
           })
           console.log("Updated existing device session")
         } else {
           // Create new session
-          await client.post('/device-sessions', {
+          await client.post("/device-sessions", {
             data: {
               deviceUuid: deviceUUID,
               deviceName: deviceName,
               user: userData.id,
-              lastActive: new Date().toISOString()
-            }
+              lastActive: new Date().toISOString(),
+            },
           })
           console.log("Created new device session")
         }
@@ -244,7 +246,7 @@ export const authService = {
         const token = await authService.getToken()
         const userData = await authService.getUserData()
         const deviceUUID = await authService.getDeviceUUID()
-        
+
         if (token && userData && deviceUUID) {
           // Create authenticated client
           const client = axios.create({
@@ -254,15 +256,13 @@ export const authService = {
               "Content-Type": "application/json",
             },
           })
-          
+
           // Find and delete the session
           const sessionResponse = await client.get(
-            `/device-sessions?filters[deviceUuid][$eq]=${deviceUUID}&filters[user][id][$eq]=${userData.id}`
+            `/device-sessions?filters[deviceUuid][$eq]=${deviceUUID}&filters[user][id][$eq]=${userData.id}`,
           )
-          
-          if (sessionResponse.data && 
-              sessionResponse.data.data && 
-              sessionResponse.data.data.length > 0) {
+
+          if (sessionResponse.data && sessionResponse.data.data && sessionResponse.data.data.length > 0) {
             const sessionId = sessionResponse.data.data[0].id
             await client.delete(`/device-sessions/${sessionId}`)
             console.log("Deleted device session during logout")
@@ -272,7 +272,7 @@ export const authService = {
         console.error("Error removing device session during logout:", sessionError)
         // Continue with logout even if session removal fails
       }
-      
+
       await storageFallback.removeItem(API_KEY)
       await storageFallback.removeItem(USER_KEY)
       // Note: We don't clear the anonymous ID or device UUID to maintain identity
@@ -446,11 +446,11 @@ export const authService = {
   isAuthenticatedByToken: async (): Promise<boolean> => {
     try {
       const token = await authService.getToken()
-      
+
       if (!token) {
         return false
       }
-      
+
       // Create authenticated client
       const client = axios.create({
         baseURL: API_URL,
@@ -459,10 +459,10 @@ export const authService = {
           "Content-Type": "application/json",
         },
       })
-      
+
       // Verify token by making a request to /users/me
-      const response = await client.get('/users/me')
-      
+      const response = await client.get("/users/me")
+
       return response.status === 200
     } catch (error) {
       console.error("Error checking token authentication:", error)
@@ -476,11 +476,11 @@ export const authService = {
       const deviceUUID = await authService.getDeviceUUID()
       const userData = await authService.getUserData()
       const token = await authService.getToken()
-      
+
       if (!userData || !token) {
         return false
       }
-      
+
       // Create authenticated client
       const client = axios.create({
         baseURL: API_URL,
@@ -489,26 +489,24 @@ export const authService = {
           "Content-Type": "application/json",
         },
       })
-      
+
       // Check if this UUID is associated with the user
       const response = await client.get(
-        `/device-sessions?filters[deviceUuid][$eq]=${deviceUUID}&filters[user][id][$eq]=${userData.id}`
+        `/device-sessions?filters[deviceUuid][$eq]=${deviceUUID}&filters[user][id][$eq]=${userData.id}`,
       )
-      
-      if (response.data && 
-          response.data.data && 
-          response.data.data.length > 0) {
+
+      if (response.data && response.data.data && response.data.data.length > 0) {
         // Update last active timestamp
         const sessionId = response.data.data[0].id
         await client.put(`/device-sessions/${sessionId}`, {
           data: {
-            lastActive: new Date().toISOString()
-          }
+            lastActive: new Date().toISOString(),
+          },
         })
-        
+
         return true
       }
-      
+
       return false
     } catch (error) {
       console.error("Error checking UUID authentication:", error)
@@ -521,20 +519,20 @@ export const authService = {
     try {
       // First try token authentication
       const isAuthByToken = await authService.isAuthenticatedByToken()
-      
+
       if (isAuthByToken) {
         console.log("User authenticated by token")
         return true
       }
-      
+
       // If token auth fails, try UUID auth
       const isAuthByUUID = await authService.isAuthenticatedByUUID()
-      
+
       if (isAuthByUUID) {
         console.log("User authenticated by UUID")
         return true
       }
-      
+
       console.log("Authentication failed")
       return false
     } catch (error) {
@@ -547,11 +545,11 @@ export const authService = {
   getDeviceSessions: async (userId: number): Promise<any[]> => {
     try {
       const token = await authService.getToken()
-      
+
       if (!token) {
         return []
       }
-      
+
       // Create authenticated client
       const client = axios.create({
         baseURL: API_URL,
@@ -560,16 +558,14 @@ export const authService = {
           "Content-Type": "application/json",
         },
       })
-      
+
       // Get all device sessions for this user
-      const response = await client.get(
-        `/device-sessions?filters[user][id][$eq]=${userId}&sort=lastActive:desc`
-      )
-      
+      const response = await client.get(`/device-sessions?filters[user][id][$eq]=${userId}&sort=lastActive:desc`)
+
       if (response.data && response.data.data) {
         return response.data.data
       }
-      
+
       return []
     } catch (error) {
       console.error("Error getting device sessions:", error)
@@ -581,11 +577,11 @@ export const authService = {
   removeDeviceSession: async (sessionId: string): Promise<void> => {
     try {
       const token = await authService.getToken()
-      
+
       if (!token) {
         throw new Error("No authentication token found")
       }
-      
+
       // Create authenticated client
       const client = axios.create({
         baseURL: API_URL,
@@ -594,7 +590,7 @@ export const authService = {
           "Content-Type": "application/json",
         },
       })
-      
+
       // Delete the session
       await client.delete(`/device-sessions/${sessionId}`)
       console.log("Device session removed successfully")

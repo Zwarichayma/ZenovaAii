@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback, useEffect } from "react"
+import { useState, useCallback } from "react"
 import {
   TextInput,
   TouchableOpacity,
@@ -20,8 +20,8 @@ import {
 import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../types/navigation"
-import { authService } from "../api/auth/auth-service"
 import { ArrowLeft } from "lucide-react-native"
+import { useAuth } from "@/context/AuthContext"
 
 const { width, height } = Dimensions.get("window")
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
@@ -34,17 +34,17 @@ export default function SignUpScreen() {
   const [confirmPassword, setConfirmPassword] = useState("")
 
   // UI state
-  const [isLoading, setIsLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
-  
+
   // Form validation state
   const [emailError, setEmailError] = useState("")
   const [usernameError, setUsernameError] = useState("")
   const [passwordError, setPasswordError] = useState("")
   const [confirmPasswordError, setConfirmPasswordError] = useState("")
 
-  // Navigation
+  // Navigation and Auth
   const navigation = useNavigation<AuthScreenNavigationProp>()
+  const { register, isLoading } = useAuth()
 
   // Define validation functions
   const validateEmail = useCallback((email: string): boolean => {
@@ -138,22 +138,15 @@ export default function SignUpScreen() {
       return
     }
 
-    setIsLoading(true)
     try {
-      // Call the register method from our auth service
-      const response = await authService.register(email, username, password)
-
-      // Registration successful
-      console.log("Registration successful:", response.user)
+      await register(email, username, password)
 
       Alert.alert("Success", "Account created successfully", [
         { text: "OK", onPress: () => navigation.navigate("Profile") },
       ])
     } catch (error: any) {
-      // Handle registration error
       console.error("Registration error:", error)
 
-      // Display specific error messages based on the error
       if (error.message?.includes("email")) {
         setEmailError(error.message || "Email is invalid or already taken")
       } else if (error.message?.includes("username")) {
@@ -161,20 +154,15 @@ export default function SignUpScreen() {
       } else if (error.message?.includes("password")) {
         setPasswordError(error.message || "Password is invalid")
       } else {
-        // Generic error
         Alert.alert("Registration Failed", error.message || "An error occurred during registration")
       }
-    } finally {
-      setIsLoading(false)
     }
-  }, [email, username, password, navigation, validateForm])
+  }, [email, username, password, navigation, validateForm, register])
 
   // Handle Google sign-in with a mock implementation
   const handleGoogleSignIn = useCallback(async () => {
     setGoogleLoading(true)
     try {
-      // Since we don't have the Google Sign-In module working,
-      // show an alert explaining the situation
       Alert.alert(
         "Google Sign-In Not Available",
         "The Google Sign-In module is not properly linked. Please use email/password registration instead.",
@@ -336,20 +324,20 @@ const styles = StyleSheet.create({
     resizeMode: "cover",
   },
   header: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
     paddingHorizontal: 20,
   },
   backButton: {
     width: 40,
-    height: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
     borderRadius: 20,
   },
   innerContainer: {
@@ -363,11 +351,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
-    marginTop: 60, // Add space for the header
+    marginTop: 60,
   },
   logo: {
-    width: width * 0.20,
-    height: height * 0.10,
+    width: width * 0.2,
+    height: height * 0.1,
     resizeMode: "contain",
     marginBottom: width * 0.06,
   },
@@ -381,7 +369,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "gray",
     marginBottom: width * 0.06,
-    textAlign: 'center',
+    textAlign: "center",
   },
   googleButton: {
     flexDirection: "row",

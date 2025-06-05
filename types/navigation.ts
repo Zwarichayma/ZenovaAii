@@ -36,4 +36,5 @@ export type RootStackParamList = {
   SubCategories: { fitnessId: number; fitnessTitle: string }
   ExerciseList: { subCategory: SubCategory }
   ExerciseDetail: { exercise: Exercise; subCategoryName: string }
+WellnessProfile: undefined
 }

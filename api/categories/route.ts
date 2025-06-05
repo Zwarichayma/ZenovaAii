@@ -2,8 +2,7 @@ import axios from "axios"
 import { API_URL, API_KEY } from '@env';
 
 
-console.log(API_URL); 
-console.log(API_KEY);
+
 const axiosInstance = axios.create({
   baseURL: API_URL,
   headers: {
@@ -11,7 +10,8 @@ const axiosInstance = axios.create({
     "Content-Type": "application/json",
   },
 })
-
+console.log(API_URL); 
+console.log(API_KEY);
 export const getFitnessPlanById = async (id: number) => {
   try {
     const response = await axiosInstance.get(`/fitness-plans/${id}?populate[sub_categories][populate][exercises]=*`)
@@ -21,7 +21,8 @@ export const getFitnessPlanById = async (id: number) => {
     throw error
   }
 }
-
+console.log(API_URL); 
+console.log(API_KEY);
 // Helper function to get image URL
 export const getImageUrl = (item: any): string => {
   // Case 1: If item is null or undefined

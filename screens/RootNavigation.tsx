@@ -31,6 +31,8 @@ import SearchScreen from "./SearchScreen"
 import QuoteDetail from "./QuoteDetail"
 import AllRecipesScreen from "./all-recipes-screen"
 import DeviceSessionsScreen from "./DeviceSession"
+import AuthCheckScreen from "./AuthCheckScreen"
+import WellnessProfileScreen from "./WellnessProfileScreen"
 const { height, width } = Dimensions.get("window")
 const Tab = createBottomTabNavigator()
 const Stack = createStackNavigator() // Définition du Stack Navigator
@@ -107,7 +109,7 @@ export default function RootNavigation() {
       <Stack.Screen name="QuoteDetail" component={QuoteDetail} />
       <Stack.Screen name="AllRecipesScreen" component={AllRecipesScreen} />
       <Stack.Screen name="DeviceSessions" component={DeviceSessionsScreen} />
-
+ <Stack.Screen name="WellnessProfile" component={WellnessProfileScreen} />
 
 
     </Stack.Navigator>

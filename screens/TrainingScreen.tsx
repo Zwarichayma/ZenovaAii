@@ -12,8 +12,9 @@ import {
   type NativeSyntheticEvent,
   type NativeScrollEvent,
   Alert,
+  ActivityIndicator,
 } from "react-native"
-import { ChevronRight } from "lucide-react-native"
+import { ChevronRight, Database, Wifi, WifiOff, CheckCircle, Clock } from "lucide-react-native"
 import { Settings, ChevronLeft } from "react-native-feather"
 import {
   initialize,
@@ -27,6 +28,7 @@ import { SafeAreaView } from "react-native-safe-area-context"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import { useNavigation } from "@react-navigation/native"
 import FitnessCategories from "./fitness-categories"
+import { healthConnectService } from "../api/health-connect-service/route"
 
 const { width, height } = Dimensions.get("window")
 type RootStackParamList = {
@@ -36,16 +38,16 @@ type RootStackParamList = {
 type NavigationProp = StackNavigationProp<RootStackParamList, "Fitness">
 
 const ACTIVITIES = [
-  { name: "Walking", icon: "👟", color: "#F5F6F8", unit: "steps" },
-  { name: "Workout", icon: "🔥", color: "#F5F6F8", unit: "kcal" },
-  { name: "Cycling", icon: "🚲", color: "#F5F6F8", unit: "km" },
-  { name: "Push-ups", icon: "🏋️", color: "#F5F6F8", unit: "reps" },
+  { name: "Walking", icon: "👟", color: "#F5F6F8", unit: "steps", key: "steps" },
+  { name: "Workout", icon: "🔥", color: "#F5F6F8", unit: "kcal", key: "calories" },
+  { name: "Cycling", icon: "🚲", color: "#F5F6F8", unit: "km", key: "totalKilometers" },
+  { name: "Push-ups", icon: "🏋️", color: "#F5F6F8", unit: "reps", key: "pushups" },
 ]
 
 const DAY_WIDTH = 60
-const CARD_WIDTH = (width - 60) / 2 // 60 = padding total (20 * 2 + 20 entre les cartes)
+const CARD_WIDTH = (width - 60) / 2
 
-// Define proper types for the health records
+// Interface pour les données de santé
 interface HealthData {
   steps: number
   totalKilometers: number
@@ -54,7 +56,7 @@ interface HealthData {
   pushups: number
 }
 
-export default function App() {
+export default function HealthConnectScreen() {
   const [isInitialized, setIsInitialized] = useState(false)
   const [hasPermissions, setHasPermissions] = useState(false)
   const [selectedDate, setSelectedDate] = useState(new Date())
@@ -62,10 +64,18 @@ export default function App() {
   const [currentMonth, setCurrentMonth] = useState(new Date())
   const [showPermissionModal, setShowPermissionModal] = useState(false)
   const [permissionType, setPermissionType] = useState<"initialize" | "permission">("permission")
-  const [currentScreen, setCurrentScreen] = useState<"health" | "training">("health")
   const [permissionsSkipped, setPermissionsSkipped] = useState(false)
+  const [isSaving, setIsSaving] = useState(false)
+  const [lastSyncDate, setLastSyncDate] = useState<Date | null>(null)
+  const [isConnected, setIsConnected] = useState(true)
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true)
+  const [lastAutoSave, setLastAutoSave] = useState<Date | null>(null)
+
+  // 🆕 Références pour la sauvegarde automatique
+  const autoSaveInterval = useRef<NodeJS.Timeout | null>(null)
+  const lastDataRef = useRef<HealthData | null>(null)
+
   const scrollY = useRef(new Animated.Value(0)).current
-  const [isSearchBarVisible, setIsSearchBarVisible] = useState(true)
   const searchBarHeight = 50
   const searchBarTranslateY = scrollY.interpolate({
     inputRange: [0, searchBarHeight],
@@ -84,7 +94,75 @@ export default function App() {
 
   useEffect(() => {
     checkInitialization()
+    setupAutoSave()
+
+    // Cleanup
+    return () => {
+      if (autoSaveInterval.current) {
+        clearInterval(autoSaveInterval.current)
+      }
+    }
   }, [])
+
+  // 🆕 FONCTION: Configuration de la sauvegarde automatique
+  const setupAutoSave = () => {
+    if (autoSaveInterval.current) {
+      clearInterval(autoSaveInterval.current)
+    }
+
+    // Sauvegarde automatique toutes les 2 minutes
+    autoSaveInterval.current = setInterval(async () => {
+      if (autoSaveEnabled && dailyData && hasPermissions) {
+        await performAutoSave()
+      }
+    }, 120000) // 2 minutes
+
+    console.log("🔄 Auto-save configured: every 2 minutes")
+  }
+
+  // 🆕 FONCTION: Effectuer la sauvegarde automatique
+  const performAutoSave = async () => {
+    if (!dailyData || !autoSaveEnabled) return
+
+    // Vérifier si les données ont changé
+    const dataChanged =
+      !lastDataRef.current ||
+      lastDataRef.current.steps !== dailyData.steps ||
+      lastDataRef.current.calories !== dailyData.calories ||
+      lastDataRef.current.totalKilometers !== dailyData.totalKilometers
+
+    if (!dataChanged) {
+      console.log("📊 No data changes, skipping auto-save")
+      return
+    }
+
+    try {
+      console.log("🔄 Performing auto-save...")
+
+      const healthConnectData = {
+        steps: dailyData.steps,
+        distance: dailyData.totalKilometers,
+        total_calories_burned: dailyData.calories,
+        active_calories_burned: Math.round(dailyData.calories * 0.7),
+        exercise: dailyData.workout > 0 ? "Workout completed" : null,
+      }
+
+      const success = await healthConnectService.autoSaveHealthData(healthConnectData)
+
+      if (success) {
+        setLastAutoSave(new Date())
+        setIsConnected(true)
+        lastDataRef.current = { ...dailyData }
+        console.log("✅ Auto-save successful")
+      } else {
+        setIsConnected(false)
+        console.log("❌ Auto-save failed")
+      }
+    } catch (error) {
+      console.error("❌ Auto-save error:", error)
+      setIsConnected(false)
+    }
+  }
 
   const getDayName = (date: Date) => {
     return date.toLocaleDateString("en-US", { weekday: "long" })
@@ -109,7 +187,6 @@ export default function App() {
 
   const getActivityValue = (activity: string) => {
     if (!dailyData) {
-      // Return zeros when no permissions
       return "0"
     }
     switch (activity) {
@@ -139,7 +216,6 @@ export default function App() {
     const endOfDay = new Date(selectedDate)
     endOfDay.setHours(23, 59, 59, 999)
 
-    // Vérifier si l'enregistrement chevauche la journée sélectionnée
     return (
       (recordStartTime >= startOfDay && recordStartTime <= endOfDay) ||
       (recordEndTime >= startOfDay && recordEndTime <= endOfDay) ||
@@ -147,22 +223,15 @@ export default function App() {
     )
   }
 
-  // Fetch dynamic data from Health Connect
+  // Récupérer les données depuis Health Connect
   const fetchDailyData = async (date: Date) => {
     try {
-      // Pour le déboggage, afficher la date sélectionnée
-      console.log("Date sélectionnée:", date.toISOString())
+      console.log("📊 Fetching Health Connect data for:", date.toISOString())
 
-      // Définir le début et la fin de la journée sélectionnée
       const startTime = new Date(date)
       startTime.setHours(0, 0, 0, 0)
       const endTime = new Date(date)
       endTime.setHours(23, 59, 59, 999)
-
-      console.log("Fetching data for date range:", {
-        startTime: startTime.toISOString(),
-        endTime: endTime.toISOString(),
-      })
 
       // Récupérer les pas
       const stepsResult = await readRecords("Steps", {
@@ -191,50 +260,30 @@ export default function App() {
         },
       })
 
-      // Log the raw records to the console for debugging
-      console.log("=== HEALTH CONNECT RECORDS ===")
-      console.log("Steps Records:", JSON.stringify(stepsResult, null, 2))
-      console.log("Distance Records:", JSON.stringify(distanceResult, null, 2))
-      console.log("Calories Records:", JSON.stringify(caloriesResult, null, 2))
-      console.log("==============================")
+      console.log("=== HEALTH CONNECT RAW DATA ===")
+      console.log("Steps:", JSON.stringify(stepsResult, null, 2))
+      console.log("Distance:", JSON.stringify(distanceResult, null, 2))
+      console.log("Calories:", JSON.stringify(caloriesResult, null, 2))
 
-      // Process steps data
+      // Traitement des pas
       let totalSteps = 0
       if (stepsResult && stepsResult.records) {
-        console.log("Nombre d'enregistrements de pas:", stepsResult.records.length)
-
-        // Filtrer les enregistrements pour la date sélectionnée
         const filteredStepsRecords = stepsResult.records.filter((record) => isRecordInSelectedDay(record, date))
-
-        console.log("Nombre d'enregistrements de pas filtrés pour la date sélectionnée:", filteredStepsRecords.length)
-
         for (const record of filteredStepsRecords) {
           if (record && typeof record === "object") {
-            console.log("Traitement de l'enregistrement de pas:", JSON.stringify(record))
-            // Try different possible property names for steps
             if ("count" in record && typeof record.count === "number") {
-              console.log("Ajout de pas via count:", record.count)
               totalSteps += record.count
             } else if ("steps" in record && typeof (record as any).steps === "number") {
-              console.log("Ajout de pas via steps:", (record as any).steps)
               totalSteps += (record as any).steps
-            } else if ("sample" in record && record.sample && typeof record.sample === "object") {
-              if ("count" in record.sample && typeof record.sample.count === "number") {
-                console.log("Ajout de pas via sample.count:", record.sample.count)
-                totalSteps += record.sample.count
-              }
             }
           }
         }
-        console.log("Total des pas calculé:", totalSteps)
       }
 
-      // Process distance data
+      // Traitement de la distance
       let totalKilometers = 0
       if (distanceResult && distanceResult.records) {
-        // Filtrer les enregistrements pour la date sélectionnée
         const filteredDistanceRecords = distanceResult.records.filter((record) => isRecordInSelectedDay(record, date))
-
         for (const record of filteredDistanceRecords) {
           if (record && typeof record === "object") {
             if ("distance" in record && record.distance) {
@@ -242,95 +291,44 @@ export default function App() {
               if ("inKilometers" in distance && typeof distance.inKilometers === "number") {
                 totalKilometers += distance.inKilometers
               } else if ("inMeters" in distance && typeof distance.inMeters === "number") {
-                // Convert meters to kilometers
                 totalKilometers += distance.inMeters / 1000
               }
-            } else if ("meters" in record && typeof (record as any).meters === "number") {
-              totalKilometers += (record as any).meters / 1000
             }
           }
         }
       }
 
-      // Process calories data
+      // Traitement des calories
       let totalCalories = 0
       if (caloriesResult && caloriesResult.records) {
-        // Filtrer les enregistrements pour la date sélectionnée
         const filteredCaloriesRecords = caloriesResult.records.filter((record) => isRecordInSelectedDay(record, date))
-
         for (const record of filteredCaloriesRecords) {
           if (record && typeof record === "object") {
             if ("energy" in record && record.energy) {
               const energy = record.energy
               if ("inKilocalories" in energy && typeof energy.inKilocalories === "number") {
                 totalCalories += energy.inKilocalories
-              } else if ("inCalories" in energy && typeof energy.inCalories === "number") {
-                // Convert calories to kilocalories
-                totalCalories += energy.inCalories / 1000
-              } else if ("inJoules" in energy && typeof energy.inJoules === "number") {
-                // Convert joules to kilocalories (1 kcal = 4184 joules)
-                totalCalories += energy.inJoules / 4184
               }
-            } else if ("calories" in record && typeof (record as any).calories === "number") {
-              totalCalories += (record as any).calories
-            } else if ("kilocalories" in record && typeof (record as any).kilocalories === "number") {
-              totalCalories += (record as any).kilocalories
             }
           }
         }
       }
 
-      // Try to get additional data from alternative sources if no data was found
-      if (totalSteps === 0) {
-        try {
-          const altStepsResult = await readRecords("StepCount", {
-            timeRangeFilter: {
-              operator: "between",
-              startTime: startTime.toISOString(),
-              endTime: endTime.toISOString(),
-            },
-          } as any) // Using 'as any' to bypass TypeScript checking for this alternative record type
-
-          if (altStepsResult && altStepsResult.records) {
-            // Filtrer les enregistrements pour la date sélectionnée
-            const filteredAltStepsRecords = altStepsResult.records.filter((record) =>
-              isRecordInSelectedDay(record, date),
-            )
-
-            for (const record of filteredAltStepsRecords) {
-              if (record && typeof record === "object" && "count" in record && typeof record.count === "number") {
-                totalSteps += record.count
-              }
-            }
-          }
-        } catch (error) {
-          console.log("Alternative step source not available:", error)
-        }
-      }
-
-      // Format the values
       totalKilometers = Number.parseFloat(totalKilometers.toFixed(2))
       totalCalories = Math.round(totalCalories)
 
-      console.log("Processed health data:", {
-        steps: totalSteps,
-        totalKilometers,
-        calories: totalCalories,
-      })
-
-      console.log("Retour des données dynamiques pour la date sélectionnée")
-
-      // Return the processed data
-      return {
+      const healthData = {
         steps: totalSteps || 0,
         totalKilometers: totalKilometers || 0,
         calories: totalCalories || 0,
-        workout: 45, // Default value for workout (not available in Health Connect)
-        pushups: 230, // Default value for pushups (not available in Health Connect)
+        workout: 45, // Valeur par défaut
+        pushups: 230, // Valeur par défaut
       }
+
+      console.log("✅ Processed health data:", healthData)
+      return healthData
     } catch (error) {
-      console.error("Error fetching daily data:", error)
-      // Return default values in case of error
+      console.error("❌ Error fetching daily data:", error)
       return {
         steps: 0,
         totalKilometers: 0,
@@ -338,6 +336,62 @@ export default function App() {
         workout: 45,
         pushups: 230,
       }
+    }
+  }
+
+  // 🆕 FONCTION: Sauvegarde manuelle
+  const saveHealthDataToDatabase = async () => {
+    if (!dailyData) {
+      Alert.alert("No Data", "No health data available to save")
+      return
+    }
+
+    try {
+      setIsSaving(true)
+      console.log("💾 Manual save initiated...")
+
+      const healthConnectData = {
+        steps: dailyData.steps,
+        distance: dailyData.totalKilometers,
+        total_calories_burned: dailyData.calories,
+        active_calories_burned: Math.round(dailyData.calories * 0.7),
+        exercise: dailyData.workout > 0 ? "Workout completed" : null,
+      }
+
+      await healthConnectService.saveHealthConnectData(healthConnectData)
+
+      setLastSyncDate(new Date())
+      setIsConnected(true)
+      lastDataRef.current = { ...dailyData }
+
+      Alert.alert("Success! 🎉", `Health data saved successfully for ${selectedDate.toLocaleDateString()}`, [
+        { text: "OK", style: "default" },
+      ])
+
+      console.log("✅ Manual save successful")
+    } catch (error: any) {
+      console.error("❌ Error saving health data:", error)
+      setIsConnected(false)
+
+      Alert.alert("Save Failed", error.message || "Failed to save health data. Please try again.", [
+        { text: "OK", style: "default" },
+      ])
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  // 🆕 FONCTION: Basculer la sauvegarde automatique
+  const toggleAutoSave = () => {
+    setAutoSaveEnabled(!autoSaveEnabled)
+    if (!autoSaveEnabled) {
+      setupAutoSave()
+      console.log("🔄 Auto-save enabled")
+    } else {
+      if (autoSaveInterval.current) {
+        clearInterval(autoSaveInterval.current)
+      }
+      console.log("⏸️ Auto-save disabled")
     }
   }
 
@@ -353,14 +407,11 @@ export default function App() {
         if (existingPermissions.length > 0) {
           const data = await fetchDailyData(selectedDate)
           setDailyData(data)
+          lastDataRef.current = data
         }
-        // Ne plus afficher automatiquement le modal de permission
-      } else {
-        // Ne plus afficher automatiquement le modal d'installation
       }
     } catch (error) {
       console.error("Erreur d'initialisation:", error)
-      // Ne plus afficher d'alerte automatique
     }
   }
 
@@ -375,7 +426,7 @@ export default function App() {
         { accessType: "read", recordType: "Steps" },
         { accessType: "read", recordType: "Distance" },
         { accessType: "read", recordType: "TotalCaloriesBurned" },
-        { accessType: "read", recordType: "StepCount" } as any, // Alternative step count
+        { accessType: "read", recordType: "StepCount" } as any,
       ])
 
       setHasPermissions(permissions.length > 0)
@@ -384,6 +435,7 @@ export default function App() {
       if (permissions.length > 0) {
         const data = await fetchDailyData(selectedDate)
         setDailyData(data)
+        lastDataRef.current = data
       }
     } catch (error) {
       console.error("Erreur de permission:", error)
@@ -405,9 +457,11 @@ export default function App() {
 
   const handleDateChange = async (newDate: Date) => {
     setSelectedDate(newDate)
+
     if (hasPermissions) {
       const data = await fetchDailyData(newDate)
       setDailyData(data)
+      lastDataRef.current = data
     }
   }
 
@@ -454,17 +508,29 @@ export default function App() {
     }
   }
 
-  // Refresh data periodically only if permissions are granted
+  // 🆕 Actualisation périodique des données avec auto-save
   useEffect(() => {
     if (isInitialized && hasPermissions) {
       const refreshInterval = setInterval(async () => {
         const data = await fetchDailyData(selectedDate)
         setDailyData(data)
-      }, 60000) // Refresh every minute
+
+        // Déclencher auto-save si les données ont changé
+        if (autoSaveEnabled && data && lastDataRef.current) {
+          const dataChanged =
+            lastDataRef.current.steps !== data.steps ||
+            lastDataRef.current.calories !== data.calories ||
+            lastDataRef.current.totalKilometers !== data.totalKilometers
+
+          if (dataChanged) {
+            await performAutoSave()
+          }
+        }
+      }, 60000) // Actualiser chaque minute
 
       return () => clearInterval(refreshInterval)
     }
-  }, [isInitialized, hasPermissions, selectedDate])
+  }, [isInitialized, hasPermissions, selectedDate, autoSaveEnabled])
 
   return (
     <SafeAreaView style={styles.container}>
@@ -486,94 +552,121 @@ export default function App() {
           {getDayName(selectedDate)}, {selectedDate.getDate()}
         </Text>
         <View style={styles.headerButtons}>
+          {/* 🆕 BOUTON AUTO-SAVE */}
+          <TouchableOpacity
+            onPress={toggleAutoSave}
+            style={[styles.autoSaveButton, autoSaveEnabled ? styles.autoSaveEnabled : styles.autoSaveDisabled]}
+          >
+            {autoSaveEnabled ? <CheckCircle size={16} color="#FFFFFF" /> : <Clock size={16} color="#666666" />}
+          </TouchableOpacity>
+
+          {/* BOUTON DE SAUVEGARDE MANUELLE */}
+          <TouchableOpacity
+            onPress={saveHealthDataToDatabase}
+            style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
+            disabled={isSaving || !dailyData}
+          >
+            {isSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Database size={20} color="#FFFFFF" />}
+          </TouchableOpacity>
+
+          {/* Indicateur de connexion */}
+          <View style={[styles.connectionIndicator, isConnected ? styles.connected : styles.disconnected]}>
+            {isConnected ? <Wifi size={16} color="#10B981" /> : <WifiOff size={16} color="#EF4444" />}
+          </View>
+
           <TouchableOpacity onPress={handleSettingsPress} style={styles.settingsButton}>
             <Settings stroke="#666" width={24} height={24} />
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Toujours afficher l'interface principale */}
-      <>
-        <View style={styles.calendarContainer}>
-          <View style={styles.monthSelector}>
-            <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
-              <ChevronLeft stroke="#000" width={20} height={20} />
-            </TouchableOpacity>
-            <Text style={styles.monthTitle}>{getMonthName(currentMonth)}</Text>
-            <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
-              <ChevronRight size={20} color="#000" />
-            </TouchableOpacity>
-          </View>
+      {/* 🆕 Statut de synchronisation amélioré */}
+      <View style={styles.syncStatusContainer}>
+        {lastSyncDate && <Text style={styles.syncText}>Manual sync: {lastSyncDate.toLocaleTimeString()}</Text>}
+        {lastAutoSave && autoSaveEnabled && (
+          <Text style={styles.autoSyncText}>Auto-save: {lastAutoSave.toLocaleTimeString()}</Text>
+        )}
+        {autoSaveEnabled && <Text style={styles.autoSaveStatus}>🔄 Auto-save: ON</Text>}
+      </View>
 
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.calendar}
-            contentContainerStyle={styles.calendarContent}
-          >
-            {getDaysInMonth(currentMonth).map((date, index) => (
-              <TouchableOpacity
-                key={index}
-                style={[
-                  styles.dayButton,
-                  isSameDay(date, selectedDate) && styles.selectedDay,
-                  isToday(date) && styles.todayButton,
-                ]}
-                onPress={() => handleDateChange(date)}
-              >
-                <Text
-                  style={[
-                    styles.dayText,
-                    isSameDay(date, selectedDate) && styles.selectedDayText,
-                    isToday(date) && styles.todayText,
-                  ]}
-                >
-                  {date.toLocaleDateString("en-US", { weekday: "short" })}
-                </Text>
-                <Text
-                  style={[
-                    styles.dateText,
-                    isSameDay(date, selectedDate) && styles.selectedDayText,
-                    isToday(date) && styles.todayText,
-                  ]}
-                >
-                  {date.getDate()}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
+      <View style={styles.calendarContainer}>
+        <View style={styles.monthSelector}>
+          <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
+            <ChevronLeft stroke="#000" width={20} height={20} />
+          </TouchableOpacity>
+          <Text style={styles.monthTitle}>{getMonthName(currentMonth)}</Text>
+          <TouchableOpacity onPress={handleNextMonth} style={styles.monthButton}>
+            <ChevronRight size={20} color="#000" />
+          </TouchableOpacity>
         </View>
 
-        <ScrollView style={styles.content}>
-          {/* Afficher un message discret si pas de permissions */}
-          {!hasPermissions && !showPermissionModal && (
-            <View style={styles.permissionBanner}>
-              <Text style={styles.permissionBannerText}>
-                💡 Want real data? Open settings to enable Health Connect
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          style={styles.calendar}
+          contentContainerStyle={styles.calendarContent}
+        >
+          {getDaysInMonth(currentMonth).map((date, index) => (
+            <TouchableOpacity
+              key={index}
+              style={[
+                styles.dayButton,
+                isSameDay(date, selectedDate) && styles.selectedDay,
+                isToday(date) && styles.todayButton,
+              ]}
+              onPress={() => handleDateChange(date)}
+            >
+              <Text
+                style={[
+                  styles.dayText,
+                  isSameDay(date, selectedDate) && styles.selectedDayText,
+                  isToday(date) && styles.todayText,
+                ]}
+              >
+                {date.toLocaleDateString("en-US", { weekday: "short" })}
               </Text>
-             
-            </View>
-          )}
-
-          <View style={styles.grid}>
-            {ACTIVITIES.map((activity, index) => (
-              <View key={index} style={[styles.activityCard, { backgroundColor: activity.color }]}>
-                <View style={styles.activityIcon}>
-                  <Text style={styles.activityIconText}>{activity.icon}</Text>
-                </View>
-                <View style={styles.activityInfo}>
-                  <Text style={styles.activityName}>{activity.name}</Text>
-                  <Text style={styles.activityValue}>
-                    {getActivityValue(activity.name)}{" "}
-                    <Text style={{ fontSize: 14, color: "#666" }}>{activity.unit}</Text>
-                  </Text>
-                </View>
-              </View>
-            ))}
-          </View>
-          <FitnessCategories />
+              <Text
+                style={[
+                  styles.dateText,
+                  isSameDay(date, selectedDate) && styles.selectedDayText,
+                  isToday(date) && styles.todayText,
+                ]}
+              >
+                {date.getDate()}
+              </Text>
+            </TouchableOpacity>
+          ))}
         </ScrollView>
-      </>
+      </View>
+
+      <ScrollView style={styles.content}>
+        {/* Banner d'information */}
+        {!hasPermissions && !showPermissionModal && (
+          <View style={styles.permissionBanner}>
+            <Text style={styles.permissionBannerText}>
+              💡 {hasPermissions ? "Real-time data from Health Connect" : "Enable Health Connect for real-time data"}
+            </Text>
+          </View>
+        )}
+
+        <View style={styles.grid}>
+          {ACTIVITIES.map((activity, index) => (
+            <View key={index} style={[styles.activityCard, { backgroundColor: activity.color }]}>
+              <View style={styles.activityIcon}>
+                <Text style={styles.activityIconText}>{activity.icon}</Text>
+              </View>
+              <View style={styles.activityInfo}>
+                <Text style={styles.activityName}>{activity.name}</Text>
+                <Text style={styles.activityValue}>
+                  {getActivityValue(activity.name)} <Text style={{ fontSize: 14, color: "#666" }}>{activity.unit}</Text>
+                </Text>
+              </View>
+            </View>
+          ))}
+        </View>
+
+        <FitnessCategories />
+      </ScrollView>
     </SafeAreaView>
   )
 }
@@ -597,18 +690,61 @@ const styles = StyleSheet.create({
   headerButtons: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
-  navButton: {
-    backgroundColor: "#f0f0f0",
-    paddingHorizontal: 12,
+  // 🆕 NOUVEAUX STYLES POUR AUTO-SAVE
+  autoSaveButton: {
+    paddingHorizontal: 8,
     paddingVertical: 8,
     borderRadius: 16,
-    marginRight: 12,
+    flexDirection: "row",
+    alignItems: "center",
   },
-  navButtonText: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
+  autoSaveEnabled: {
+    backgroundColor: "#10B981",
+  },
+  autoSaveDisabled: {
+    backgroundColor: "#F3F4F6",
+  },
+  saveButton: {
+    backgroundColor: "#667eea",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  saveButtonDisabled: {
+    opacity: 0.5,
+  },
+  connectionIndicator: {
+    padding: 6,
+    borderRadius: 12,
+  },
+  connected: {
+    backgroundColor: "#D1FAE5",
+  },
+  disconnected: {
+    backgroundColor: "#FEE2E2",
+  },
+  syncStatusContainer: {
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+    alignItems: "center",
+  },
+  syncText: {
+    fontSize: 11,
+    color: "#666666",
+  },
+  autoSyncText: {
+    fontSize: 11,
+    color: "#10B981",
+  },
+  autoSaveStatus: {
+    fontSize: 10,
+    color: "#10B981",
+    fontWeight: "600",
   },
   settingsButton: {
     padding: 8,
@@ -690,17 +826,6 @@ const styles = StyleSheet.create({
     color: "#1976D2",
     flex: 1,
   },
-  connectButton: {
-    backgroundColor: "#1976D2",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  connectButtonText: {
-    color: "#fff",
-    fontSize: 14,
-    fontWeight: "500",
-  },
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -749,109 +874,5 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "600",
     color: "#000",
-  },
-  demoLabel: {
-    fontSize: 10,
-    color: "#999",
-    marginTop: 4,
-    fontStyle: "italic",
-  },
-  placeholderContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 20,
-  },
-  placeholderIcon: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: "#F3F4F6",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  placeholderIconText: {
-    fontSize: 36,
-  },
-  placeholderTitle: {
-    fontSize: 22,
-    fontWeight: "700",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  placeholderText: {
-    fontSize: 16,
-    textAlign: "center",
-    marginBottom: 24,
-    color: "#666",
-    lineHeight: 22,
-  },
-  setupButton: {
-    backgroundColor: "#000",
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 12,
-    width: "80%",
-  },
-  setupButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "600",
-    textAlign: "center",
-  },
-  headerLogo: {
-    width: width * 0.13,
-    height: height * 0.031,
-    resizeMode: "contain",
-  },
-  searchBar: {
-    marginTop: height * 0.05,
-    marginHorizontal: width * 0.05,
-    padding: 10,
-    borderRadius: 8,
-    backgroundColor: "#f0f0f0",
-    fontSize: 15,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 20,
-  },
-  statsCard: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
-    borderRadius: 12,
-    alignItems: "center",
-    padding: 20,
-    marginHorizontal: 10,
-  },
-  statsTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 10,
-  },
-  statsValue: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#000",
-  },
-  section: {
-    marginBottom: height * 0.04,
-  },
-  sectionTitle: {
-    fontSize: height * 0.019,
-    fontWeight: "500",
-    marginBottom: height * 0.01,
-  },
-  sectionHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  seeDetails: {
-    color: "#666",
-    fontSize: 14,
   },
 })

@@ -619,6 +619,7 @@ export interface ApiHealthConnectHealthConnect
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    Date: Schema.Attribute.Date;
     Distance: Schema.Attribute.String;
     elevation_gained: Schema.Attribute.String;
     Exercise: Schema.Attribute.String;
@@ -641,6 +642,10 @@ export interface ApiHealthConnectHealthConnect
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::anonymous-user.anonymous-user'
+    >;
     VO2_max: Schema.Attribute.String;
     Weight: Schema.Attribute.String;
     Wheelchair_pushes: Schema.Attribute.String;
@@ -823,6 +828,53 @@ export interface ApiPersonalizedDietPersonalizedDiet
       'oneToOne',
       'plugin::users-permissions.user'
     >;
+  };
+}
+
+export interface ApiProfileUserProfileUser extends Struct.CollectionTypeSchema {
+  collectionName: 'profile_users';
+  info: {
+    description: '';
+    displayName: 'profile user';
+    pluralName: 'profile-users';
+    singularName: 'profile-user';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    age: Schema.Attribute.String;
+    Allergies: Schema.Attribute.String;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    current_mood: Schema.Attribute.String;
+    gendre: Schema.Attribute.String;
+    height: Schema.Attribute.String;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::profile-user.profile-user'
+    > &
+      Schema.Attribute.Private;
+    medical_condition: Schema.Attribute.String;
+    medical_report: Schema.Attribute.Media<
+      'images' | 'files' | 'videos' | 'audios',
+      true
+    >;
+    physical_activity: Schema.Attribute.String;
+    publishedAt: Schema.Attribute.DateTime;
+    sleep_hours: Schema.Attribute.String;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    user: Schema.Attribute.Relation<
+      'oneToOne',
+      'plugin::users-permissions.user'
+    >;
+    water_intake: Schema.Attribute.String;
+    weight: Schema.Attribute.String;
+    weight_goal: Schema.Attribute.String;
   };
 }
 
@@ -1650,6 +1702,10 @@ export interface PluginUsersPermissionsUser
       'oneToOne',
       'api::personalized-diet.personalized-diet'
     >;
+    profile_user: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::profile-user.profile-user'
+    >;
     provider: Schema.Attribute.String;
     publishedAt: Schema.Attribute.DateTime;
     resetPasswordToken: Schema.Attribute.String & Schema.Attribute.Private;
@@ -1696,6 +1752,7 @@ declare module '@strapi/strapi' {
       'api::mental.mental': ApiMentalMental;
       'api::music.music': ApiMusicMusic;
       'api::personalized-diet.personalized-diet': ApiPersonalizedDietPersonalizedDiet;
+      'api::profile-user.profile-user': ApiProfileUserProfileUser;
       'api::question.question': ApiQuestionQuestion;
       'api::quote.quote': ApiQuoteQuote;
       'api::recipe.recipe': ApiRecipeRecipe;

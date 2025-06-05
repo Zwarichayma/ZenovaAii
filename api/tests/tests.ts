@@ -19,7 +19,8 @@ export interface Question {
   publishedAt: string
   title: string
 }
-
+console.log(API_URL); 
+console.log(API_KEY);
 export interface Response {
   id: number
   documentId: string

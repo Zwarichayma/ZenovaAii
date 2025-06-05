@@ -1,0 +1,65 @@
+{
+  "kind": "collectionType",
+  "collectionName": "profile_users",
+  "info": {
+    "singularName": "profile-user",
+    "pluralName": "profile-users",
+    "displayName": "profile user",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "weight": {
+      "type": "string"
+    },
+    "height": {
+      "type": "string"
+    },
+    "age": {
+      "type": "string"
+    },
+    "gendre": {
+      "type": "string"
+    },
+    "weight_goal": {
+      "type": "string"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "plugin::users-permissions.user",
+      "mappedBy": "profile_user"
+    },
+    "sleep_hours": {
+      "type": "string"
+    },
+    "water_intake": {
+      "type": "string"
+    },
+    "medical_report": {
+      "type": "media",
+      "multiple": true,
+      "required": false,
+      "allowedTypes": [
+        "images",
+        "files",
+        "videos",
+        "audios"
+      ]
+    },
+    "Allergies": {
+      "type": "string"
+    },
+    "medical_condition": {
+      "type": "string"
+    },
+    "current_mood": {
+      "type": "string"
+    },
+    "physical_activity": {
+      "type": "string"
+    }
+  }
+}

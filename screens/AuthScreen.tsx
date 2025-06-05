@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import {
   TextInput,
   TouchableOpacity,
@@ -19,8 +19,8 @@ import {
 import { useNavigation } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../types/navigation"
-import { authService } from "../api/auth/auth-service" 
 import { ArrowLeft } from "lucide-react-native"
+import { useAuth } from "@/context/AuthContext"
 
 const { width, height } = Dimensions.get("window")
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
@@ -28,7 +28,7 @@ type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
 export default function AuthScreen() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [isLoading, setIsLoading] = useState(false)
+  const { login, isLoading } = useAuth()
   const navigation = useNavigation<AuthScreenNavigationProp>()
 
   const handleContinue = async () => {
@@ -37,22 +37,13 @@ export default function AuthScreen() {
       return
     }
 
-    setIsLoading(true)
     try {
-      // Call the login method from our authentication service
-      const response = await authService.login(email, password)
-
-      // Successful login
-      console.log("Login successful:", response.user)
-
-      // Navigate to profile screen
+      await login(email, password)
+      // La navigation sera gérée automatiquement par le contexte d'authentification
       navigation.navigate("Profile")
     } catch (error: any) {
-      // Handle login error
       console.error("Login error:", error)
       Alert.alert("Login failed", error.message || "Please check your credentials and try again")
-    } finally {
-      setIsLoading(false)
     }
   }
 
@@ -136,11 +127,11 @@ export default function AuthScreen() {
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1, // Ensure the ImageBackground takes up the whole screen
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingHorizontal: 40, 
-    paddingVertical: 1, 
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 40,
+    paddingVertical: 1,
   },
   safeArea: {
     flex: 1,
@@ -158,39 +149,38 @@ const styles = StyleSheet.create({
     resizeMode: "cover",
   },
   header: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     zIndex: 10,
-    paddingTop: Platform.OS === 'ios' ? 50 : 30,
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
     paddingHorizontal: 20,
   },
   backButton: {
-    width: 10,
-    height: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(255, 255, 255, 0.8)',
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.8)",
     borderRadius: 20,
   },
   innerContainer: {
     width: width * 0.9,
-       backgroundColor: 'rgba(255, 255, 255, 0.67)', // Semi-transparent background to make content readable
-       borderRadius: 25,
-       padding: width * 0.08,
-       alignItems: 'center',
-       elevation: 3,
-       shadowColor: '#fff',
-       shadowOffset: { width: 0, height: 2 },
-       shadowOpacity: 0.1,
-       shadowRadius: 4,
-       marginTop: 120, // Add space for the header
-
+    backgroundColor: "rgba(255, 255, 255, 0.67)",
+    borderRadius: 25,
+    padding: width * 0.08,
+    alignItems: "center",
+    elevation: 3,
+    shadowColor: "#fff",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    marginTop: 120,
   },
   logo: {
-    width: width * 0.20,
-    height: height * 0.10,
+    width: width * 0.2,
+    height: height * 0.1,
     resizeMode: "contain",
     marginBottom: width * 0.06,
   },
@@ -204,7 +194,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "gray",
     marginBottom: width * 0.08,
-    textAlign: 'center',
+    textAlign: "center",
   },
   googleButton: {
     flexDirection: "row",

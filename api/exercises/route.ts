@@ -1,6 +1,7 @@
 import axios from "axios";
 import { API_URL, API_KEY } from "@env";
-
+console.log(API_URL); 
+console.log(API_KEY);
 export interface Exercise {
   id: number;
   attributes: {

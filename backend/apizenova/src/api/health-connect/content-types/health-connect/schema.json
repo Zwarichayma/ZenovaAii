@@ -85,6 +85,14 @@
     },
     "Power": {
       "type": "string"
+    },
+    "user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::anonymous-user.anonymous-user"
+    },
+    "Date": {
+      "type": "date"
     }
   }
 }

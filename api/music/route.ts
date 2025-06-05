@@ -1,7 +1,5 @@
 import axios from "axios"
 import { API_URL, API_KEY } from "@env"
-console.log(API_URL); 
-console.log(API_KEY);
 
 const axiosInstance = axios.create({
   baseURL: API_URL,
@@ -17,7 +15,8 @@ export interface ImageFormat {
   width: number
   height: number
 }
-
+console.log(API_URL); 
+console.log(API_KEY);
 export interface ImageData {
   data: {
     id: number

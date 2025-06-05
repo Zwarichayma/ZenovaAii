@@ -1,7 +1,6 @@
 import axios from 'axios';
 import { API_URL, API_KEY } from '@env';
-console.log(API_URL); 
-console.log(API_KEY);
+
 
 export const getRecipes = async (categoryDocumentId: string) => {
   try {
@@ -26,6 +25,8 @@ export const getRecipes = async (categoryDocumentId: string) => {
     throw error;
   }
 };
+console.log(API_URL); 
+console.log(API_KEY);
 export const getRecipe = async (documentId: string) => {
   try {
     // Make sure you're using the correct endpoint format

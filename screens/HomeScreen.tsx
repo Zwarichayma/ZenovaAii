@@ -9,9 +9,9 @@ import {
   StyleSheet,
   TouchableOpacity,
   Dimensions,
-  ActivityIndicator,
   StatusBar,
   Platform,
+  SafeAreaView,
 } from "react-native"
 import { useNavigation, CommonActions } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
@@ -36,8 +36,8 @@ const COLORS = {
   text: "#000000",
   textSecondary: "#555555",
   textLight: "#FFFFFF",
-  skeletonBackground: "#E8E8E8",  // Changed to light gray
-  skeletonHighlight: "#F5F5F5",   // Changed to lighter gray
+  skeletonBackground: "#E8E8E8", // Changed to light gray
+  skeletonHighlight: "#F5F5F5", // Changed to lighter gray
 }
 
 // For debugging image URLs
@@ -136,20 +136,16 @@ type Mental = {
 // Skeleton Card Component - Animation Removed
 const SkeletonCard = ({ size = "small" }: { size?: "small" | "medium" | "large" }) => {
   // Determine card style based on size
-  const cardStyle = size === "small" 
-    ? styles.cardSmall 
-    : size === "large" 
-      ? styles.cardLarge 
-      : styles.cardMedium;
-  
+  const cardStyle = size === "small" ? styles.cardSmall : size === "large" ? styles.cardLarge : styles.cardMedium
+
   return (
     <View style={[styles.card, cardStyle, styles.skeletonCard]}>
       <View style={styles.skeletonTitleContainer}>
         <View style={styles.skeletonTitle} />
       </View>
     </View>
-  );
-};
+  )
+}
 
 // Skeleton Featured Card Component - Animation Removed
 const SkeletonFeaturedCard = () => {
@@ -160,11 +156,11 @@ const SkeletonFeaturedCard = () => {
         <View style={styles.skeletonFeaturedButton} />
       </View>
     </View>
-  );
-};
+  )
+}
 
 // Skeleton Section Component
-const SkeletonSection = ({ title, count = 3 }: { title: string, count?: number }) => {
+const SkeletonSection = ({ title, count = 3 }: { title: string; count?: number }) => {
   return (
     <View style={styles.section}>
       <View style={styles.sectionHeader}>
@@ -173,16 +169,18 @@ const SkeletonSection = ({ title, count = 3 }: { title: string, count?: number }
       </View>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
         <View style={{ flexDirection: "row" }}>
-          {Array(count).fill(0).map((_, index) => (
-            <View key={index} style={styles.cardWrapper}>
-              <SkeletonCard size="small" />
-            </View>
-          ))}
+          {Array(count)
+            .fill(0)
+            .map((_, index) => (
+              <View key={index} style={styles.cardWrapper}>
+                <SkeletonCard size="small" />
+              </View>
+            ))}
         </View>
       </ScrollView>
     </View>
-  );
-};
+  )
+}
 
 export default function HomeScreen() {
   const navigation = useNavigation<HomeScreenNavigationProp>()
@@ -479,124 +477,130 @@ export default function HomeScreen() {
           <View style={styles.skeletonMasterTitle} />
           <View style={styles.skeletonSubtitle} />
         </View>
-        
+
         <View style={styles.featuredSection}>
           <SkeletonFeaturedCard />
         </View>
-        
+
         <SkeletonSection title="All Categories" count={4} />
         <SkeletonSection title="Fitness Plans" count={4} />
         <SkeletonSection title="Mental Health" count={4} />
         <SkeletonSection title="Recommended For You" count={4} />
       </ScrollView>
-    );
-  };
+    )
+  }
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.container}>
+        <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} translucent={false} />
 
-      {/* Header */}
-      <View style={styles.header}>
-        <Image source={require('../assets/images/33.png')} style={styles.headerLogo} />
-        <View style={styles.headerRight}>
-          <TouchableOpacity style={styles.iconButton} onPress={handleSearchPress}>
-            <Search size={22} color={COLORS.text} />
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.iconButton}>
-            <Bell size={22} color={COLORS.text} />
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={styles.profileIcon}
-            onPress={handleProfilePress}
-            accessible={true}
-            accessibilityLabel="Profile"
-          >
-            <User size={22} color={COLORS.text} />
-          </TouchableOpacity>
+        {/* Header */}
+        <View style={styles.header}>
+          <Image source={require("../assets/images/33.png")} style={styles.headerLogo} />
+          <View style={styles.headerRight}>
+            <TouchableOpacity style={styles.iconButton} onPress={handleSearchPress}>
+              <Search size={22} color={COLORS.text} />
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.iconButton}>
+              <Bell size={22} color={COLORS.text} />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.profileIcon}
+              onPress={handleProfilePress}
+              accessible={true}
+              accessibilityLabel="Profile"
+            >
+              <User size={22} color={COLORS.text} />
+            </TouchableOpacity>
+          </View>
         </View>
-      </View>
 
-      {isLoading ? (
-        renderSkeletonUI()
-      ) : (
-        <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-          <View>
-            {/* Welcome Section */}
-            <View style={styles.welcomeSection}>
-              <Text style={styles.welcomeText}></Text>
-              <Text style={styles.masterTitle}>Welcome to Zenova AI</Text>
-              <Text style={styles.welcomeSubtitle}>Your Smart Well-Being Companion</Text>
-            </View>
+        {isLoading ? (
+          renderSkeletonUI()
+        ) : (
+          <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+            <View>
+              {/* Welcome Section */}
+              <View style={styles.welcomeSection}>
+                <Text style={styles.welcomeText}></Text>
+                <Text style={styles.masterTitle}>Welcome to Zenova AI</Text>
+                <Text style={styles.welcomeSubtitle}>Your Smart Well-Being Companion</Text>
+              </View>
 
-            {/* Featured Diet Card */}
-            {diets && diets.length > 0 && <View style={styles.featuredSection}>{renderFeaturedCard(diets[0])}</View>}
+              {/* Featured Diet Card */}
+              {diets && diets.length > 0 && <View style={styles.featuredSection}>{renderFeaturedCard(diets[0])}</View>}
 
-            {/* Categories Section */}
-            <View style={styles.section}>
-              {renderSectionHeader("All Categories", true, () => navigation.navigate("AllRecipesScreen"))}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                <View style={{ flexDirection: "row" }}>
-                  {categories.map((category, index) => (
-                    <View key={index} style={styles.cardWrapper}>
-                      {renderCard(category, "Recette", true, "small")}
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
-            {/* Fitness Plans Section */}
-            <View style={styles.section}>
-              {renderSectionHeader("Fitness Plans", true, () => navigation.navigate("AllCategories"))}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                <View style={{ flexDirection: "row" }}>
-                  {fitnessPlans.slice(0, 15).map((plan, index) => (
-                    <View key={index} style={styles.cardWrapper}>
-                      {renderCard(plan, "Training", true, "small")}
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
-            {/* Mental Health Section */}
-            <View style={styles.section}>
-              {renderSectionHeader("Mental Health")}
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                <View style={{ flexDirection: "row" }}>
-                  {Mental.map((mental, index) => (
-                    <View key={index} style={styles.cardWrapper}>
-                      {renderCard(mental, "Mental Health", true, "small")}
-                    </View>
-                  ))}
-                </View>
-              </ScrollView>
-            </View>
-
-            {/* Recommended Section - if you have more diets */}
-            {diets && diets.length > 1 && (
+              {/* Categories Section */}
               <View style={styles.section}>
-                {renderSectionHeader("Recommended For You")}
+                {renderSectionHeader("All Categories", true, () => navigation.navigate("AllRecipesScreen"))}
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                   <View style={{ flexDirection: "row" }}>
-                    {diets.slice(1).map((diet, index) => (
+                    {categories.map((category, index) => (
                       <View key={index} style={styles.cardWrapper}>
-                        {renderCard(diet, "Bot", true, "small")}
+                        {renderCard(category, "Recette", true, "small")}
                       </View>
                     ))}
                   </View>
                 </ScrollView>
               </View>
-            )}
-          </View>
-        </ScrollView>
-      )}
-    </View>
+
+              {/* Fitness Plans Section */}
+              <View style={styles.section}>
+                {renderSectionHeader("Fitness Plans", true, () => navigation.navigate("AllCategories"))}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                  <View style={{ flexDirection: "row" }}>
+                    {fitnessPlans.slice(0, 15).map((plan, index) => (
+                      <View key={index} style={styles.cardWrapper}>
+                        {renderCard(plan, "Training", true, "small")}
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Mental Health Section */}
+              <View style={styles.section}>
+                {renderSectionHeader("Mental Health")}
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                  <View style={{ flexDirection: "row" }}>
+                    {Mental.map((mental, index) => (
+                      <View key={index} style={styles.cardWrapper}>
+                        {renderCard(mental, "Mental Health", true, "small")}
+                      </View>
+                    ))}
+                  </View>
+                </ScrollView>
+              </View>
+
+              {/* Recommended Section - if you have more diets */}
+              {diets && diets.length > 1 && (
+                <View style={styles.section}>
+                  {renderSectionHeader("Recommended For You")}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                    <View style={{ flexDirection: "row" }}>
+                      {diets.slice(1).map((diet, index) => (
+                        <View key={index} style={styles.cardWrapper}>
+                          {renderCard(diet, "Bot", true, "small")}
+                        </View>
+                      ))}
+                    </View>
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+          </ScrollView>
+        )}
+      </View>
+    </SafeAreaView>
   )
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: COLORS.background,
+  },
   container: {
     flex: 1,
     backgroundColor: COLORS.background,
@@ -856,11 +860,11 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     fontSize: 14,
   },
-  
+
   // Skeleton styles - Updated to white/gray
   skeletonCard: {
     backgroundColor: COLORS.skeletonBackground,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   skeletonTitleContainer: {
     padding: 12,
@@ -869,21 +873,21 @@ const styles = StyleSheet.create({
   },
   skeletonTitle: {
     height: 18,
-    width: '70%',
+    width: "70%",
     backgroundColor: COLORS.skeletonHighlight,
     borderRadius: 4,
   },
   skeletonFeaturedCard: {
     backgroundColor: COLORS.skeletonBackground,
-    justifyContent: 'flex-end',
+    justifyContent: "flex-end",
   },
   skeletonFeaturedContent: {
     padding: 20,
-    width: '100%',
+    width: "100%",
   },
   skeletonFeaturedTitle: {
     height: 22,
-    width: '60%',
+    width: "60%",
     backgroundColor: COLORS.skeletonHighlight,
     borderRadius: 4,
     marginBottom: 15,
@@ -896,14 +900,14 @@ const styles = StyleSheet.create({
   },
   skeletonMasterTitle: {
     height: 25,
-    width: '80%',
+    width: "80%",
     backgroundColor: COLORS.skeletonBackground,
     borderRadius: 4,
     marginBottom: 10,
   },
   skeletonSubtitle: {
     height: 16,
-    width: '60%',
+    width: "60%",
     backgroundColor: COLORS.skeletonBackground,
     borderRadius: 4,
     marginTop: 5,

@@ -97,6 +97,12 @@
       "relation": "oneToOne",
       "target": "api::anonymous-user.anonymous-user",
       "mappedBy": "users_permissions_user"
+    },
+    "profile_user": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::profile-user.profile-user",
+      "inversedBy": "user"
     }
   }
 }
