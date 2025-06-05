@@ -2,17 +2,25 @@ import axios from "axios"
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
-const API_URL = "http://192.168.100.25:1337/api"
+const API_URL = "http://192.168.100.7:1337/api"
 
-// Initialiser Google Sign-In
+// Initialize Google Sign-In with your Web Client ID
 export const initGoogleSignIn = () => {
-  GoogleSignin.configure({
-    webClientId: "YOUR_WEB_CLIENT_ID", // Obtenez-le depuis la console Google Cloud
-    offlineAccess: true,
-  })
+  try {
+    console.log("🔧 Configuring Google Sign-In with Web Client ID...")
+
+    GoogleSignin.configure({
+      // Your Web Client ID from the screenshot
+      webClientId: "306365346326-119quk8seo0t19bs8rnt3ml35o3j0lk6.apps.googleusercontent.com",
+      offlineAccess: false,
+    })
+
+    console.log("✅ Google Sign-In configured successfully with Web Client ID")
+  } catch (error) {
+    console.error("❌ Google Sign-In configuration error:", error)
+  }
 }
 
-// Types pour les réponses d'authentification
 export interface GoogleAuthResponse {
   jwt: string
   user: {
@@ -28,98 +36,141 @@ export interface GoogleAuthResponse {
   }
 }
 
-// Service d'authentification Google
+export const storeAuthToken = async (jwt: string): Promise<void> => {
+  try {
+    await AsyncStorage.setItem("authToken", jwt)
+  } catch (error) {
+    console.error("Error storing auth token:", error)
+    throw new Error("Failed to store authentication token")
+  }
+}
+
+export const getAuthToken = async (): Promise<string | null> => {
+  try {
+    return await AsyncStorage.getItem("authToken")
+  } catch (error) {
+    console.error("Error getting auth token:", error)
+    return null
+  }
+}
+
+export const removeAuthToken = async (): Promise<void> => {
+  try {
+    await AsyncStorage.removeItem("authToken")
+  } catch (error) {
+    console.error("Error removing auth token:", error)
+  }
+}
+
 export const googleAuthService = {
-  // Se connecter avec Google
   signIn: async (): Promise<GoogleAuthResponse> => {
     try {
-      // Vérifier si l'utilisateur est déjà connecté à Google
-      await GoogleSignin.hasPlayServices()
+      console.log("🚀 === Starting Google Sign-In Process ===")
 
-      // Démarrer le flux de connexion Google
-      const userInfo = await GoogleSignin.signIn()
-
-      // Obtenir le token ID
-      const { idToken } = await GoogleSignin.getTokens()
-
-      if (!idToken) {
-        throw new Error("Impossible d'obtenir le token Google")
+      // Clear any previous sign-in state
+      try {
+        await GoogleSignin.signOut()
+        console.log("🔄 Cleared previous sign-in state")
+      } catch (signOutError) {
+        console.log("ℹ️ Sign out error (can be ignored):", signOutError)
       }
 
-      // Récupérer l'ID anonyme s'il existe
+      // Check Google Play Services
+      console.log("🔍 Checking Google Play Services...")
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      })
+      console.log("✅ Google Play Services available")
+
+      // Initiate Google Sign-In
+      console.log("🔐 Initiating Google sign-in...")
+      const userInfo = await GoogleSignin.signIn()
+      console.log("✅ Google sign-in successful for:", userInfo.user.email)
+
+      // Get authentication tokens
+      console.log("🎫 Getting tokens...")
+      const tokens = await GoogleSignin.getTokens()
+      console.log("✅ Tokens retrieved successfully")
+
+      if (!tokens.idToken) {
+        throw new Error("Unable to get Google ID token")
+      }
+
+      // Send token to Strapi backend
       const anonymousId = await AsyncStorage.getItem("anonymousId")
 
-      // Envoyer le token à votre backend Strapi
+      console.log("🌐 Sending token to Strapi backend...")
       const response = await axios.post(
         `${API_URL}/auth/google/mobile`,
         {
-          access_token: idToken,
+          access_token: tokens.idToken,
         },
         {
-          headers: anonymousId ? { "x-anonymous-id": anonymousId } : {},
+          headers: {
+            "Content-Type": "application/json",
+            ...(anonymousId ? { "x-anonymous-id": anonymousId } : {}),
+          },
         },
       )
 
-      // Stocker le JWT pour les futures requêtes
+      console.log("✅ Strapi authentication successful")
+
+      // Store JWT token
       await storeAuthToken(response.data.jwt)
 
-      // Si nous avions un ID anonyme, nous pouvons le supprimer maintenant
+      // Remove anonymous ID if it existed
       if (anonymousId) {
         await AsyncStorage.removeItem("anonymousId")
       }
 
       return response.data
-    } catch (error) {
-      console.error("Google Sign-In Error:", error)
+    } catch (error: any) {
+      console.error("💥 === Google Sign-In Error ===")
+      console.error("Error type:", typeof error)
+      console.error("Error message:", error.message)
+      console.error("Error code:", error.code)
 
+      // Handle specific error codes
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        throw new Error("Connexion annulée")
+        throw new Error("Sign-in was cancelled by user")
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        throw new Error("Connexion déjà en cours")
+        throw new Error("Sign-in already in progress")
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        throw new Error("Google Play Services n'est pas disponible")
+        throw new Error("Google Play Services not available")
+      } else if (error.code === 10 || error.message === "DEVELOPER_ERROR") {
+        throw new Error("Configuration error resolved! If you still see this, please restart the app.")
       }
 
-      throw new Error("Erreur lors de la connexion avec Google")
+      throw new Error(error.message || "Unknown Google Sign-In error")
     }
   },
 
-  // Déconnexion de Google
   signOut: async (): Promise<void> => {
     try {
-      // Déconnexion de Google
       await GoogleSignin.signOut()
-
-      // Supprimer le token JWT
-      await AsyncStorage.removeItem("authToken")
+      await removeAuthToken()
+      console.log("✅ Successfully signed out")
     } catch (error) {
-      console.error("Google Sign-Out Error:", error)
-      throw new Error("Erreur lors de la déconnexion")
+      console.error("❌ Google Sign-Out Error:", error)
+      throw new Error("Error signing out")
     }
   },
 
-  // Vérifier si l'utilisateur est connecté à Google
   isSignedIn: async (): Promise<boolean> => {
     try {
       return await GoogleSignin.isSignedIn()
     } catch (error) {
-      console.error("Google isSignedIn Error:", error)
+      console.error("❌ Google isSignedIn Error:", error)
       return false
     }
   },
 
-  // Obtenir l'utilisateur Google actuel
   getCurrentUser: async () => {
     try {
       return await GoogleSignin.getCurrentUser()
     } catch (error) {
-      console.error("Google getCurrentUser Error:", error)
+      console.error("❌ Google getCurrentUser Error:", error)
       return null
     }
   },
 }
-
-function storeAuthToken(jwt: any) {
-    throw new Error("Function not implemented.")
-}
-

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import {
   TextInput,
   TouchableOpacity,
@@ -21,6 +21,7 @@ import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../types/navigation"
 import { ArrowLeft } from "lucide-react-native"
 import { useAuth } from "@/context/AuthContext"
+import { googleAuthService, initGoogleSignIn } from "@/context/google-auth"
 
 const { width, height } = Dimensions.get("window")
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
@@ -28,8 +29,14 @@ type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
 export default function AuthScreen() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [googleLoading, setGoogleLoading] = useState(false)
   const { login, isLoading } = useAuth()
   const navigation = useNavigation<AuthScreenNavigationProp>()
+
+  // Initialize Google Sign-In when component mounts
+  useEffect(() => {
+    initGoogleSignIn()
+  }, [])
 
   const handleContinue = async () => {
     if (!email || !password) {
@@ -39,11 +46,35 @@ export default function AuthScreen() {
 
     try {
       await login(email, password)
-      // La navigation sera gérée automatiquement par le contexte d'authentification
+      // Navigation will be handled automatically by the auth context
       navigation.navigate("Profile")
     } catch (error: any) {
       console.error("Login error:", error)
       Alert.alert("Login failed", error.message || "Please check your credentials and try again")
+    }
+  }
+
+  // Handle Google sign-in
+  const handleGoogleSignIn = async () => {
+    setGoogleLoading(true)
+    try {
+      const result = await googleAuthService.signIn()
+      
+      Alert.alert(
+        "Success", 
+        "Successfully signed in with Google!", 
+        [
+          { 
+            text: "OK", 
+            onPress: () => navigation.navigate("Profile") 
+          }
+        ]
+      )
+    } catch (error: any) {
+      console.error("Error with Google Sign-In:", error)
+      Alert.alert("Google Sign-In Failed", error.message || "An error occurred during Google sign-in")
+    } finally {
+      setGoogleLoading(false)
     }
   }
 
@@ -74,9 +105,19 @@ export default function AuthScreen() {
           <Text style={styles.subtitle}>Welcome! Please login to continue</Text>
 
           {/* Google login button */}
-          <TouchableOpacity style={styles.googleButton}>
-            <Image source={require("../assets/images/goo.png")} style={styles.googleLogo} />
-            <Text style={styles.googleButtonText}>Continue with Google</Text>
+          <TouchableOpacity 
+            style={styles.googleButton}
+            onPress={handleGoogleSignIn}
+            disabled={googleLoading || isLoading}
+          >
+            {googleLoading ? (
+              <ActivityIndicator size="small" color="#4285F4" />
+            ) : (
+              <>
+                <Image source={require("../assets/images/goo.png")} style={styles.googleLogo} />
+                <Text style={styles.googleButtonText}>Continue with Google</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <Text style={styles.orText}>or</Text>
@@ -89,7 +130,7 @@ export default function AuthScreen() {
             onChangeText={setEmail}
             keyboardType="email-address"
             autoCapitalize="none"
-            editable={!isLoading}
+            editable={!isLoading && !googleLoading}
           />
           <TextInput
             style={styles.input}
@@ -97,14 +138,14 @@ export default function AuthScreen() {
             value={password}
             onChangeText={setPassword}
             secureTextEntry
-            editable={!isLoading}
+            editable={!isLoading && !googleLoading}
           />
 
           {/* Continue button */}
           <TouchableOpacity
-            style={[styles.button, isLoading && styles.buttonDisabled]}
+            style={[styles.button, (isLoading || googleLoading) && styles.buttonDisabled]}
             onPress={handleContinue}
-            disabled={isLoading}
+            disabled={isLoading || googleLoading}
           >
             {isLoading ? (
               <ActivityIndicator size="small" color="#fff" />
@@ -125,6 +166,7 @@ export default function AuthScreen() {
   )
 }
 
+// Styles remain the same as your original code
 const styles = StyleSheet.create({
   container: {
     flex: 1,

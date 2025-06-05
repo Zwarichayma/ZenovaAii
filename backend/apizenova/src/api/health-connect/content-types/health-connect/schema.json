@@ -86,10 +86,11 @@
     "Power": {
       "type": "string"
     },
-    "user": {
+    "users_permissions_user": {
       "type": "relation",
       "relation": "oneToOne",
-      "target": "api::anonymous-user.anonymous-user"
+      "target": "plugin::users-permissions.user",
+      "inversedBy": "health_connect"
     },
     "Date": {
       "type": "date"

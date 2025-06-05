@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useCallback } from "react"
+import { useState, useCallback, useEffect } from "react"
 import {
   TextInput,
   TouchableOpacity,
@@ -22,6 +22,7 @@ import type { StackNavigationProp } from "@react-navigation/stack"
 import type { RootStackParamList } from "../types/navigation"
 import { ArrowLeft } from "lucide-react-native"
 import { useAuth } from "@/context/AuthContext"
+import { googleAuthService, initGoogleSignIn } from "@/context/google-auth"
 
 const { width, height } = Dimensions.get("window")
 type AuthScreenNavigationProp = StackNavigationProp<RootStackParamList>
@@ -45,6 +46,11 @@ export default function SignUpScreen() {
   // Navigation and Auth
   const navigation = useNavigation<AuthScreenNavigationProp>()
   const { register, isLoading } = useAuth()
+
+  // Initialize Google Sign-In when component mounts
+  useEffect(() => {
+    initGoogleSignIn()
+  }, [])
 
   // Define validation functions
   const validateEmail = useCallback((email: string): boolean => {
@@ -159,22 +165,29 @@ export default function SignUpScreen() {
     }
   }, [email, username, password, navigation, validateForm, register])
 
-  // Handle Google sign-in with a mock implementation
+  // Handle Google sign-in
   const handleGoogleSignIn = useCallback(async () => {
     setGoogleLoading(true)
     try {
+      const result = await googleAuthService.signIn()
+      
       Alert.alert(
-        "Google Sign-In Not Available",
-        "The Google Sign-In module is not properly linked. Please use email/password registration instead.",
-        [{ text: "OK" }],
+        "Success", 
+        "Successfully signed up with Google!", 
+        [
+          { 
+            text: "OK", 
+            onPress: () => navigation.navigate("Profile") 
+          }
+        ]
       )
     } catch (error: any) {
       console.error("Error with Google Sign-In:", error)
-      Alert.alert("Error", error.message || "An error occurred")
+      Alert.alert("Google Sign-In Failed", error.message || "An error occurred during Google sign-in")
     } finally {
       setGoogleLoading(false)
     }
-  }, [])
+  }, [navigation])
 
   // Function to go back to previous screen
   const goBack = () => {
@@ -231,7 +244,7 @@ export default function SignUpScreen() {
                 onBlur={() => validateEmail(email)}
                 keyboardType="email-address"
                 autoCapitalize="none"
-                editable={!isLoading}
+                editable={!isLoading && !googleLoading}
               />
               {emailError ? <Text style={styles.errorText}>{emailError}</Text> : null}
             </View>
@@ -245,7 +258,7 @@ export default function SignUpScreen() {
                 onChangeText={handleUsernameChange}
                 onBlur={() => validateUsername(username)}
                 autoCapitalize="none"
-                editable={!isLoading}
+                editable={!isLoading && !googleLoading}
               />
               {usernameError ? <Text style={styles.errorText}>{usernameError}</Text> : null}
             </View>
@@ -259,7 +272,7 @@ export default function SignUpScreen() {
                 onChangeText={handlePasswordChange}
                 onBlur={() => validatePassword(password)}
                 secureTextEntry
-                editable={!isLoading}
+                editable={!isLoading && !googleLoading}
               />
               {passwordError ? <Text style={styles.errorText}>{passwordError}</Text> : null}
             </View>
@@ -273,14 +286,14 @@ export default function SignUpScreen() {
                 onChangeText={handleConfirmPasswordChange}
                 onBlur={() => validateConfirmPassword(password, confirmPassword)}
                 secureTextEntry
-                editable={!isLoading}
+                editable={!isLoading && !googleLoading}
               />
               {confirmPasswordError ? <Text style={styles.errorText}>{confirmPasswordError}</Text> : null}
             </View>
 
             {/* Sign Up Button */}
             <TouchableOpacity
-              style={[styles.button, isLoading && styles.buttonDisabled]}
+              style={[styles.button, (isLoading || googleLoading) && styles.buttonDisabled]}
               onPress={handleSignUp}
               disabled={isLoading || googleLoading}
             >
@@ -304,6 +317,7 @@ export default function SignUpScreen() {
   )
 }
 
+// Styles remain the same as your original code
 const styles = StyleSheet.create({
   container: {
     flex: 1,
