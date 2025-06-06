@@ -643,7 +643,7 @@ export interface ApiHealthConnectHealthConnect
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
     users_permissions_user: Schema.Attribute.Relation<
-      'oneToOne',
+      'manyToOne',
       'plugin::users-permissions.user'
     >;
     VO2_max: Schema.Attribute.String;
@@ -1686,8 +1686,8 @@ export interface PluginUsersPermissionsUser
       Schema.Attribute.SetMinMaxLength<{
         minLength: 6;
       }>;
-    health_connect: Schema.Attribute.Relation<
-      'oneToOne',
+    health_connects: Schema.Attribute.Relation<
+      'oneToMany',
       'api::health-connect.health-connect'
     >;
     locale: Schema.Attribute.String & Schema.Attribute.Private;

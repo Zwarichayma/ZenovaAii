@@ -552,15 +552,7 @@ export default function HealthConnectScreen() {
           {getDayName(selectedDate)}, {selectedDate.getDate()}
         </Text>
         <View style={styles.headerButtons}>
-          {/* 🆕 BOUTON AUTO-SAVE */}
-          <TouchableOpacity
-            onPress={toggleAutoSave}
-            style={[styles.autoSaveButton, autoSaveEnabled ? styles.autoSaveEnabled : styles.autoSaveDisabled]}
-          >
-            {autoSaveEnabled ? <CheckCircle size={16} color="#FFFFFF" /> : <Clock size={16} color="#666666" />}
-          </TouchableOpacity>
-
-          {/* BOUTON DE SAUVEGARDE MANUELLE */}
+                   {/* BOUTON DE SAUVEGARDE MANUELLE */}
           <TouchableOpacity
             onPress={saveHealthDataToDatabase}
             style={[styles.saveButton, isSaving && styles.saveButtonDisabled]}
@@ -569,10 +561,7 @@ export default function HealthConnectScreen() {
             {isSaving ? <ActivityIndicator size="small" color="#FFFFFF" /> : <Database size={20} color="#FFFFFF" />}
           </TouchableOpacity>
 
-          {/* Indicateur de connexion */}
-          <View style={[styles.connectionIndicator, isConnected ? styles.connected : styles.disconnected]}>
-            {isConnected ? <Wifi size={16} color="#10B981" /> : <WifiOff size={16} color="#EF4444" />}
-          </View>
+          
 
           <TouchableOpacity onPress={handleSettingsPress} style={styles.settingsButton}>
             <Settings stroke="#666" width={24} height={24} />
@@ -580,15 +569,7 @@ export default function HealthConnectScreen() {
         </View>
       </View>
 
-      {/* 🆕 Statut de synchronisation amélioré */}
-      <View style={styles.syncStatusContainer}>
-        {lastSyncDate && <Text style={styles.syncText}>Manual sync: {lastSyncDate.toLocaleTimeString()}</Text>}
-        {lastAutoSave && autoSaveEnabled && (
-          <Text style={styles.autoSyncText}>Auto-save: {lastAutoSave.toLocaleTimeString()}</Text>
-        )}
-        {autoSaveEnabled && <Text style={styles.autoSaveStatus}>🔄 Auto-save: ON</Text>}
-      </View>
-
+      
       <View style={styles.calendarContainer}>
         <View style={styles.monthSelector}>
           <TouchableOpacity onPress={handlePrevMonth} style={styles.monthButton}>
@@ -707,7 +688,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
   },
   saveButton: {
-    backgroundColor: "#667eea",
+    backgroundColor: "#D1FAE5",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 20,

@@ -9,74 +9,138 @@ const axiosInstance = axios.create({
   },
 })
 
-// Interfaces pour les images
+// ✅ INTERFACES CORRIGÉES
 export interface ImageFormat {
   url: string
   width: number
   height: number
 }
-console.log(API_URL); 
-console.log(API_KEY);
-export interface ImageData {
-  data: {
+
+// ✅ INTERFACE CORRIGÉE selon la vraie structure des données
+export interface Music {
+  id: number
+  documentId: string
+  title: string
+  artist?: string
+  category?: string
+  duration?: string
+  description?: string
+  // ✅ CORRECTION: Les vrais noms des champs
+  url_youtube?: string
+  url_spotify?: string
+  createdAt: string
+  updatedAt: string
+  publishedAt: string
+  // ✅ CORRECTION: Image directement accessible, pas dans attributes
+  image?: {
     id: number
-    attributes: {
-      url: string
-      formats: {
-        thumbnail: ImageFormat
-        small: ImageFormat
-        medium?: ImageFormat
-      }
+    documentId: string
+    url: string
+    alternativeText?: string
+    caption?: string
+    width: number
+    height: number
+    formats: {
+      thumbnail: ImageFormat
+      small: ImageFormat
+      medium?: ImageFormat
+      large?: ImageFormat
     }
+    hash: string
+    ext: string
+    mime: string
+    name: string
+    size: number
   }
 }
 
 export interface Quote {
   id: number
-  attributes: {
-    text: string
-    author: string
-    category: string
-    createdAt: string
-    updatedAt: string
-    publishedAt: string
-    image: ImageData
-  }
-}
-
-export interface Music {
-  id: number
-  attributes: {
-    title: string
-    artist: string
-    category: string
-    duration: string
-    audioUrl: string
-    createdAt: string
-    updatedAt: string
-    publishedAt: string
-    image: ImageData
-  }
+  text?: string
+  author?: string
+  category?: string
+  createdAt: string
+  updatedAt: string
+  publishedAt: string
+  image?: any
 }
 
 export interface Test {
   id: number
-  attributes: {
-    title: string
-    description: string
-    duration: string
-    category: string
-    createdAt: string
-    updatedAt: string
-    publishedAt: string
-    image: ImageData
+  title?: string
+  description?: string
+  duration?: string
+  category?: string
+  createdAt: string
+  updatedAt: string
+  publishedAt: string
+  image?: any
+}
+
+// ✅ FONCTION CORRIGÉE: Récupérer toutes les musiques avec logs détaillés
+export const getMusic = async (): Promise<any[]> => {
+  try {
+    console.log("🎵 === FETCHING MUSIC FROM API ===")
+    console.log("🎵 API_URL:", API_URL)
+    console.log("🎵 API_KEY:", API_KEY ? "✅ Present" : "❌ Missing")
+
+    const response = await axiosInstance.get("/musics?populate=*")
+
+    console.log("🎵 API Response Status:", response.status)
+
+    // ✅ CORRECTION: Récupérer les données directement
+    const musicData = response.data.data || []
+    console.log("🎵 Number of music items:", musicData.length)
+
+    // ✅ CORRECTION: Retourner les données brutes
+    return musicData
+  } catch (error) {
+    console.error("❌ ERREUR lors de la récupération de la musique:")
+    if (axios.isAxiosError(error)) {
+      console.error("❌ Status:", error.response?.status)
+      console.error("❌ Data:", error.response?.data)
+      console.error("❌ Headers:", error.response?.headers)
+    } else {
+      console.error("❌ Error:", error)
+    }
+    return []
   }
 }
 
-// Fonctions API
-export const getQuotes = async (): Promise<Quote[]> => {
+// ✅ NOUVELLE FONCTION: Récupérer une musique par ID
+export const getMusicById = async (id: number): Promise<any | null> => {
   try {
-    const response = await axiosInstance.get("/quotes?populate=image")
+    console.log("🎵 === FETCHING MUSIC BY ID ===")
+    console.log("🎵 Requested ID:", id)
+
+    const response = await axiosInstance.get(`/musics/${id}?populate=*`)
+
+    console.log("🎵 Music by ID Response Status:", response.status)
+
+    // ✅ CORRECTION: Récupérer les données directement
+    const musicItem = response.data.data
+    if (musicItem) {
+      console.log("🎵 Found music by ID:", musicItem.id)
+    } else {
+      console.log("❌ No music found with ID:", id)
+    }
+
+    return musicItem || null
+  } catch (error) {
+    console.error("❌ ERREUR lors de la récupération de la musique par ID:")
+    if (axios.isAxiosError(error)) {
+      console.error("❌ Status:", error.response?.status)
+      console.error("❌ Data:", error.response?.data)
+    } else {
+      console.error("❌ Error:", error)
+    }
+    return null
+  }
+}
+
+export const getQuotes = async (): Promise<any[]> => {
+  try {
+    const response = await axiosInstance.get("/quotes?populate=*")
     return response.data.data || []
   } catch (error) {
     console.error("Erreur lors de la récupération des citations:", error)
@@ -84,19 +148,9 @@ export const getQuotes = async (): Promise<Quote[]> => {
   }
 }
 
-export const getMusic = async (): Promise<Music[]> => {
+export const getTests = async (): Promise<any[]> => {
   try {
-    const response = await axiosInstance.get("/musics?populate=image")
-    return response.data.data || []
-  } catch (error) {
-    console.error("Erreur lors de la récupération de la musique:", error)
-    return []
-  }
-}
-
-export const getTests = async (): Promise<Test[]> => {
-  try {
-    const response = await axiosInstance.get("/testes?populate=image")
+    const response = await axiosInstance.get("/testes?populate=*")
     return response.data.data || []
   } catch (error) {
     console.error("Erreur lors de la récupération des tests:", error)
@@ -104,13 +158,75 @@ export const getTests = async (): Promise<Test[]> => {
   }
 }
 
-// Fonction utilitaire pour générer une URL d'image complète
+// ✅ FONCTION CORRIGÉE pour la vraie structure des données
 export const getFullImageUrl = (imageData: any): string => {
-  if (!imageData || !imageData.data || !imageData.data.attributes) {
+  console.log("🖼️ === PROCESSING IMAGE URL (CORRECTED) ===")
+  console.log("🖼️ Input imageData:", JSON.stringify(imageData, null, 2))
+
+  if (!imageData) {
+    console.log("❌ No image data provided")
     return ""
   }
 
+  let imageUrl = ""
+
+  // ✅ CORRECTION: Gérer la structure réelle des données
+  if (imageData.url) {
+    // Image directement accessible
+    imageUrl = imageData.url
+    console.log("✅ Found image URL (direct access):", imageUrl)
+  } else if (imageData.data && imageData.data.attributes && imageData.data.attributes.url) {
+    // Format Strapi standard (fallback)
+    imageUrl = imageData.data.attributes.url
+    console.log("✅ Found image URL (standard format):", imageUrl)
+  } else if (typeof imageData === "string") {
+    // URL directe
+    imageUrl = imageData
+    console.log("✅ Found image URL (direct string):", imageUrl)
+  } else {
+    console.log("❌ Invalid image data structure")
+    return ""
+  }
+
+  // Construire l'URL complète
   const baseUrl = API_URL.replace("/api", "")
-  const imageUrl = imageData.data.attributes.url
-  return `${baseUrl}${imageUrl}`
+  const fullUrl = imageUrl.startsWith("http") ? imageUrl : `${baseUrl}${imageUrl}`
+
+  console.log("🖼️ Base URL:", baseUrl)
+  console.log("🖼️ Image URL:", imageUrl)
+  console.log("🖼️ Full URL:", fullUrl)
+
+  return fullUrl
+}
+
+// ✅ NOUVELLE FONCTION: Vérifier si une URL est valide
+export const isValidUrl = (url: string): boolean => {
+  try {
+    new URL(url)
+    return true
+  } catch {
+    return false
+  }
+}
+
+// ✅ NOUVELLE FONCTION: Obtenir le texte de description
+export const getPlainTextDescription = (description: any): string => {
+  if (!description) return ""
+
+  if (typeof description === "string") {
+    return description
+  }
+
+  if (Array.isArray(description)) {
+    return description
+      .map((block: any) => {
+        if (block.children && Array.isArray(block.children)) {
+          return block.children.map((child: any) => child.text || "").join("")
+        }
+        return ""
+      })
+      .join(" ")
+  }
+
+  return ""
 }

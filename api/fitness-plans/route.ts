@@ -11,7 +11,8 @@ const fitnessApi = axios.create({
   },
 });
 
-
+console.log(API_URL); 
+console.log(API_KEY);
 // Interface for the image format
 interface ImageFormat {
   name: string;
@@ -25,8 +26,7 @@ interface ImageFormat {
   sizeInBytes: number;
   url: string;
 }
-console.log(API_URL); 
-console.log(API_KEY);
+
 // Interface for the image object
 interface ImageObject {
   id: number;

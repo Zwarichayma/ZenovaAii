@@ -25,7 +25,8 @@ const buildFullImageUrl = (relativeUrl: string | undefined): string => {
   } else if (baseUrl.includes("/api/")) {
     baseUrl = baseUrl.split("/api/")[0] // Prendre la partie avant "/api/"
   }
-
+console.log(API_URL); 
+console.log(API_KEY);
   // S'assurer que l'URL relative commence par un slash
   const formattedRelativeUrl = relativeUrl.startsWith("/") ? relativeUrl : `/${relativeUrl}`
 

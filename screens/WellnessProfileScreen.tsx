@@ -912,11 +912,7 @@ export default function WellnessProfileScreen() {
                     : "Complete your wellness profile to get personalized recommendations."}
                 </Text>
 
-                {/* Bouton de rafraîchissement centré */}
-                <TouchableOpacity style={styles.refreshActionButton} onPress={refreshData} disabled={loading}>
-                  <RefreshCw size={20} color="#FFFFFF" />
-                  <Text style={styles.refreshActionText}>Refresh Data</Text>
-                </TouchableOpacity>
+               
               </View>
             </LinearGradient>
           </ImageBackground>
@@ -1129,7 +1125,7 @@ const styles = StyleSheet.create({
     borderColor: "#F0F0F0",
   },
   statCardValue: {
-    fontSize: 20,
+    fontSize: 15,
     fontWeight: "bold",
     color: "#333333",
     marginTop: 8,

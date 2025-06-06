@@ -104,9 +104,9 @@
       "target": "api::profile-user.profile-user",
       "inversedBy": "user"
     },
-    "health_connect": {
+    "health_connects": {
       "type": "relation",
-      "relation": "oneToOne",
+      "relation": "oneToMany",
       "target": "api::health-connect.health-connect",
       "mappedBy": "users_permissions_user"
     }

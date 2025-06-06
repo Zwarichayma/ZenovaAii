@@ -1,621 +1,491 @@
-import React, { useState, useEffect, useRef } from 'react';
+"use client"
+
+import { useState, useEffect, useRef } from "react"
 import {
   View,
   Text,
   StyleSheet,
-  Image,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   Dimensions,
   Platform,
   StatusBar,
   Animated,
-  ImageBackground
-} from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { ArrowLeft, Heart, Play, Pause, Volume2, Share, Clock } from 'lucide-react-native';
-import Slider from '@react-native-community/slider';
-import { getMusicById, getImageUrl, getPlainTextDescription } from '@/api/categories/route';
+  ImageBackground,
+  Alert,
+  Linking,
+  Image,
+} from "react-native"
+import { LinearGradient } from "expo-linear-gradient"
+import { ArrowLeft } from "lucide-react-native"
+import { getMusic } from "@/api/music/route"
+import * as WebBrowser from "expo-web-browser"
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window")
 
 interface MusicDetailScreenProps {
   route: {
     params: {
-      id: number;
-    };
-  };
-  navigation: any;
+      id: number
+    }
+  }
+  navigation: any
 }
 
 export default function MusicDetailScreen({ route, navigation }: MusicDetailScreenProps) {
-  const { id } = route.params;
-  const [music, setMusic] = useState<any>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [isFavorite, setIsFavorite] = useState(false);
-  
-  // Audio player states
-  const [sound, setSound] = useState<Audio.Sound | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [duration, setDuration] = useState(0);
-  const [position, setPosition] = useState(0);
-  const [volume, setVolume] = useState(1.0);
-  
+  const { id } = route.params
+  const [music, setMusic] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isFavorite, setIsFavorite] = useState(false)
+  const [isPlaying, setIsPlaying] = useState(false)
+  const [duration, setDuration] = useState(0)
+  const [position, setPosition] = useState(0)
+
   // Animation values
-  const scrollY = useRef(new Animated.Value(0)).current;
-  const imageScale = scrollY.interpolate({
-    inputRange: [-100, 0, 100],
-    outputRange: [1.2, 1, 0.8],
-    extrapolate: 'clamp',
-  });
-  
-  const headerOpacity = scrollY.interpolate({
-    inputRange: [0, 90, 120],
-    outputRange: [0, 0.5, 1],
-    extrapolate: 'clamp',
-  });
+  const scrollY = useRef(new Animated.Value(0)).current
+  const fadeAnim = useRef(new Animated.Value(0)).current
 
   // Format time for audio player
   const formatTime = (milliseconds: number) => {
-    const minutes = Math.floor(milliseconds / 60000);
-    const seconds = Math.floor((milliseconds % 60000) / 1000);
-    return `${minutes}:${seconds < 10 ? '0' : ''}${seconds}`;
-  };
+    const minutes = Math.floor(milliseconds / 60000)
+    const seconds = Math.floor((milliseconds % 60000) / 1000)
+    return `${minutes}:${seconds < 10 ? "0" : ""}${seconds}`
+  }
 
-  // Load music data
   useEffect(() => {
     const fetchMusic = async () => {
       try {
-        setLoading(true);
-        const data = await getMusicById(id);
-        setMusic(data);
-        console.log("Music data:", data);
+        console.log("🎵 === MUSIC DETAIL SCREEN LOADING ===")
+        setLoading(true)
+        setError(null)
+
+        const allMusic = await getMusic()
+        const musicItem = allMusic.find((item: any) => item.id === id || item.id === Number(id))
+
+        if (!musicItem) {
+          throw new Error("Musique non trouvée")
+        }
+
+        setMusic(musicItem)
+
+        // Set duration
+        if (musicItem.duration) {
+          const durationValue = musicItem.duration
+          if (typeof durationValue === "string" && durationValue.includes(":")) {
+            const [minutes, seconds] = durationValue.split(":").map(Number)
+            setDuration((minutes * 60 + seconds) * 1000)
+          } else if (typeof durationValue === "number") {
+            setDuration(durationValue * 1000)
+          } else {
+            setDuration(5 * 60 * 1000)
+          }
+        } else {
+          setDuration(5 * 60 * 1000)
+        }
+
+        // Animate in
+        Animated.timing(fadeAnim, {
+          toValue: 1,
+          duration: 800,
+          useNativeDriver: true,
+        }).start()
       } catch (err) {
-        console.error("Error fetching music:", err);
-        setError("Impossible de charger les données audio. Veuillez réessayer.");
+        console.error("❌ Error fetching music:", err)
+        setError("Impossible de charger les données audio. Veuillez réessayer.")
       } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchMusic();
-  }, [id]);
-
-  // Load and manage audio
-  useEffect(() => {
-    let isMounted = true;
-    
-    const loadAudio = async () => {
-      if (!music?.attributes?.audioUrl) return;
-      
-      try {
-        // Unload any existing sound
-        if (sound) {
-          await sound.unloadAsync();
-        }
-      
-       
-        if (isMounted) {
-          setSound(newSound);
-        }
-      } catch (err) {
-        console.error("Error loading audio:", err);
-        if (isMounted) {
-          setError("Impossible de charger l'audio. Veuillez réessayer.");
-        }
-      }
-    };
-    
-    loadAudio();
-    
-    // Cleanup function
-    return () => {
-      isMounted = false;
-      if (sound) {
-        sound.unloadAsync();
-      }
-    };
-  }, [music]);
-
-  // Audio status update callback
-  const onPlaybackStatusUpdate = (status: any) => {
-    if (status.isLoaded) {
-      setDuration(status.durationMillis || 0);
-      setPosition(status.positionMillis || 0);
-      setIsPlaying(status.isPlaying);
-      
-      // Loop the audio when it reaches the end
-      if (status.didJustFinish) {
-        sound?.replayAsync();
+        setLoading(false)
       }
     }
-  };
 
-  // Play/pause toggle
-  const togglePlayPause = async () => {
-    if (!sound) return;
-    
-    try {
-      if (isPlaying) {
-        await sound.pauseAsync();
-      } else {
-        await sound.playAsync();
-      }
-    } catch (err) {
-      console.error("Error toggling play/pause:", err);
+    if (id) {
+      fetchMusic()
+    } else {
+      setError("ID de musique manquant")
+      setLoading(false)
     }
-  };
+  }, [id])
 
-  // Seek to position
-  const seekAudio = async (value: number) => {
-    if (!sound) return;
-    
-    try {
-      await sound.setPositionAsync(value);
-    } catch (err) {
-      console.error("Error seeking audio:", err);
+  const togglePlayPause = () => {
+    setIsPlaying(!isPlaying)
+    if (!isPlaying) {
+      const interval = setInterval(() => {
+        setPosition((prev) => {
+          if (prev >= duration) {
+            setIsPlaying(false)
+            clearInterval(interval)
+            return 0
+          }
+          return prev + 1000
+        })
+      }, 1000)
     }
-  };
+  }
 
-  // Change volume
-  const changeVolume = async (value: number) => {
-    if (!sound) return;
-    
-    try {
-      await sound.setVolumeAsync(value);
-      setVolume(value);
-    } catch (err) {
-      console.error("Error changing volume:", err);
-    }
-  };
-
-  // Toggle favorite
   const toggleFavorite = () => {
-    setIsFavorite(!isFavorite);
-    // Here you would also update your favorites storage
-  };
+    setIsFavorite(!isFavorite)
+    Alert.alert(
+      isFavorite ? "Retiré des favoris" : "Ajouté aux favoris",
+      `"${getMusicTitle()}" ${isFavorite ? "a été retiré de" : "a été ajouté à"} vos favoris.`,
+    )
+  }
 
-  // Share music
   const shareMusic = () => {
-    // Implement sharing functionality
-    console.log("Share music:", music?.attributes?.title);
-  };
+    Alert.alert("Partager la musique", `Partager "${getMusicTitle()}" par ${getMusicArtist()}`)
+  }
+
+  const openYouTube = async () => {
+    try {
+      const youtubeUrl = music?.url_youtube
+      if (!youtubeUrl) {
+        Alert.alert("Lien non disponible", "Le lien YouTube n'est pas disponible pour cette musique.")
+        return
+      }
+
+      const youtubeAppUrl = youtubeUrl.replace("https://www.youtube.com/watch?v=", "youtube://watch?v=")
+
+      try {
+        const canOpenYouTubeApp = await Linking.canOpenURL(youtubeAppUrl)
+        if (canOpenYouTubeApp) {
+          await Linking.openURL(youtubeAppUrl)
+          return
+        }
+      } catch (appError) {
+        console.log("YouTube app not available, trying WebBrowser...")
+      }
+
+      await WebBrowser.openBrowserAsync(youtubeUrl, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+        controlsColor: "#ff0000",
+        toolbarColor: "#ffffff",
+      })
+    } catch (error) {
+      console.error("❌ Error opening YouTube:", error)
+      Alert.alert("Erreur", "Impossible d'ouvrir le lien YouTube.")
+    }
+  }
+
+  const openSpotify = async () => {
+    try {
+      const spotifyUrl = music?.url_spotify
+      if (!spotifyUrl) {
+        Alert.alert("Lien non disponible", "Le lien Spotify n'est pas disponible pour cette musique.")
+        return
+      }
+
+      let spotifyAppUrl = spotifyUrl
+      if (spotifyUrl.includes("open.spotify.com")) {
+        spotifyAppUrl = spotifyUrl.replace("https://open.spotify.com/", "spotify:")
+        spotifyAppUrl = spotifyAppUrl.replace("/track/", "track:")
+      }
+
+      try {
+        const canOpenSpotifyApp = await Linking.canOpenURL(spotifyAppUrl)
+        if (canOpenSpotifyApp) {
+          await Linking.openURL(spotifyAppUrl)
+          return
+        }
+      } catch (appError) {
+        console.log("Spotify app not available, trying WebBrowser...")
+      }
+
+      await WebBrowser.openBrowserAsync(spotifyUrl, {
+        presentationStyle: WebBrowser.WebBrowserPresentationStyle.FULL_SCREEN,
+        controlsColor: "#1db954",
+        toolbarColor: "#ffffff",
+      })
+    } catch (error) {
+      console.error("❌ Error opening Spotify:", error)
+      Alert.alert("Erreur", "Impossible d'ouvrir le lien Spotify.")
+    }
+  }
+
+  const getSafeImageUrl = () => {
+    try {
+      if (!music || !music.image) {
+        return null
+      }
+
+      if (music.image.url) {
+        const baseUrl = "http://192.168.100.7:1337"
+        const fullUrl = `${baseUrl}${music.image.url}`
+        return fullUrl
+      }
+    } catch (error) {
+      console.warn("❌ Error getting image URL:", error)
+    }
+    return null
+  }
+
+  const getMusicTitle = () => {
+    return music?.title || "Sans titre"
+  }
+
+  const getMusicArtist = () => {
+    return music?.artist || "Artiste inconnu"
+  }
+
+  const hasYouTubeLink = () => {
+    return !!music?.url_youtube
+  }
+
+  const hasSpotifyLink = () => {
+    return !!music?.url_spotify
+  }
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#2f4f4f" />
+        <ActivityIndicator size="large" color="#000" />
         <Text style={styles.loadingText}>Chargement de l'audio...</Text>
       </View>
-    );
+    )
   }
 
   if (error) {
     return (
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity 
-          style={styles.retryButton}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
           <Text style={styles.retryButtonText}>Retour</Text>
         </TouchableOpacity>
       </View>
-    );
+    )
   }
+
+  if (!music) {
+    return (
+      <View style={styles.errorContainer}>
+        <Text style={styles.errorText}>Données de musique non disponibles</Text>
+        <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
+          <Text style={styles.retryButtonText}>Retour</Text>
+        </TouchableOpacity>
+      </View>
+    )
+  }
+
+  const imageUrl = getSafeImageUrl()
+  const fallbackImage = require("../assets/images/paceful.jpeg")
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="transparent" translucent />
-      
-      {/* Animated header */}
-      <Animated.View style={[
-        styles.animatedHeader,
-        { opacity: headerOpacity }
-      ]}>
-        <Text style={styles.headerTitle} numberOfLines={1}>
-          {music?.attributes?.title || "Musique"}
-        </Text>
-      </Animated.View>
-      
-      {/* Back button */}
-      <TouchableOpacity 
-        style={styles.backButton} 
-        onPress={() => navigation.goBack()}
-      >
-        <ArrowLeft size={24} color="#fff" />
-      </TouchableOpacity>
-      
-      <Animated.ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: true }
-        )}
-        scrollEventThrottle={16}
-      >
-        {/* Hero image with gradient */}
-        <Animated.View style={[
-          styles.imageContainer,
-          { transform: [{ scale: imageScale }] }
-        ]}>
-          <ImageBackground
-            source={
-              music?.attributes?.image?.data?.attributes?.url
-                ? { uri: getImageUrl(music) }
-                : require('../assets/images/paceful.jpeg')
-            }
-            style={styles.heroImage}
-          >
-            <LinearGradient
-              colors={['transparent', 'rgba(0,0,0,0.7)', 'rgba(0,0,0,0.9)']}
-              style={styles.gradient}
-            />
-          </ImageBackground>
-        </Animated.View>
-        
-        {/* Content */}
-        <View style={styles.contentContainer}>
-          {/* Title and actions */}
-          <View style={styles.titleContainer}>
-            <View style={styles.titleWrapper}>
-              <Text style={styles.title}>{music?.attributes?.title || "Sans titre"}</Text>
-              <Text style={styles.subtitle}>{music?.attributes?.artist || "Artiste inconnu"}</Text>
-            </View>
-            
-            <View style={styles.actionButtons}>
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={toggleFavorite}
-              >
-                <Heart 
-                  size={24} 
-                  color={isFavorite ? "#ff4757" : "#fff"} 
-                  fill={isFavorite ? "#ff4757" : "transparent"} 
-                />
-              </TouchableOpacity>
-              
-              <TouchableOpacity 
-                style={styles.actionButton}
-                onPress={shareMusic}
-              >
-                <Share size={24} color="#fff" />
-              </TouchableOpacity>
-            </View>
-          </View>
-          
-          {/* Audio player */}
-          <View style={styles.playerContainer}>
-            {/* Play/Pause button */}
-            <TouchableOpacity 
-              style={styles.playButton}
-              onPress={togglePlayPause}
+      <StatusBar barStyle="dark-content" backgroundColor="#FFFFFF" />
+
+      {/* Header */}
+      <View style={styles.header}>
+        <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+          <ArrowLeft size={24} color="#000" />
+        </TouchableOpacity>
+        <View style={styles.headerRight} />
+      </View>
+
+      <Animated.View style={[styles.content, { opacity: fadeAnim }]}>
+        {/* Album Art */}
+        <View style={styles.albumContainer}>
+          <View style={styles.albumArtWrapper}>
+            <ImageBackground
+              source={imageUrl ? { uri: imageUrl } : fallbackImage}
+              style={styles.albumArt}
+              imageStyle={styles.albumArtImage}
+              defaultSource={fallbackImage}
             >
-              {isPlaying ? (
-                <Pause size={32} color="#fff" fill="#fff" />
-              ) : (
-                <Play size={32} color="#fff" fill="#fff" />
-              )}
-            </TouchableOpacity>
-            
-            {/* Progress bar */}
-            <View style={styles.progressContainer}>
-              <Slider
-                style={styles.progressBar}
-                minimumValue={0}
-                maximumValue={duration}
-                value={position}
-                onSlidingComplete={seekAudio}
-                minimumTrackTintColor="#2f4f4f"
-                maximumTrackTintColor="#d3d3d3"
-                thumbTintColor="#2f4f4f"
-              />
-              
-              <View style={styles.timeContainer}>
-                <Text style={styles.timeText}>{formatTime(position)}</Text>
-                <Text style={styles.timeText}>{formatTime(duration)}</Text>
-              </View>
-            </View>
-          </View>
-          
-          {/* Volume control */}
-          <View style={styles.volumeContainer}>
-            <Volume2 size={20} color="#666" />
-            <Slider
-              style={styles.volumeSlider}
-              minimumValue={0}
-              maximumValue={1}
-              value={volume}
-              onValueChange={changeVolume}
-              minimumTrackTintColor="#2f4f4f"
-              maximumTrackTintColor="#d3d3d3"
-              thumbTintColor="#2f4f4f"
-            />
-          </View>
-          
-          {/* Description */}
-          {music?.attributes?.description && (
-            <View style={styles.descriptionContainer}>
-              <Text style={styles.descriptionTitle}>À propos de cette musique</Text>
-              <Text style={styles.descriptionText}>
-                {getPlainTextDescription(music.attributes.description) || 
-                 "Aucune description disponible."}
-              </Text>
-            </View>
-          )}
-          
-          {/* Duration info */}
-          <View style={styles.infoContainer}>
-            <View style={styles.infoItem}>
-              <Clock size={18} color="#666" />
-              <Text style={styles.infoText}>
-                {music?.attributes?.duration || formatTime(duration)}
-              </Text>
-            </View>
-            
-            {music?.attributes?.category && (
-              <View style={styles.categoryTag}>
-                <Text style={styles.categoryText}>
-                  {music.attributes.category}
-                </Text>
-              </View>
-            )}
-          </View>
-          
-          {/* Recommendations would go here */}
-          <View style={styles.recommendationsContainer}>
-            <Text style={styles.recommendationsTitle}>Vous pourriez aussi aimer</Text>
-            {/* Recommendations would be rendered here */}
-            <Text style={styles.comingSoonText}>Recommandations à venir...</Text>
+              <LinearGradient colors={["rgba(255,255,255,0.1)", "rgba(0,0,0,0.1)"]} style={styles.albumOverlay} />
+            </ImageBackground>
           </View>
         </View>
-      </Animated.ScrollView>
+
+        {/* Song Info */}
+        <View style={styles.songInfo}>
+          <Text style={styles.songTitle}>{getMusicTitle()}</Text>
+          <Text style={styles.artistName}>{getMusicArtist()}</Text>
+        </View>
+
+        {/* External Links - Simple Icons */}
+        {(hasYouTubeLink() || hasSpotifyLink()) && (
+          <View style={styles.externalLinksSection}>
+            <View style={styles.externalLinksContainer}>
+              {hasSpotifyLink() && (
+                <TouchableOpacity style={styles.iconButton} onPress={openSpotify}>
+                  <Image source={require("../assets/images/spotify.png")} style={styles.serviceIconSimple} />
+                </TouchableOpacity>
+              )}
+
+              {hasYouTubeLink() && (
+                <TouchableOpacity style={styles.iconButton} onPress={openYouTube}>
+                  <Image source={require("../assets/images/youtube.png")} style={styles.serviceIconSimple} />
+                </TouchableOpacity>
+              )}
+            </View>
+          </View>
+        )}
+
+      </Animated.View>
     </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#121212',
+    backgroundColor: "#FFFFFF",
   },
   loadingContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#121212',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
   },
   loadingText: {
     marginTop: 10,
     fontSize: 16,
-    color: '#fff',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    color: "#000",
+    fontWeight: "500",
   },
   errorContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: '#121212',
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
     padding: 20,
   },
   errorText: {
     fontSize: 16,
-    color: '#fff',
-    textAlign: 'center',
+    color: "#000",
+    textAlign: "center",
     marginBottom: 20,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
   },
   retryButton: {
     paddingHorizontal: 20,
     paddingVertical: 10,
-    backgroundColor: '#2f4f4f',
+    backgroundColor: "#000",
     borderRadius: 20,
   },
   retryButtonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    fontWeight: "600",
   },
-  animatedHeader: {
-    position: 'absolute',
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingTop: Platform.OS === "ios" ? 50 : 30,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
+    backgroundColor: "#FFFFFF",
+  },
+  backButton: {
+    width: 40,
+    height: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#000",
+  },
+  headerRight: {
+    width: 40,
+  },
+  content: {
+    flex: 1,
+    paddingHorizontal: 20,
+    backgroundColor: "#FFFFFF",
+  },
+  albumContainer: {
+    alignItems: "center",
+    marginBottom: 30,
+  },
+  albumArtWrapper: {
+    width: width * 0.9,
+    height: width * 1.2,
+    borderRadius: 20,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.15,
+    shadowRadius: 20,
+    elevation: 10,
+    backgroundColor: "#F5F5F5",
+  },
+  albumArt: {
+    width: "100%",
+    height: "100%",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  albumArtImage: {
+    borderRadius: 20,
+  },
+  albumOverlay: {
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
-    height: Platform.OS === 'ios' ? 90 : 70,
-    backgroundColor: '#121212',
-    zIndex: 100,
-    justifyContent: 'flex-end',
-    paddingBottom: 10,
-    paddingHorizontal: 60,
+    bottom: 0,
+    borderRadius: 20,
   },
-  headerTitle: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-    textAlign: 'center',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+  songInfo: {
+    alignItems: "center",
+    marginBottom: 50,
   },
-  backButton: {
-    position: 'absolute',
-    top: Platform.OS === 'ios' ? 50 : 30,
-    left: 15,
+  songTitle: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: "#000",
+    marginBottom: 5,
+    textAlign: "center",
+  },
+  artistName: {
+    fontSize: 16,
+    color: "#666",
+    textAlign: "center",
+  },
+  externalLinksSection: {
+    marginBottom: 40,
+    marginTop: 20,
+  },
+  externalLinksContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 30,
+  },
+  iconButton: {
+    width: 50,
+    height: 50,
+    justifyContent: "center",
+    alignItems: "center",
+    borderRadius: 25,
+    backgroundColor: "transparent",
+  },
+  serviceIconSimple: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(0,0,0,0.3)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: 101,
+    resizeMode: "contain",
   },
-  scrollContent: {
-    flexGrow: 1,
-  },
-  imageContainer: {
-    height: height * 0.5,
-    width: width,
-  },
-  heroImage: {
-    width: '100%',
-    height: '100%',
-  },
-  gradient: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    bottom: 0,
-    height: '100%',
-  },
-  contentContainer: {
-    backgroundColor: '#121212',
-    borderTopLeftRadius: 30,
-    borderTopRightRadius: 30,
-    marginTop: -30,
-    paddingTop: 30,
-    paddingHorizontal: 20,
-    paddingBottom: 50,
-  },
-  titleContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 20,
-  },
-  titleWrapper: {
-    flex: 1,
-    marginRight: 10,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    color: '#fff',
-    marginBottom: 5,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  subtitle: {
-    fontSize: 16,
-    color: '#aaa',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-  },
-  actionButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginLeft: 10,
-  },
-  playerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: 'rgba(255,255,255,0.05)',
-    borderRadius: 20,
-    padding: 15,
-  },
-  playButton: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: '#2f4f4f',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 15,
-  },
-  progressContainer: {
-    flex: 1,
-  },
-  progressBar: {
-    width: '100%',
-    height: 40,
-  },
-  timeContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: -10,
-  },
-  timeText: {
-    color: '#aaa',
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  volumeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 30,
-    paddingHorizontal: 10,
-  },
-  volumeSlider: {
-    flex: 1,
-    marginLeft: 10,
-    height: 40,
-  },
-  descriptionContainer: {
-    marginBottom: 30,
-  },
-  descriptionTitle: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 10,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  descriptionText: {
-    fontSize: 16,
-    lineHeight: 24,
-    color: '#aaa',
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  infoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 30,
-  },
-  infoItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 20,
-  },
-  infoText: {
-    color: '#aaa',
-    fontSize: 14,
-    marginLeft: 5,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  categoryTag: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    backgroundColor: 'rgba(47, 79, 79, 0.3)',
+  upNextSection: {
+    backgroundColor: "#F8F8F8",
     borderRadius: 15,
-  },
-  categoryText: {
-    color: '#fff',
-    fontSize: 12,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-  recommendationsContainer: {
+    padding: 15,
     marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#E0E0E0",
   },
-  recommendationsTitle: {
+  upNextHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  upNextTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#000",
+  },
+  upNextExpand: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#fff',
-    marginBottom: 15,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
+    color: "#666",
+    fontWeight: "bold",
   },
-  comingSoonText: {
-    color: '#aaa',
-    fontSize: 14,
-    fontStyle: 'italic',
-    textAlign: 'center',
-    padding: 20,
-    fontFamily: Platform.OS === 'ios' ? 'Georgia' : 'serif',
-  },
-});
+})
