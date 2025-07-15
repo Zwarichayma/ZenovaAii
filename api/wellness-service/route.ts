@@ -1,8 +1,8 @@
 // Configuration Strapi avec les variables d'environnement
-const API_URL = "http://192.168.100.7:1337/api"
+const API_URL = "http://172.20.10.13:1337/api"
 const API_KEY =
   "6e3e7d4353b4e4ad2db82c3a91145ae7b9245c7eb5318dcf77db9a9267f621066c24d9cfea255f458117486715465f7aff103744afa4ce13f128dfed55220257b949a558e83f963f14c68991ec3389ad8fbf34a23da5911d2b23a02820bdd6033f5fae80a90916ee82ca7e839e9a4ff74fceb51bfc1c5b5afa2a7e2d948aeaed"
-const API_BASE_URL = "http://192.168.100.7:1337"
+const API_BASE_URL = "http://172.20.10.13:1337"
 
 // Interface pour les données wellness
 interface WellnessData {
@@ -30,8 +30,7 @@ export const wellnessService = {
     }
   },
 
-  // Modifiez la fonction getWellnessData pour mieux gérer la structure de réponse Strapi
-
+  // ✅ FONCTION CORRIGÉE: Vérification correcte du profil utilisateur
   getWellnessData(userId: string): Promise<WellnessData | null> {
     return new Promise(async (resolve, reject) => {
       try {
@@ -45,9 +44,8 @@ export const wellnessService = {
 
         const headers = this.getAuthHeaders()
 
-        // ⚠️ CORRECTION: Utiliser le bon filtre pour Strapi
-        // Le problème est probablement ici - la relation user n'est pas correctement filtrée
-        const url = `${API_URL}/profile-users?populate=*&filters[user][username][$eq]=houyemm`
+        // ✅ CORRECTION PRINCIPALE: Utiliser l'ID utilisateur réel au lieu du nom codé en dur
+        const url = `${API_URL}/profile-users?populate=*&filters[user][id][$eq]=${userId}`
 
         console.log("📡 Request URL:", url)
 
@@ -69,32 +67,37 @@ export const wellnessService = {
         const result = await response.json()
         console.log("📦 Raw API Response:", JSON.stringify(result, null, 2))
 
-        // ⚠️ CORRECTION: Vérification plus précise de la structure de données Strapi
+        // ✅ VÉRIFICATION STRICTE: S'assurer que les données appartiennent au bon utilisateur
         if (!result.data || result.data.length === 0) {
           console.log("ℹ️ No wellness profile found for user:", userId)
           resolve(null)
           return
         }
 
-        // Afficher la structure complète pour le débogage
-        console.log("🔍 Data structure:", JSON.stringify(result.data[0], null, 2))
-
-        // ✅ CORRECTION: Dans Strapi v5, les données sont directement dans data[0]
+        // ✅ VALIDATION SUPPLÉMENTAIRE: Vérifier que le profil appartient bien à l'utilisateur
         const profileData = result.data[0]
+        
+        // Vérifier si le profil a une relation utilisateur et si elle correspond
+        if (profileData.user && profileData.user.id && profileData.user.id.toString() !== userId.toString()) {
+          console.log("⚠️ Profile belongs to different user. Expected:", userId, "Got:", profileData.user.id)
+          resolve(null)
+          return
+        }
+
         if (!profileData) {
-          console.log("❌ No profile data found in:", JSON.stringify(result.data[0], null, 2))
+          console.log("❌ No profile data found")
           resolve(null)
           return
         }
 
         console.log("🔄 Profile attributes:", JSON.stringify(profileData, null, 2))
 
-        // ⚠️ CORRECTION: Mapping pour Strapi v5 - accès direct aux propriétés
+        // ✅ MAPPING SÉCURISÉ: Mapper les données avec vérifications
         const mappedData: WellnessData = {
           weight: profileData.weight?.toString() || "",
           height: profileData.height?.toString() || "",
           age: profileData.age?.toString() || "",
-          sex: profileData.gendre || "", // Notez l'orthographe "gendre" dans Strapi
+          sex: profileData.gendre || "",
           weightGoal: profileData.weight_goal || "",
           allergies: profileData.Allergies
             ? profileData.Allergies.split(",")
@@ -112,10 +115,10 @@ export const wellnessService = {
           activityLevel: profileData.physical_activity || "",
           sleepHours: profileData.sleep_hours?.toString() || "",
           waterIntake: profileData.water_intake?.toString() || "",
-          bmi: "", // Calculé côté client
+          bmi: "",
         }
 
-        console.log("✅ Mapped wellness data:", JSON.stringify(mappedData, null, 2))
+        console.log("✅ Mapped wellness data for user", userId, ":", JSON.stringify(mappedData, null, 2))
         resolve(mappedData)
       } catch (error: any) {
         console.error("❌ Error fetching wellness data:", error)
@@ -124,7 +127,42 @@ export const wellnessService = {
     })
   },
 
-  // ✅ NOUVELLE FONCTION: Test de connexion API
+  // ✅ FONCTION AMÉLIORÉE: Vérification spécifique de l'existence du profil
+  async checkUserHasProfile(userId: string): Promise<boolean> {
+    try {
+      if (!userId) {
+        console.log("❌ No user ID provided for profile check")
+        return false
+      }
+
+      console.log("🔍 Checking if user has wellness profile:", userId)
+
+      const headers = this.getAuthHeaders()
+      const url = `${API_URL}/profile-users?filters[user][id][$eq]=${userId}`
+
+      const response = await fetch(url, {
+        method: "GET",
+        headers,
+      })
+
+      if (!response.ok) {
+        console.error("❌ Profile check failed:", response.status)
+        return false
+      }
+
+      const result = await response.json()
+      const hasProfile = result.data && result.data.length > 0
+
+      console.log(`${hasProfile ? "✅" : "ℹ️"} User ${userId} ${hasProfile ? "has" : "does not have"} a wellness profile`)
+      
+      return hasProfile
+    } catch (error) {
+      console.error("❌ Error checking user profile:", error)
+      return false
+    }
+  },
+
+  // Test de connexion API (inchangé)
   testConnection(): Promise<boolean> {
     return new Promise(async (resolve, reject) => {
       try {
@@ -152,6 +190,7 @@ export const wellnessService = {
     })
   },
 
+  // Reste des fonctions inchangées...
   saveWellnessData(userId: string, wellnessData: WellnessData): Promise<any> {
     return new Promise(async (resolve, reject) => {
       try {
@@ -163,11 +202,10 @@ export const wellnessService = {
           throw new Error("User ID is required")
         }
 
-        // Obtenir les headers d'authentification avec la clé API
         const headers = this.getAuthHeaders()
         console.log("🔑 Auth headers prepared")
 
-        // Vérifier si un profil existe déjà pour cet utilisateur
+        // ✅ VÉRIFICATION STRICTE: Utiliser l'ID utilisateur réel
         console.log("🔍 Checking for existing wellness profile...")
         const checkUrl = `${API_URL}/profile-users?filters[user][id][$eq]=${userId}`
         console.log("📡 Check URL:", checkUrl)
@@ -187,13 +225,21 @@ export const wellnessService = {
         const existingData = await checkResponse.json()
         console.log("📊 Existing data check result:", JSON.stringify(existingData, null, 2))
 
-        // ✅ AMÉLIORATION: Préparation des données plus robuste
+        // ✅ VALIDATION SUPPLÉMENTAIRE: S'assurer que le profil existant appartient au bon utilisateur
+        if (existingData.data && existingData.data.length > 0) {
+          const existingProfile = existingData.data[0]
+          if (existingProfile.user && existingProfile.user.id && existingProfile.user.id.toString() !== userId.toString()) {
+            console.log("⚠️ Existing profile belongs to different user, creating new one")
+            existingData.data = [] // Forcer la création d'un nouveau profil
+          }
+        }
+
         const requestData = {
           data: {
             // Relation utilisateur (obligatoire seulement pour POST)
             ...(existingData.data.length === 0 && { user: Number(userId) }),
 
-            // ✅ Champs de base avec conversion appropriée
+            // Champs de base avec conversion appropriée
             weight: wellnessData.weight || null,
             height: wellnessData.height || null,
             age: wellnessData.age || null,
@@ -203,7 +249,7 @@ export const wellnessService = {
             sleep_hours: wellnessData.sleepHours || null,
             water_intake: wellnessData.waterIntake || null,
 
-            // ✅ Arrays convertis en strings avec validation
+            // Arrays convertis en strings avec validation
             Allergies:
               wellnessData.allergies && wellnessData.allergies.length > 0 ? wellnessData.allergies.join(", ") : null,
             medical_condition:
@@ -211,7 +257,7 @@ export const wellnessService = {
                 ? wellnessData.chronicConditions.join(", ")
                 : null,
 
-            // ✅ Activité physique
+            // Activité physique
             physical_activity: wellnessData.activityLevel || null,
           },
         }
@@ -227,7 +273,7 @@ export const wellnessService = {
         let url
 
         if (existingData.data && existingData.data.length > 0) {
-          // Mettre à jour le profil existant - Utiliser documentId pour Strapi v5
+          // Mettre à jour le profil existant
           const profileDocumentId = existingData.data[0].documentId
           console.log("🔄 Updating existing wellness profile with documentId:", profileDocumentId)
           url = `${API_URL}/profile-users/${profileDocumentId}`

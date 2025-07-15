@@ -27,6 +27,12 @@
       "relation": "manyToOne",
       "target": "plugin::users-permissions.user",
       "inversedBy": "test_scores"
+    },
+    "mental": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::mental.mental",
+      "inversedBy": "test_scores"
     }
   }
 }

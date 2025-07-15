@@ -48,6 +48,12 @@
     },
     "anonymousId": {
       "type": "string"
+    },
+    "mental": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::mental.mental",
+      "inversedBy": "testes"
     }
   }
 }

@@ -1,0 +1,36 @@
+{
+  "kind": "collectionType",
+  "collectionName": "healths",
+  "info": {
+    "singularName": "health",
+    "pluralName": "healths",
+    "displayName": "Health",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "w": {
+      "type": "string"
+    },
+    "physique": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::physique.physique",
+      "mappedBy": "health"
+    },
+    "mental": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::mental.mental",
+      "inversedBy": "health"
+    },
+    "nutriition": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::nutrition.nutrition",
+      "inversedBy": "health"
+    }
+  }
+}

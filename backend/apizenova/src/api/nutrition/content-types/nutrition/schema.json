@@ -1,0 +1,39 @@
+{
+  "kind": "collectionType",
+  "collectionName": "nutritions",
+  "info": {
+    "singularName": "nutrition",
+    "pluralName": "nutritions",
+    "displayName": "nutriition",
+    "description": ""
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "personalized_diets": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::personalized-diet.personalized-diet",
+      "mappedBy": "nutrition"
+    },
+    "recipes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::recipe.recipe",
+      "mappedBy": "nutriition"
+    },
+    "categories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::category.category",
+      "mappedBy": "nutriition"
+    },
+    "health": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::health.health",
+      "mappedBy": "nutriition"
+    }
+  }
+}

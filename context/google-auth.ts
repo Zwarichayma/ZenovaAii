@@ -2,7 +2,7 @@ import axios from "axios"
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
-const API_URL = "http://192.168.100.7:1337/api"
+const API_URL = "http://172.20.10.13:1337/api"
 
 // Initialize Google Sign-In with your Web Client ID
 export const initGoogleSignIn = () => {

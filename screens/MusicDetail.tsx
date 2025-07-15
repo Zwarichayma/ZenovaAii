@@ -56,17 +56,21 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
   useEffect(() => {
     const fetchMusic = async () => {
       try {
-        console.log("🎵 === MUSIC DETAIL SCREEN LOADING ===")
+        console.log("🎵 Fetching music detail for ID:", id)
         setLoading(true)
         setError(null)
 
         const allMusic = await getMusic()
+        console.log("Found total music items:", allMusic.length)
+
         const musicItem = allMusic.find((item: any) => item.id === id || item.id === Number(id))
 
         if (!musicItem) {
-          throw new Error("Musique non trouvée")
+          console.error("❌ Music not found for ID:", id)
+          throw new Error("Music not found")
         }
 
+        console.log("✅ Found music item:", musicItem.title)
         setMusic(musicItem)
 
         // Set duration
@@ -92,7 +96,7 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
         }).start()
       } catch (err) {
         console.error("❌ Error fetching music:", err)
-        setError("Impossible de charger les données audio. Veuillez réessayer.")
+        setError("Unable to load audio data. Please try again.")
       } finally {
         setLoading(false)
       }
@@ -125,20 +129,20 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
   const toggleFavorite = () => {
     setIsFavorite(!isFavorite)
     Alert.alert(
-      isFavorite ? "Retiré des favoris" : "Ajouté aux favoris",
-      `"${getMusicTitle()}" ${isFavorite ? "a été retiré de" : "a été ajouté à"} vos favoris.`,
+      isFavorite ? "Removed from favorites" : "Added to favorites",
+      `"${getMusicTitle()}" ${isFavorite ? "has been removed from" : "has been added to"} your favorites.`,
     )
   }
 
   const shareMusic = () => {
-    Alert.alert("Partager la musique", `Partager "${getMusicTitle()}" par ${getMusicArtist()}`)
+    Alert.alert("Share music", `Share "${getMusicTitle()}" by ${getMusicArtist()}`)
   }
 
   const openYouTube = async () => {
     try {
       const youtubeUrl = music?.url_youtube
       if (!youtubeUrl) {
-        Alert.alert("Lien non disponible", "Le lien YouTube n'est pas disponible pour cette musique.")
+        Alert.alert("Link not available", "YouTube link is not available for this music.")
         return
       }
 
@@ -161,7 +165,7 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
       })
     } catch (error) {
       console.error("❌ Error opening YouTube:", error)
-      Alert.alert("Erreur", "Impossible d'ouvrir le lien YouTube.")
+      Alert.alert("Error", "Unable to open YouTube link.")
     }
   }
 
@@ -169,7 +173,7 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
     try {
       const spotifyUrl = music?.url_spotify
       if (!spotifyUrl) {
-        Alert.alert("Lien non disponible", "Le lien Spotify n'est pas disponible pour cette musique.")
+        Alert.alert("Link not available", "Spotify link is not available for this music.")
         return
       }
 
@@ -196,7 +200,7 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
       })
     } catch (error) {
       console.error("❌ Error opening Spotify:", error)
-      Alert.alert("Erreur", "Impossible d'ouvrir le lien Spotify.")
+      Alert.alert("Error", "Unable to open Spotify link.")
     }
   }
 
@@ -207,7 +211,7 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
       }
 
       if (music.image.url) {
-        const baseUrl = "http://192.168.100.7:1337"
+        const baseUrl = "http://172.20.10.13:1337"
         const fullUrl = `${baseUrl}${music.image.url}`
         return fullUrl
       }
@@ -218,11 +222,11 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
   }
 
   const getMusicTitle = () => {
-    return music?.title || "Sans titre"
+    return music?.title || "Untitled"
   }
 
   const getMusicArtist = () => {
-    return music?.artist || "Artiste inconnu"
+    return music?.artist || "Unknown Artist"
   }
 
   const hasYouTubeLink = () => {
@@ -237,7 +241,7 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000" />
-        <Text style={styles.loadingText}>Chargement de l'audio...</Text>
+        <Text style={styles.loadingText}>Loading audio...</Text>
       </View>
     )
   }
@@ -247,7 +251,7 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
       <View style={styles.errorContainer}>
         <Text style={styles.errorText}>{error}</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.retryButtonText}>Retour</Text>
+          <Text style={styles.retryButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
     )
@@ -256,9 +260,9 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
   if (!music) {
     return (
       <View style={styles.errorContainer}>
-        <Text style={styles.errorText}>Données de musique non disponibles</Text>
+        <Text style={styles.errorText}>Music data not available</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => navigation.goBack()}>
-          <Text style={styles.retryButtonText}>Retour</Text>
+          <Text style={styles.retryButtonText}>Back</Text>
         </TouchableOpacity>
       </View>
     )
@@ -318,7 +322,6 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
             </View>
           </View>
         )}
-
       </Animated.View>
     </View>
   )
@@ -402,11 +405,6 @@ const styles = StyleSheet.create({
     height: width * 1.2,
     borderRadius: 20,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.15,
-    shadowRadius: 20,
-    elevation: 10,
     backgroundColor: "#F5F5F5",
   },
   albumArt: {

@@ -1,5 +1,7 @@
 import axios from "axios";
-import { API_URL, API_KEY } from '@env';
+const API_URL = "http://172.20.10.13:1337/api"
+const API_KEY =
+  "6e3e7d4353b4e4ad2db82c3a91145ae7b9245c7eb5318dcf77db9a9267f621066c24d9cfea255f458117486715465f7aff103744afa4ce13f128dfed55220257b949a558e83f963f14c68991ec3389ad8fbf34a23da5911d2b23a02820bdd6033f5fae80a90916ee82ca7e839e9a4ff74fceb51bfc1c5b5afa2a7e2d948aeaed"
 
 export interface ImageFormat {
   name: string;
@@ -13,9 +15,9 @@ export interface ImageFormat {
   sizeInBytes: number;
   url: string;
 }
- 
-console.log(API_URL); 
-console.log(API_KEY);
+ console.log(API_URL)
+console.log(API_KEY)
+
 export interface ImageData {
   id: number;
   documentId: string;

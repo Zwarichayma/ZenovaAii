@@ -30,6 +30,12 @@
       "relation": "oneToMany",
       "target": "api::recipe.recipe",
       "mappedBy": "categories"
+    },
+    "nutriition": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::nutrition.nutrition",
+      "inversedBy": "categories"
     }
   }
 }

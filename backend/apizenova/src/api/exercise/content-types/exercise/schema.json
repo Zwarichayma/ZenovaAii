@@ -45,6 +45,12 @@
     },
     "calories_burned": {
       "type": "string"
+    },
+    "physique": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::physique.physique",
+      "inversedBy": "exercises"
     }
   }
 }

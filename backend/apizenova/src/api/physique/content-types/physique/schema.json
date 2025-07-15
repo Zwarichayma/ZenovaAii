@@ -1,0 +1,38 @@
+{
+  "kind": "collectionType",
+  "collectionName": "physiques",
+  "info": {
+    "singularName": "physique",
+    "pluralName": "physiques",
+    "displayName": "physique"
+  },
+  "options": {
+    "draftAndPublish": true
+  },
+  "attributes": {
+    "health": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::health.health",
+      "inversedBy": "physique"
+    },
+    "exercises": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::exercise.exercise",
+      "mappedBy": "physique"
+    },
+    "sub_categories": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::sub-category.sub-category",
+      "mappedBy": "physique"
+    },
+    "fitness_plans": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::fitness-plan.fitness-plan",
+      "mappedBy": "physique"
+    }
+  }
+}

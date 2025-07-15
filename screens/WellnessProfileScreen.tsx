@@ -102,7 +102,30 @@ export default function WellnessProfileScreen() {
 
   const navigation = useNavigation<WellnessProfileNavigationProp>()
 
-  // ✅ AMÉLIORATION: Test de connexion au démarrage
+  // ✅ FONCTION CORRIGÉE: Initialisation pour nouveaux utilisateurs
+  const initializeForNewUser = () => {
+    console.log("🆕 Initializing for new user")
+    setWellnessData({
+      weight: "",
+      height: "",
+      age: "",
+      sex: "",
+      weightGoal: "",
+      allergies: [],
+      mood: "",
+      medicalReport: null,
+      chronicConditions: [],
+      activityLevel: "",
+      sleepHours: "",
+      waterIntake: "",
+      bmi: "",
+    })
+    setHasData(false)
+    setIsEditing(true)
+    setError(null)
+  }
+
+  // ✅ Test de connexion au démarrage
   const testAPIConnection = async () => {
     try {
       console.log("🔍 Testing API connection...")
@@ -122,148 +145,11 @@ export default function WellnessProfileScreen() {
     }
   }
 
-  // ✅ AMÉLIORATION: Charger les données avec test de connexion
-  useFocusEffect(
-    useCallback(() => {
-      console.log("🔄 Screen focused, initializing...")
-      if (user?.id) {
-        initializeScreen()
-      }
-    }, [user?.id]),
-  )
-
-  const initializeScreen = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      // Test de connexion d'abord
-      const connectionOK = await testAPIConnection()
-      if (!connectionOK) {
-        setIsEditing(true) // Mode édition si pas de connexion
-        return
-      }
-
-      // Puis charger les données
-      await loadWellnessData()
-    } catch (error) {
-      console.error("❌ Error initializing screen:", error)
-      setError("Failed to initialize. Please try again.")
-    } finally {
-      setLoading(false)
-      setInitialLoadComplete(true)
-    }
-  }
-
-  useEffect(() => {
-    // Entry animation
-    opacity.value = withTiming(1, { duration: 800 })
-    translateY.value = withTiming(0, { duration: 800 })
-  }, [])
-
-  // ✅ FONCTION CORRIGÉE: Débogage direct de l'API
-  const debugDirectAPI = async () => {
-    try {
-      setLoading(true)
-      setError(null)
-
-      console.log("🔍 DEBUG: Tentative d'accès direct à l'API...")
-
-      // Accès direct à l'API pour vérifier la structure des données
-      const headers = {
-        Authorization: `Bearer 6e3e7d4353b4e4ad2db82c3a91145ae7b9245c7eb5318dcf77db9a9267f621066c24d9cfea255f458117486715465f7aff103744afa4ce13f128dfed55220257b949a558e83f963f14c68991ec3389ad8fbf34a23da5911d2b23a02820bdd6033f5fae80a90916ee82ca7e839e9a4ff74fceb51bfc1c5b5afa2a7e2d948aeaed`,
-        "Content-Type": "application/json",
-      }
-
-      // Utiliser directement le nom d'utilisateur au lieu de l'ID
-      const url = `http://192.168.100.7:1337/api/profile-users?populate=*&filters[user][username][$eq]=houyemm`
-
-      console.log("📡 DEBUG URL:", url)
-
-      const response = await fetch(url, {
-        method: "GET",
-        headers,
-      })
-
-      console.log("📊 DEBUG Response status:", response.status)
-
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`)
-      }
-
-      const result = await response.json()
-      console.log("📦 DEBUG Raw API Response:", JSON.stringify(result, null, 2))
-
-      if (result.data && result.data.length > 0) {
-        // ✅ CORRECTION: Dans Strapi v5, les données sont directement dans data[0]
-        const profileData = result.data[0]
-
-        if (!profileData) {
-          throw new Error("No profile data found in the response")
-        }
-
-        console.log("🔄 Profile attributes found:", JSON.stringify(profileData, null, 2))
-
-        // ✅ CORRECTION: Mapper les données avec vérifications
-        const mappedData = {
-          weight: profileData.weight ? profileData.weight.toString() : "",
-          height: profileData.height ? profileData.height.toString() : "",
-          age: profileData.age ? profileData.age.toString() : "",
-          sex: profileData.gendre || "",
-          weightGoal: profileData.weight_goal || "",
-          allergies: profileData.Allergies
-            ? profileData.Allergies.split(",")
-                .map((a: string) => a.trim())
-                .filter((a: string) => a.length > 0)
-            : [],
-          mood: profileData.current_mood || "",
-          medicalReport: profileData.medical_report || null,
-          chronicConditions: profileData.medical_condition
-            ? profileData.medical_condition
-                .split(",")
-                .map((c: string) => c.trim())
-                .filter((c: string) => c.length > 0)
-            : [],
-          activityLevel: profileData.physical_activity || "",
-          sleepHours: profileData.sleep_hours ? profileData.sleep_hours.toString() : "",
-          waterIntake: profileData.water_intake ? profileData.water_intake.toString() : "",
-          bmi: "", // Calculé côté client
-        }
-
-        console.log("✅ Mapped data:", JSON.stringify(mappedData, null, 2))
-
-        // ✅ CORRECTION: Mettre à jour l'état avec les données récupérées
-        setWellnessData(mappedData)
-        setHasData(true)
-        setIsEditing(false)
-
-        // Calculer le BMI
-        if (mappedData.weight && mappedData.height) {
-          const weight = Number.parseFloat(mappedData.weight)
-          const height = Number.parseFloat(mappedData.height) / 100
-          if (weight > 0 && height > 0) {
-            const bmi = weight / (height * height)
-            setWellnessData((prev) => ({ ...prev, bmi: bmi.toFixed(1) }))
-          }
-        }
-
-        Alert.alert("Succès", "Données récupérées directement de l'API avec succès!")
-      } else {
-        throw new Error("Aucune donnée trouvée dans la réponse de l'API")
-      }
-    } catch (error: any) {
-      console.error("❌ DEBUG Error:", error)
-      setError(`Erreur de débogage: ${error.message}`)
-      Alert.alert("Erreur", `Impossible de récupérer les données: ${error.message}`)
-    } finally {
-      setLoading(false)
-    }
-  }
-
-  // Modifiez la fonction loadWellnessData pour utiliser le nom d'utilisateur au lieu de l'ID
+  // ✅ FONCTION CORRIGÉE: Chargement sécurisé des données
   const loadWellnessData = async () => {
     if (!user?.id) {
       console.log("❌ No user ID available")
+      initializeForNewUser()
       return
     }
 
@@ -271,18 +157,20 @@ export default function WellnessProfileScreen() {
       console.log("📊 Loading wellness data for user:", user.id)
       setError(null)
 
-      // ⚠️ CORRECTION: Essayer d'abord avec l'ID, puis avec le nom d'utilisateur si disponible
-      const savedData = await wellnessService.getWellnessData(user.id)
-
-      // Si aucune donnée n'est trouvée, essayer le débogage direct
-      if (!savedData) {
-        console.log("🔄 No data found with user ID, trying direct API access...")
-        await debugDirectAPI()
-        return // La fonction debugDirectAPI gère déjà la mise à jour de l'état
+      // ✅ VÉRIFICATION PRÉALABLE: Vérifier si l'utilisateur a un profil
+      const hasProfile = await wellnessService.checkUserHasProfile(user.id)
+      
+      if (!hasProfile) {
+        console.log("ℹ️ User has no wellness profile, showing empty form")
+        initializeForNewUser()
+        return
       }
 
+      // ✅ CHARGEMENT SÉCURISÉ: Charger les données seulement si le profil existe
+      const savedData = await wellnessService.getWellnessData(user.id)
+
       if (savedData) {
-        console.log("✅ Wellness data loaded successfully:", savedData)
+        console.log("✅ Wellness data loaded successfully for user:", user.id)
         setWellnessData(savedData)
         setHasData(true)
         setIsEditing(false)
@@ -296,20 +184,69 @@ export default function WellnessProfileScreen() {
             setWellnessData((prev) => ({ ...prev, bmi: bmi.toFixed(1) }))
           }
         }
+      } else {
+        // Aucune donnée trouvée, afficher le formulaire vide
+        console.log("ℹ️ No data found, showing empty form")
+        initializeForNewUser()
       }
     } catch (error: any) {
       console.error("❌ Error loading wellness data:", error)
       setError(error.message || "Failed to load wellness data")
-
-      // En cas d'erreur, essayer le débogage direct
-      console.log("🔄 Trying direct API access due to error...")
-      await debugDirectAPI()
+      
+      // En cas d'erreur, afficher le formulaire vide
+      initializeForNewUser()
     }
   }
 
+  // ✅ AMÉLIORATION: Charger les données avec test de connexion
+  useFocusEffect(
+    useCallback(() => {
+      console.log("🔄 Screen focused, initializing...")
+      if (user?.id) {
+        initializeScreen()
+      } else {
+        console.log("⚠️ No user found, showing empty form")
+        initializeForNewUser()
+      }
+    }, [user?.id]),
+  )
+
+  const initializeScreen = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      // Test de connexion d'abord
+      const connectionOK = await testAPIConnection()
+      if (!connectionOK) {
+        initializeForNewUser() // Mode édition si pas de connexion
+        return
+      }
+
+      // Puis charger les données
+      await loadWellnessData()
+    } catch (error) {
+      console.error("❌ Error initializing screen:", error)
+      setError("Failed to initialize. Please try again.")
+      initializeForNewUser()
+    } finally {
+      setLoading(false)
+      setInitialLoadComplete(true)
+    }
+  }
+
+  useEffect(() => {
+    // Entry animation
+    opacity.value = withTiming(1, { duration: 800 })
+    translateY.value = withTiming(0, { duration: 800 })
+  }, [])
+
   // ✅ NOUVELLE FONCTION: Rafraîchir les données manuellement
   const refreshData = async () => {
-    if (!user?.id) return
+    if (!user?.id) {
+      initializeForNewUser()
+      return
+    }
 
     try {
       setLoading(true)
@@ -317,6 +254,7 @@ export default function WellnessProfileScreen() {
       await loadWellnessData()
     } catch (error: any) {
       setError(error.message || "Failed to refresh data")
+      initializeForNewUser()
     } finally {
       setLoading(false)
     }
@@ -350,7 +288,7 @@ export default function WellnessProfileScreen() {
       setLoading(true)
       setError(null)
 
-      console.log("📤 Saving wellness data...")
+      console.log("📤 Saving wellness data for user:", user.id)
       await wellnessService.saveWellnessData(user.id, wellnessData)
 
       console.log("✅ Wellness data saved successfully")
@@ -507,6 +445,9 @@ export default function WellnessProfileScreen() {
           <Text style={styles.loadingText}>
             {connectionTested ? "Loading your wellness profile..." : "Connecting to server..."}
           </Text>
+          {user?.id && (
+            <Text style={styles.loadingSubText}>User: {user.username}</Text>
+          )}
         </View>
       </SafeAreaView>
     )
@@ -652,7 +593,7 @@ export default function WellnessProfileScreen() {
     </Animated.View>
   )
 
-  // Fonction pour afficher le mode édition (reste identique)
+  // Fonction pour afficher le mode édition
   const renderEditMode = () => (
     <Animated.View style={[styles.content, animatedStyle]}>
       {/* Loading Indicator */}
@@ -870,7 +811,7 @@ export default function WellnessProfileScreen() {
       </View>
 
       <ScrollView style={styles.scrollView} showsVerticalScrollIndicator={false}>
-        {/* Hero Section - AMÉLIORÉ */}
+        {/* Hero Section */}
         <View style={styles.heroContainer}>
           <ImageBackground
             source={require("../assets/images/back.jpg")}
@@ -912,7 +853,13 @@ export default function WellnessProfileScreen() {
                     : "Complete your wellness profile to get personalized recommendations."}
                 </Text>
 
-               
+                {/* ✅ NOUVEAU: Bouton de rafraîchissement pour déboguer */}
+                {!hasData && (
+                  <TouchableOpacity style={styles.refreshActionButton} onPress={refreshData} disabled={loading}>
+                    <RefreshCw size={16} color="#FFFFFF" />
+                    <Text style={styles.refreshActionText}>Refresh Data</Text>
+                  </TouchableOpacity>
+                )}
               </View>
             </LinearGradient>
           </ImageBackground>

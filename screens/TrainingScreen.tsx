@@ -321,8 +321,8 @@ export default function HealthConnectScreen() {
         steps: totalSteps || 0,
         totalKilometers: totalKilometers || 0,
         calories: totalCalories || 0,
-        workout: 45, // Valeur par défaut
-        pushups: 230, // Valeur par défaut
+        workout: 0, // Valeur par défaut
+        pushups: 0, // Valeur par défaut
       }
 
       console.log("✅ Processed health data:", healthData)
@@ -333,8 +333,8 @@ export default function HealthConnectScreen() {
         steps: 0,
         totalKilometers: 0,
         calories: 0,
-        workout: 45,
-        pushups: 230,
+        workout: 0,
+        pushups: 0,
       }
     }
   }

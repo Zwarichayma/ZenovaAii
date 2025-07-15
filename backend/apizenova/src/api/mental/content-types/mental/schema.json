@@ -42,6 +42,24 @@
       "relation": "oneToMany",
       "target": "api::quote.quote",
       "mappedBy": "mental"
+    },
+    "health": {
+      "type": "relation",
+      "relation": "oneToOne",
+      "target": "api::health.health",
+      "mappedBy": "mental"
+    },
+    "testes": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::teste.teste",
+      "mappedBy": "mental"
+    },
+    "test_scores": {
+      "type": "relation",
+      "relation": "oneToMany",
+      "target": "api::test-score.test-score",
+      "mappedBy": "mental"
     }
   }
 }

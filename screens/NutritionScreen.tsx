@@ -597,7 +597,7 @@ export default function NutritionScreen() {
                       style={styles.gridRecipeImage}
                     />
                     <TouchableOpacity style={styles.gridFavoriteButton}>
-                      <Heart size={14} color="#FFFFFF" fill="#000000" />
+                      <Heart size={14} color="#FFFFFF" />
                     </TouchableOpacity>
                     <View style={styles.gridRecipeCategory}>
                       <Text style={styles.gridRecipeCategoryText}>{recipe.category}</Text>

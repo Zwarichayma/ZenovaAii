@@ -68,7 +68,7 @@ export default function BotScreen() {
 
       try {
         console.log("Sending request to API...")
-        const response = await fetch("https://bce0-102-157-228-196.ngrok-free.app/webhook/8f2da8e3-f738-4163-9b77-8dcaa9a4fd2f", {
+        const response = await fetch("http://172.20.10.13:5678/webhook/43c2985c-fb3c-43c9-be8b-d3cbe66323e3", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
@@ -147,7 +147,7 @@ export default function BotScreen() {
       }
 
       console.log("Sending image to API...")
-      const response = await fetch("https://bce0-102-157-228-196.ngrok-free.app/webhook/8f2da8e3-f738-4163-9b77-8dcaa9a4fd2f", {
+      const response = await fetch("http://172.20.10.13:5678/webhook/43c2985c-fb3c-43c9-be8b-d3cbe66323e3", {
         method: "POST",
         headers: {
           "Content-Type": "multipart/form-data",

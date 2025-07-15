@@ -454,6 +454,10 @@ export interface ApiCategoryCategory extends Struct.CollectionTypeSchema {
       'api::category.category'
     > &
       Schema.Attribute.Private;
+    nutriition: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::nutrition.nutrition'
+    >;
     publishedAt: Schema.Attribute.DateTime;
     recipes: Schema.Attribute.Relation<'oneToMany', 'api::recipe.recipe'>;
     title: Schema.Attribute.String;
@@ -523,6 +527,7 @@ export interface ApiExerciseExercise extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     name: Schema.Attribute.String;
+    physique: Schema.Attribute.Relation<'manyToOne', 'api::physique.physique'>;
     publishedAt: Schema.Attribute.DateTime;
     rep: Schema.Attribute.String;
     sets: Schema.Attribute.Integer;
@@ -565,6 +570,7 @@ export interface ApiFitnessPlanFitnessPlan extends Struct.CollectionTypeSchema {
       'api::fitness-plan.fitness-plan'
     > &
       Schema.Attribute.Private;
+    physique: Schema.Attribute.Relation<'manyToOne', 'api::physique.physique'>;
     publishedAt: Schema.Attribute.DateTime;
     sub_categories: Schema.Attribute.Relation<
       'oneToMany',
@@ -652,6 +658,41 @@ export interface ApiHealthConnectHealthConnect
   };
 }
 
+export interface ApiHealthHealth extends Struct.CollectionTypeSchema {
+  collectionName: 'healths';
+  info: {
+    description: '';
+    displayName: 'Health';
+    pluralName: 'healths';
+    singularName: 'health';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::health.health'
+    > &
+      Schema.Attribute.Private;
+    mental: Schema.Attribute.Relation<'oneToOne', 'api::mental.mental'>;
+    nutriition: Schema.Attribute.Relation<
+      'oneToOne',
+      'api::nutrition.nutrition'
+    >;
+    physique: Schema.Attribute.Relation<'oneToOne', 'api::physique.physique'>;
+    publishedAt: Schema.Attribute.DateTime;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    w: Schema.Attribute.String;
+  };
+}
+
 export interface ApiInterpretationInterpretation
   extends Struct.CollectionTypeSchema {
   collectionName: 'interpretations';
@@ -736,6 +777,7 @@ export interface ApiMentalMental extends Struct.CollectionTypeSchema {
     createdAt: Schema.Attribute.DateTime;
     createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
       Schema.Attribute.Private;
+    health: Schema.Attribute.Relation<'oneToOne', 'api::health.health'>;
     image: Schema.Attribute.Media<
       'images' | 'files' | 'videos' | 'audios',
       true
@@ -753,6 +795,11 @@ export interface ApiMentalMental extends Struct.CollectionTypeSchema {
     music: Schema.Attribute.Relation<'oneToMany', 'api::music.music'>;
     publishedAt: Schema.Attribute.DateTime;
     quotes: Schema.Attribute.Relation<'oneToMany', 'api::quote.quote'>;
+    test_scores: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::test-score.test-score'
+    >;
+    testes: Schema.Attribute.Relation<'oneToMany', 'api::teste.teste'>;
     title: Schema.Attribute.String;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -792,6 +839,44 @@ export interface ApiMusicMusic extends Struct.CollectionTypeSchema {
   };
 }
 
+export interface ApiNutritionNutrition extends Struct.CollectionTypeSchema {
+  collectionName: 'nutritions';
+  info: {
+    description: '';
+    displayName: 'nutriition';
+    pluralName: 'nutritions';
+    singularName: 'nutrition';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    categories: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::category.category'
+    >;
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    health: Schema.Attribute.Relation<'oneToOne', 'api::health.health'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::nutrition.nutrition'
+    > &
+      Schema.Attribute.Private;
+    personalized_diets: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::personalized-diet.personalized-diet'
+    >;
+    publishedAt: Schema.Attribute.DateTime;
+    recipes: Schema.Attribute.Relation<'oneToMany', 'api::recipe.recipe'>;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+  };
+}
+
 export interface ApiPersonalizedDietPersonalizedDiet
   extends Struct.CollectionTypeSchema {
   collectionName: 'personalized_diets';
@@ -820,6 +905,10 @@ export interface ApiPersonalizedDietPersonalizedDiet
       'api::personalized-diet.personalized-diet'
     > &
       Schema.Attribute.Private;
+    nutrition: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::nutrition.nutrition'
+    >;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -828,6 +917,43 @@ export interface ApiPersonalizedDietPersonalizedDiet
       'oneToOne',
       'plugin::users-permissions.user'
     >;
+  };
+}
+
+export interface ApiPhysiquePhysique extends Struct.CollectionTypeSchema {
+  collectionName: 'physiques';
+  info: {
+    displayName: 'physique';
+    pluralName: 'physiques';
+    singularName: 'physique';
+  };
+  options: {
+    draftAndPublish: true;
+  };
+  attributes: {
+    createdAt: Schema.Attribute.DateTime;
+    createdBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
+    exercises: Schema.Attribute.Relation<'oneToMany', 'api::exercise.exercise'>;
+    fitness_plans: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::fitness-plan.fitness-plan'
+    >;
+    health: Schema.Attribute.Relation<'oneToOne', 'api::health.health'>;
+    locale: Schema.Attribute.String & Schema.Attribute.Private;
+    localizations: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::physique.physique'
+    > &
+      Schema.Attribute.Private;
+    publishedAt: Schema.Attribute.DateTime;
+    sub_categories: Schema.Attribute.Relation<
+      'oneToMany',
+      'api::sub-category.sub-category'
+    >;
+    updatedAt: Schema.Attribute.DateTime;
+    updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
+      Schema.Attribute.Private;
   };
 }
 
@@ -1014,6 +1140,10 @@ export interface ApiRecipeRecipe extends Struct.CollectionTypeSchema {
       'api::recipe.recipe'
     > &
       Schema.Attribute.Private;
+    nutriition: Schema.Attribute.Relation<
+      'manyToOne',
+      'api::nutrition.nutrition'
+    >;
     nutrition: Schema.Attribute.JSON;
     preparation_time: Schema.Attribute.Integer;
     publishedAt: Schema.Attribute.DateTime;
@@ -1130,6 +1260,7 @@ export interface ApiSubCategorySubCategory extends Struct.CollectionTypeSchema {
     > &
       Schema.Attribute.Private;
     name: Schema.Attribute.String;
+    physique: Schema.Attribute.Relation<'manyToOne', 'api::physique.physique'>;
     publishedAt: Schema.Attribute.DateTime;
     updatedAt: Schema.Attribute.DateTime;
     updatedBy: Schema.Attribute.Relation<'oneToOne', 'admin::user'> &
@@ -1160,6 +1291,7 @@ export interface ApiTestScoreTestScore extends Struct.CollectionTypeSchema {
       'api::test-score.test-score'
     > &
       Schema.Attribute.Private;
+    mental: Schema.Attribute.Relation<'manyToOne', 'api::mental.mental'>;
     publishedAt: Schema.Attribute.DateTime;
     score: Schema.Attribute.Integer;
     updatedAt: Schema.Attribute.DateTime;
@@ -1200,6 +1332,7 @@ export interface ApiTesteTeste extends Struct.CollectionTypeSchema {
     locale: Schema.Attribute.String & Schema.Attribute.Private;
     localizations: Schema.Attribute.Relation<'oneToMany', 'api::teste.teste'> &
       Schema.Attribute.Private;
+    mental: Schema.Attribute.Relation<'manyToOne', 'api::mental.mental'>;
     publishedAt: Schema.Attribute.DateTime;
     questions: Schema.Attribute.Relation<'oneToMany', 'api::question.question'>;
     results: Schema.Attribute.Relation<'oneToMany', 'api::result.result'>;
@@ -1751,11 +1884,14 @@ declare module '@strapi/strapi' {
       'api::exercise.exercise': ApiExerciseExercise;
       'api::fitness-plan.fitness-plan': ApiFitnessPlanFitnessPlan;
       'api::health-connect.health-connect': ApiHealthConnectHealthConnect;
+      'api::health.health': ApiHealthHealth;
       'api::interpretation.interpretation': ApiInterpretationInterpretation;
       'api::mental-exercise.mental-exercise': ApiMentalExerciseMentalExercise;
       'api::mental.mental': ApiMentalMental;
       'api::music.music': ApiMusicMusic;
+      'api::nutrition.nutrition': ApiNutritionNutrition;
       'api::personalized-diet.personalized-diet': ApiPersonalizedDietPersonalizedDiet;
+      'api::physique.physique': ApiPhysiquePhysique;
       'api::profile-user.profile-user': ApiProfileUserProfileUser;
       'api::question.question': ApiQuestionQuestion;
       'api::quote.quote': ApiQuoteQuote;

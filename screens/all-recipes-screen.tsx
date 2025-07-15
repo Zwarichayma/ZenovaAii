@@ -15,7 +15,7 @@ import {
   RefreshControl,
   FlatList,
   SafeAreaView,
-  ScrollView, // Import ScrollView
+  ScrollView,
 } from "react-native"
 import type { StackNavigationProp } from "@react-navigation/stack"
 import {
@@ -35,7 +35,7 @@ import { API_BASE_URL } from "@/config"
 
 const { width } = Dimensions.get("window")
 
-// Palette de couleurs noir et blanc
+// Black and white color palette
 const COLORS = {
   primary: "#000000",
   secondary: "#333333",
@@ -119,7 +119,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
     setIsLoading(true)
     setError(null)
     try {
-      // Récupérer toutes les recettes sans filtrage par catégorie
+      // Fetch all recipes without category filtering
       const allRecipes = await getRecipes("")
 
       if (allRecipes && allRecipes.length > 0) {
@@ -127,17 +127,17 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
         setFilteredRecipes(allRecipes)
         sortRecipes(allRecipes, sortBy)
       } else {
-        // Utiliser des données de démonstration si l'API ne renvoie rien
-        console.log("Aucune recette trouvée dans l'API, utilisation des données de démonstration")
+        // Use demo data if API returns nothing
+        console.log("No recipes found in API, using demo data")
         const demoRecipes = generateDemoRecipes()
         setRecipes(demoRecipes)
         setFilteredRecipes(demoRecipes)
         sortRecipes(demoRecipes, sortBy)
       }
     } catch (error) {
-      console.error("Erreur lors de la récupération des recettes:", error)
-      // Utiliser des données de démonstration en cas d'erreur
-      console.log("Erreur API, utilisation des données de démonstration")
+      console.error("Error fetching recipes:", error)
+      // Use demo data in case of error
+      console.log("API error, using demo data")
       const demoRecipes = generateDemoRecipes()
       setRecipes(demoRecipes)
       setFilteredRecipes(demoRecipes)
@@ -159,7 +159,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
         cooking_time: 25,
         total_time: 40,
         category: "dinner",
-        difficulty: "facile",
+        difficulty: "easy",
         dietary_tags: "vegetarian",
         image: [
           {
@@ -181,7 +181,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
         cooking_time: 30,
         total_time: 50,
         category: "lunch",
-        difficulty: "facile",
+        difficulty: "easy",
         dietary_tags: "vegan,gluten-free",
         image: [
           {
@@ -203,7 +203,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
         cooking_time: 0,
         total_time: 15,
         category: "lunch",
-        difficulty: "facile",
+        difficulty: "easy",
         dietary_tags: "vegetarian",
         image: [
           {
@@ -225,7 +225,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
         cooking_time: 35,
         total_time: 50,
         category: "dinner",
-        difficulty: "moyen",
+        difficulty: "medium",
         dietary_tags: "vegetarian",
         image: [
           {
@@ -241,14 +241,14 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
       {
         id: 150,
         documentId: "150",
-        title: "Sablés Caramel Gianduja",
+        title: "Caramel Gianduja Shortbread",
         description:
           "These Caramel Gianduja shortbread cookies combine buttery shortbread with rich chocolate hazelnut spread",
         preparation_time: 30,
         cooking_time: 15,
         total_time: 45,
         category: "dessert",
-        difficulty: "moyen",
+        difficulty: "medium",
         dietary_tags: "vegetarian",
         image: [
           {
@@ -264,13 +264,13 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
       {
         id: 154,
         documentId: "154",
-        title: "Tarte Poire Amandine",
+        title: "Pear and Almond Tart",
         description: "A delicious and refined French tart with a sweet almond filling and poached pears",
         preparation_time: 40,
         cooking_time: 45,
         total_time: 85,
         category: "dessert",
-        difficulty: "difficile",
+        difficulty: "hard",
         dietary_tags: "vegetarian",
         image: [
           {
@@ -286,13 +286,13 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
       {
         id: 152,
         documentId: "152",
-        title: "Tarte aux Pommes",
+        title: "Classic Apple Tart",
         description: "A classic and comforting homemade apple tart with a buttery crust",
         preparation_time: 30,
         cooking_time: 40,
         total_time: 70,
         category: "dessert",
-        difficulty: "moyen",
+        difficulty: "medium",
         dietary_tags: "vegetarian",
         image: [
           {
@@ -329,7 +329,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
 
     switch (option) {
       case "newest":
-        // Par défaut, on suppose que les recettes sont déjà triées par date d'ajout
+        // Default, assuming recipes are already sorted by date added
         break
       case "prep_time_asc":
         sorted.sort(
@@ -373,26 +373,26 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
       if (imageUrl.startsWith("http")) {
         return imageUrl
       }
-      // Vérifier si l'URL contient déjà le préfixe API_BASE_URL
+      // Check if URL already contains API_BASE_URL
       if (imageUrl.includes(API_BASE_URL)) {
         return imageUrl
       }
       return `${API_BASE_URL}${imageUrl}`
     }
-    // Image par défaut basée sur le titre de la recette
+    // Default image based on recipe title
     return `https://via.placeholder.com/300x200?text=${encodeURIComponent(recipe.title.replace(/ /g, "+"))}`
   }
 
   const getCategoryMap = (): Record<string, string> => {
     return {
-      breakfast: "Petit-déjeuner",
-      lunch: "Déjeuner",
-      dinner: "Dîner",
+      breakfast: "Breakfast",
+      lunch: "Lunch",
+      dinner: "Dinner",
       dessert: "Desserts",
-      snack: "Collations",
-      vegetarian: "Végétarien",
+      snack: "Snacks",
+      vegetarian: "Vegetarian",
       vegan: "Vegan",
-      "gluten-free": "Sans gluten",
+      "gluten-free": "Gluten-Free",
     }
   }
 
@@ -507,11 +507,11 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
         <View style={styles.buttons}>
           <TouchableOpacity style={styles.actionButton}>
             <BookmarkPlus size={16} color="#000" />
-            <Text style={styles.actionButtonText}>Sauvegarder</Text>
+            <Text style={styles.actionButtonText}>Save</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.actionButton}>
             <CalendarRange size={16} color="#000" />
-            <Text style={styles.actionButtonText}>Planifier</Text>
+            <Text style={styles.actionButtonText}>Plan</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.shareButton}>
             <Share2 size={16} color="#FFF" />
@@ -525,7 +525,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color="#000" />
-        <Text style={styles.loadingText}>Chargement des recettes...</Text>
+        <Text style={styles.loadingText}>Loading recipes...</Text>
       </View>
     )
   }
@@ -541,7 +541,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
         </TouchableOpacity>
         {!showSearch ? (
           <>
-            <Text style={styles.headerText}>Toutes les recettes</Text>
+            <Text style={styles.headerText}>All Recipes</Text>
             <TouchableOpacity onPress={toggleSearch} style={styles.searchButton}>
               <Search size={20} color="#000" />
             </TouchableOpacity>
@@ -550,7 +550,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
           <View style={styles.searchContainer}>
             <TextInput
               style={styles.searchInput}
-              placeholder="Rechercher..."
+              placeholder="Search recipes..."
               placeholderTextColor="#999"
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -563,22 +563,22 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
         )}
       </View>
 
-      {/* Filtres */}
+      {/* Filters */}
       <View style={styles.filtersContainer}>
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filtersScroll}>
           {renderFilterButton("All")}
-          {renderFilterButton("Petit-déjeuner")}
-          {renderFilterButton("Déjeuner")}
-          {renderFilterButton("Dîner")}
+          {renderFilterButton("Breakfast")}
+          {renderFilterButton("Lunch")}
+          {renderFilterButton("Dinner")}
           {renderFilterButton("Desserts")}
-          {renderFilterButton("Végétarien")}
+          {renderFilterButton("Vegetarian")}
         </ScrollView>
         <TouchableOpacity style={styles.filterIconButton} onPress={toggleSortOptions}>
           <SlidersHorizontal size={18} color={COLORS.text} />
         </TouchableOpacity>
       </View>
 
-      {/* Options de tri */}
+      {/* Sort options */}
       {showSortOptions && (
         <View style={styles.sortOptionsContainer}>
           <TouchableOpacity
@@ -586,7 +586,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
             onPress={() => sortRecipes(recipes, "newest")}
           >
             <Text style={[styles.sortOptionText, sortBy === "newest" && styles.selectedSortOptionText]}>
-              Les plus récentes
+              Most Recent
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -594,7 +594,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
             onPress={() => sortRecipes(recipes, "alphabetical")}
           >
             <Text style={[styles.sortOptionText, sortBy === "alphabetical" && styles.selectedSortOptionText]}>
-              Ordre alphabétique
+              Alphabetical
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -602,7 +602,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
             onPress={() => sortRecipes(recipes, "prep_time_asc")}
           >
             <Text style={[styles.sortOptionText, sortBy === "prep_time_asc" && styles.selectedSortOptionText]}>
-              Temps de préparation (croissant)
+              Preparation Time (Ascending)
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
@@ -610,16 +610,16 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
             onPress={() => sortRecipes(recipes, "prep_time_desc")}
           >
             <Text style={[styles.sortOptionText, sortBy === "prep_time_desc" && styles.selectedSortOptionText]}>
-              Temps de préparation (décroissant)
+              Preparation Time (Descending)
             </Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Nombre de recettes */}
+      {/* Recipe count */}
       <View style={styles.recipeCountContainer}>
         <Text style={styles.recipeCount}>
-          {filteredRecipes.length} {filteredRecipes.length > 1 ? "recettes trouvées" : "recette trouvée"}
+          {filteredRecipes.length} {filteredRecipes.length > 1 ? "recipes found" : "recipe found"}
         </Text>
       </View>
 
@@ -628,15 +628,13 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
           <ChefHat size={60} color="#333" />
           <Text style={styles.errorText}>{error}</Text>
           <TouchableOpacity style={styles.refreshButton} onPress={fetchRecipes}>
-            <Text style={styles.refreshButtonText}>Réessayer</Text>
+            <Text style={styles.refreshButtonText}>Try Again</Text>
           </TouchableOpacity>
         </View>
       ) : filteredRecipes.length === 0 ? (
         <View style={styles.emptyContainer}>
           <ChefHat size={60} color="#333" />
-          <Text style={styles.emptyText}>
-            {searchQuery ? "Aucune recette ne correspond à votre recherche" : "Aucune recette disponible"}
-          </Text>
+          <Text style={styles.emptyText}>{searchQuery ? "No recipes match your search" : "No recipes available"}</Text>
           <TouchableOpacity
             style={styles.refreshButton}
             onPress={() => {
@@ -645,7 +643,7 @@ export default function AllRecipesScreen({ navigation }: AllRecipesScreenProps) 
               fetchRecipes()
             }}
           >
-            <Text style={styles.refreshButtonText}>Réinitialiser les filtres</Text>
+            <Text style={styles.refreshButtonText}>Reset Filters</Text>
           </TouchableOpacity>
         </View>
       ) : (

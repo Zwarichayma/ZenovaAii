@@ -56,6 +56,12 @@
       "relation": "oneToMany",
       "target": "api::sub-category.sub-category",
       "mappedBy": "fitness_plan"
+    },
+    "physique": {
+      "type": "relation",
+      "relation": "manyToOne",
+      "target": "api::physique.physique",
+      "inversedBy": "fitness_plans"
     }
   }
 }

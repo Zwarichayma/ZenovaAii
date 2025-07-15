@@ -16,9 +16,10 @@ import {
   ImageBackground,
   Animated,
 } from "react-native"
-import { Search, Play, Pause, MoreVertical, ArrowLeft, Youtube, Heart, ChevronRight } from "lucide-react-native"
-import { getMusic, getFullImageUrl } from "@/api/music/route" // Import your API service
+import { Search, Play, MoreVertical, ArrowLeft, Heart, ChevronRight } from "lucide-react-native"
+import { getMusic } from "@/api/music/route" // Import your API service
 import { API_BASE_URL } from "@/config"
+import { useNavigation } from "@react-navigation/native"
 
 const { width, height } = Dimensions.get("window")
 
@@ -42,7 +43,7 @@ interface MusicTrack {
 // Fallback image for when API image is not available
 const getFallbackImage = (title: string) => {
   const lowerTitle = title.toLowerCase()
-  
+
   if (lowerTitle.includes("forest") || lowerTitle.includes("jungle") || lowerTitle.includes("birds")) {
     return require("../assets/images/paceful.jpeg")
   } else if (lowerTitle.includes("rain") || lowerTitle.includes("storm")) {
@@ -68,7 +69,7 @@ const getImageSource = (music: MusicTrack) => {
       const apiImageUrl = `${API_BASE_URL}${music.image.url}`
       return { uri: apiImageUrl }
     }
-    
+
     // Fallback to local image based on title
     return getFallbackImage(music.title || "default")
   } catch (error) {
@@ -78,7 +79,7 @@ const getImageSource = (music: MusicTrack) => {
 }
 
 // Safe function to get music attribute with fallback
-const getMusicAttribute = (music: MusicTrack, attribute: string, fallback: string = "") => {
+const getMusicAttribute = (music: MusicTrack, attribute: string, fallback = "") => {
   try {
     return music?.[attribute] || fallback
   } catch (error) {
@@ -98,6 +99,7 @@ export default function MusicWellnessScreen() {
 
   // Animation values
   const scrollY = useRef(new Animated.Value(0)).current
+  const navigation = useNavigation()
 
   useEffect(() => {
     fetchMusicData()
@@ -107,30 +109,29 @@ export default function MusicWellnessScreen() {
     try {
       setIsLoading(true)
       const musicData = await getMusic()
-      
+
       console.log("Fetched music data:", musicData) // Debug log
-      
+
       if (musicData && musicData.length > 0) {
         // Filter out any invalid music items - Updated validation logic
-        const validMusicData = musicData.filter(item => 
-          item && 
-          item.title && // Check title directly, not item.attributes.title
-          typeof item.title === 'string'
+        const validMusicData = musicData.filter(
+          (item) =>
+            item &&
+            item.title && // Check title directly, not item.attributes.title
+            typeof item.title === "string",
         )
-        
+
         console.log("Valid music data:", validMusicData) // Debug log
-        
+
         setMusicList(validMusicData)
-        
+
         // Set trending music (first 3 items)
         setTrendingMusic(validMusicData.slice(0, 3))
-        
+
         // Filter tracks with streaming URLs
-        const tracksWithStreaming = validMusicData.filter(
-          (track: MusicTrack) => track.url_spotify || track.url_youtube
-        )
+        const tracksWithStreaming = validMusicData.filter((track: MusicTrack) => track.url_spotify || track.url_youtube)
         setStreamingTracks(tracksWithStreaming)
-        
+
         // Set initial current track
         if (validMusicData.length > 0) {
           setCurrentTrack(validMusicData[0])
@@ -149,6 +150,8 @@ export default function MusicWellnessScreen() {
     if (track && track.title) {
       setCurrentTrack(track)
       setIsPlaying(true)
+      // Navigate to the detail screen with the track ID
+      navigation.navigate("MusicDetail", { id: track.id })
     }
   }
 
@@ -205,8 +208,8 @@ export default function MusicWellnessScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {/* Hero Section */}
           <View style={styles.heroSection}>
-            <ImageBackground 
-              source={musicList.length > 0 ? getImageSource(musicList[0]) : require("../assets/images/paceful.jpeg")} 
+            <ImageBackground
+              source={musicList.length > 0 ? getImageSource(musicList[0]) : require("../assets/images/paceful.jpeg")}
               style={styles.heroBackground}
             >
               <View style={styles.heroOverlay}>
@@ -255,12 +258,8 @@ export default function MusicWellnessScreen() {
                     >
                       <View style={styles.featuredGradient}>
                         <View style={styles.featuredContent}>
-                          <Text style={styles.featuredTitle}>
-                            {item.title || "Unknown Title"}
-                          </Text>
-                          <Text style={styles.featuredSubtitle}>
-                            Nature Sounds
-                          </Text>
+                          <Text style={styles.featuredTitle}>{item.title || "Unknown Title"}</Text>
+                          <Text style={styles.featuredSubtitle}>Nature Sounds</Text>
 
                           <View style={styles.featuredControls}>
                             <TouchableOpacity style={styles.featuredPlayButton} onPress={() => handlePlayTrack(item)}>
@@ -396,13 +395,9 @@ export default function MusicWellnessScreen() {
                   >
                     <Image source={getImageSource(track)} style={styles.trackImage} />
                     <View style={styles.trackInfo}>
-                      <Text style={styles.trackTitle}>
-                        {track.title || "Unknown Title"}
-                      </Text>
+                      <Text style={styles.trackTitle}>{track.title || "Unknown Title"}</Text>
                       <View style={styles.trackMeta}>
-                        <Text style={styles.trackArtist}>
-                          Nature Sounds
-                        </Text>
+                        <Text style={styles.trackArtist}>Nature Sounds</Text>
 
                         <View style={styles.trackBadges}>
                           {track.url_spotify && (
@@ -412,19 +407,14 @@ export default function MusicWellnessScreen() {
                             />
                           )}
                           {track.url_youtube && (
-                            <Image
-                              source={require("../assets/images/youtube.png")}
-                              style={[styles.trackBadgeIcon]}
-                            />
+                            <Image source={require("../assets/images/youtube.png")} style={[styles.trackBadgeIcon]} />
                           )}
                         </View>
                       </View>
                     </View>
 
                     <View style={styles.trackRightContent}>
-                      <Text style={styles.trackDuration}>
-                        {formatDuration(track.duration)}
-                      </Text>
+                      <Text style={styles.trackDuration}>{formatDuration(track.duration)}</Text>
 
                       <TouchableOpacity style={styles.trackFavoriteButton} onPress={(e) => toggleFavorite(track.id, e)}>
                         <Heart
@@ -454,16 +444,15 @@ export default function MusicWellnessScreen() {
 
       {/* Currently Playing Bar */}
       {currentTrack && (
-        <View style={styles.playingBar}>
+        <TouchableOpacity
+          style={styles.playingBar}
+          onPress={() => navigation.navigate("MusicDetail", { id: currentTrack.id })}
+        >
           <Image source={getImageSource(currentTrack)} style={styles.miniTrackImage} />
           <View style={styles.miniTrackInfo}>
-            <Text style={styles.miniTrackTitle}>
-              {currentTrack.title || "Unknown Title"}
-            </Text>
+            <Text style={styles.miniTrackTitle}>{currentTrack.title || "Unknown Title"}</Text>
             <View style={styles.miniTrackMeta}>
-              <Text style={styles.miniTrackArtist}>
-                Nature Sounds
-              </Text>
+              <Text style={styles.miniTrackArtist}>Nature Sounds</Text>
 
               <View style={styles.miniBadges}>
                 {currentTrack.url_spotify && (
@@ -473,10 +462,7 @@ export default function MusicWellnessScreen() {
                   />
                 )}
                 {currentTrack.url_youtube && (
-                  <Image
-                    source={require("../assets/images/youtube.png")}
-                    style={[styles.miniBadgeIcon]}
-                  />
+                  <Image source={require("../assets/images/youtube.png")} style={[styles.miniBadgeIcon]} />
                 )}
               </View>
             </View>
@@ -486,27 +472,27 @@ export default function MusicWellnessScreen() {
             {currentTrack.url_spotify && (
               <TouchableOpacity
                 style={styles.miniServiceButton}
-                onPress={() => openSpotifyLink(currentTrack.url_spotify)}
+                onPress={(e) => {
+                  e.stopPropagation()
+                  openSpotifyLink(currentTrack.url_spotify)
+                }}
               >
-                <Image
-                  source={require("../assets/images/spotify.png")}
-                  style={[styles.miniSpotifyIcon]}
-                />
+                <Image source={require("../assets/images/spotify.png")} style={[styles.miniSpotifyIcon]} />
               </TouchableOpacity>
             )}
             {currentTrack.url_youtube && (
               <TouchableOpacity
                 style={styles.miniServiceButton}
-                onPress={() => openYoutubeLink(currentTrack.url_youtube)}
+                onPress={(e) => {
+                  e.stopPropagation()
+                  openYoutubeLink(currentTrack.url_youtube)
+                }}
               >
-                <Image
-                  source={require("../assets/images/youtube.png")}
-                  style={[styles.miniSpotifyIcon]}
-                />
+                <Image source={require("../assets/images/youtube.png")} style={[styles.miniSpotifyIcon]} />
               </TouchableOpacity>
             )}
           </View>
-        </View>
+        </TouchableOpacity>
       )}
     </View>
   )

@@ -86,36 +86,11 @@ export default function AllCategories() {
     extrapolate: "clamp",
   })
 
-  const handleScroll = useCallback(
-    Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }),
-    [scrollY],
+  // Fixed: Create the animated event handler properly
+  const handleScroll = Animated.event(
+    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+    { useNativeDriver: false } // Set to false for opacity animations
   )
-
-  const renderCategoryCard = (plan: FitnessPlan) => {
-    const imageUrl =
-      plan.image && plan.image.length > 0 ? getImageUrl(plan.image[0].url) : require("../assets/images/cardio.jpg")
-
-    return (
-      <TouchableOpacity
-        key={plan.id}
-        style={styles.categoryCard}
-        activeOpacity={0.8}
-        onPress={() => navigation.navigate("FitnessPlanDetail", { planId: plan.id })}
-      >
-        <Image source={{ uri: imageUrl }} style={styles.categoryImage} resizeMode="cover" />
-        <LinearGradient colors={["rgba(0,0,0,0)", "rgba(0,0,0,0.8)"]} style={styles.categoryGradient}>
-          <View style={styles.categoryBadge}>
-            <Text style={styles.categoryBadgeText}>{plan.type.toUpperCase()}</Text>
-          </View>
-          <Text style={styles.categoryTitle}>{plan.title}</Text>
-          <View style={styles.categoryMeta}>
-            <Clock size={12} color={COLORS.textLight} style={styles.categoryMetaIcon} />
-            <Text style={styles.categoryMetaText}>{plan.duration} min</Text>
-          </View>
-        </LinearGradient>
-      </TouchableOpacity>
-    )
-  }
 
   const renderFilterButton = (title: string) => (
     <TouchableOpacity
@@ -169,25 +144,6 @@ export default function AllCategories() {
     )
   }
 
-  // Group plans by type to avoid repetition
-  const groupedPlans = fitnessPlans.reduce(
-    (acc, plan) => {
-      // Use type as key and only keep the first plan of each type
-      if (!acc[plan.type.toLowerCase()]) {
-        acc[plan.type.toLowerCase()] = {
-          ...plan,
-          // Use type as title if they would be the same
-          title: plan.title.toLowerCase() === plan.type.toLowerCase() ? plan.title : plan.title,
-        }
-      }
-      return acc
-    },
-    {} as Record<string, FitnessPlan>,
-  )
-
-  // Convert back to array for rendering
-  const uniquePlans = Object.values(groupedPlans)
-
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={COLORS.background} />
@@ -195,8 +151,13 @@ export default function AllCategories() {
       <Animated.View style={[styles.headerBackground, { opacity: headerOpacity }]} />
 
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => navigation.navigate("FitnessCategories")}>
+        <TouchableOpacity 
+          style={styles.backButton} 
+          onPress={() => navigation.goBack()}
+          activeOpacity={0.7}
+        >
           <ChevronLeft size={24} color={COLORS.text} />
+          <Text style={styles.backButtonText}></Text>
         </TouchableOpacity>
         {!showSearch ? (
           <>
@@ -249,7 +210,6 @@ export default function AllCategories() {
         {filteredPlans.length > 0 ? (
           <View style={styles.categoriesGrid}>
             {filteredPlans.map((plan) => {
-              // Check if title is same as type (case insensitive)
               const isTitleSameAsType = plan.title.toLowerCase() === plan.type.toLowerCase()
 
               return (
@@ -331,12 +291,23 @@ const styles = StyleSheet.create({
     zIndex: 2,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
+    flexDirection: "row",
     alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 20,
     backgroundColor: COLORS.backgroundAlt,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  backButtonText: {
+    color: COLORS.text,
+    fontSize: 14,
+    fontWeight: "600",
+    marginLeft: 4,
   },
   searchButton: {
     width: 40,
@@ -366,30 +337,6 @@ const styles = StyleSheet.create({
     height: 40,
     fontSize: 15,
     color: COLORS.text,
-  },
-  searchContainer: {
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-  },
-  searchInputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: COLORS.backgroundAlt,
-    borderRadius: 12,
-    paddingHorizontal: 12,
-    height: 46,
-  },
-  searchIcon: {
-    marginRight: 8,
-  },
-  searchInput: {
-    flex: 1,
-    height: "100%",
-    justifyContent: "center",
-  },
-  searchPlaceholder: {
-    color: COLORS.textSecondary,
-    fontSize: 15,
   },
   filtersContainer: {
     paddingVertical: 8,
@@ -445,7 +392,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
   },
   categoryCard: {
-    width: (width - 40) / 2, // 40 = padding (16 * 2) + gap between cards (8)
+    width: (width - 40) / 2,
     height: 180,
     borderRadius: 20,
     overflow: "hidden",

@@ -5,7 +5,6 @@ import {
   View,
   Text,
   ScrollView,
-  Image,
   StyleSheet,
   TouchableOpacity,
   Dimensions,
@@ -492,7 +491,10 @@ export default function HomeScreen({ navigation }: any) {
 
       {/* Enhanced header with search button */}
       <View style={styles.header}>
-        
+        <View style={styles.headerLeft}>
+          <Text style={styles.logoText}></Text>
+        </View>
+
         <View style={styles.headerRight}>
           <TouchableOpacity
             style={styles.searchButton}
@@ -506,7 +508,6 @@ export default function HomeScreen({ navigation }: any) {
           >
             <Search size={20} color="#333" />
           </TouchableOpacity>
-          
         </View>
       </View>
 
@@ -768,7 +769,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#f7f7f7",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 10,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.12,
@@ -1039,5 +1039,9 @@ const styles = StyleSheet.create({
   },
   skeletonIcon: {
     backgroundColor: SKELETON_COLORS.highlight,
+  },
+  headerLeft: {
+    flex: 1,
+    justifyContent: "center",
   },
 })
