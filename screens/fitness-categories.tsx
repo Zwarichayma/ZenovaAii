@@ -31,8 +31,6 @@ const SKELETON_COLORS = {
 type RootStackParamList = {
   Fitness: { category: string }
   AllCategories: undefined
-  AllWorkouts: undefined
-  AllRecommended: undefined
   FitnessPlanDetail: { planId: string }
 }
 
@@ -196,7 +194,7 @@ export default function FitnessCategories() {
       <TouchableOpacity
         style={styles.todayWorkoutCard}
         activeOpacity={0.9}
-        onPress={() => navigation.navigate("FitnessPlanDetail", { planId: todayWorkout.id })}
+        onPress={() => navigation.navigate("FitnessPlanDetail", { planId: plan.id })}
       >
         <Image source={{ uri: imageUrl }} style={styles.todayWorkoutImage} />
         <LinearGradient
@@ -304,7 +302,7 @@ export default function FitnessCategories() {
                   <Calendar size={18} color="#333" style={styles.sectionIcon} />
                   <Text style={styles.sectionTitle}>Today's Workout Plan</Text>
                 </View>
-                <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllWorkouts")}>
+                <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllCategories")}>
                   <Text style={styles.viewAllText}>View All</Text>
                   <ChevronRight size={16} color="#5E72E4" />
                 </TouchableOpacity>
@@ -339,7 +337,7 @@ export default function FitnessCategories() {
                 <Flame size={18} color="#333" style={styles.sectionIcon} />
                 <Text style={styles.sectionTitle}>Recommended</Text>
               </View>
-              <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllRecommended")}>
+              <TouchableOpacity style={styles.viewAllButton} onPress={() => navigation.navigate("AllCategories")}>
                 <Text style={styles.viewAllText}>See All</Text>
                 <ChevronRight size={16} color="#5E72E4" />
               </TouchableOpacity>

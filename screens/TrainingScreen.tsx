@@ -264,6 +264,17 @@ export default function HealthConnectScreen() {
       console.log("Steps:", JSON.stringify(stepsResult, null, 2))
       console.log("Distance:", JSON.stringify(distanceResult, null, 2))
       console.log("Calories:", JSON.stringify(caloriesResult, null, 2))
+      console.log("Query range:", { start: startTime.toISOString(), end: endTime.toISOString() })
+
+      if (!stepsResult.records.length && !distanceResult.records.length && !caloriesResult.records.length) {
+        console.warn(
+          "⚠️ Health Connect returned 0 records across all types. Possible causes:\n" +
+            "  1. No Health Connect data on this device for the selected date\n" +
+            "  2. Health Connect app may not be installed or set up\n" +
+            "  3. Permissions may not cover the requested record types\n" +
+            "  4. The date range may not match any stored records"
+        )
+      }
 
       // Traitement des pas
       let totalSteps = 0
@@ -426,7 +437,6 @@ export default function HealthConnectScreen() {
         { accessType: "read", recordType: "Steps" },
         { accessType: "read", recordType: "Distance" },
         { accessType: "read", recordType: "TotalCaloriesBurned" },
-        { accessType: "read", recordType: "StepCount" } as any,
       ])
 
       setHasPermissions(permissions.length > 0)

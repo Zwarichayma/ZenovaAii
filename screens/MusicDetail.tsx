@@ -211,7 +211,7 @@ export default function MusicDetailScreen({ route, navigation }: MusicDetailScre
       }
 
       if (music.image.url) {
-        const baseUrl = "http://172.20.10.13:1337"
+        const baseUrl = "http://192.168.1.7:1337"
         const fullUrl = `${baseUrl}${music.image.url}`
         return fullUrl
       }

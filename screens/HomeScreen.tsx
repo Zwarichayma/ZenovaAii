@@ -15,13 +15,15 @@ import {
 } from "react-native"
 import { useNavigation, CommonActions } from "@react-navigation/native"
 import type { StackNavigationProp } from "@react-navigation/stack"
-import { User, Search, Bell, Heart } from "lucide-react-native"
+import { User, Search, Bell, Heart, Activity, Flame, Clock, ChevronRight, RefreshCw, Dumbbell, ChefHat, Brain, Zap } from "lucide-react-native"
 import { getCategories } from "../api/recipes/route"
 import { getPersonalizedDiets } from "../api/personalized-diets/route"
 import { getFitnessPlans } from "../api/fitness-plans/route"
 import { getMental } from "../api/mental/route"
 import type { RootStackParamList } from "./navigation"
 import { API_BASE_URL } from "@/config"
+import { healthConnectService } from "../api/health-connect-service/route"
+import { getQuotes } from "../api/music/route"
 
 const { width, height } = Dimensions.get("window")
 
@@ -190,6 +192,9 @@ export default function HomeScreen() {
   const [isLoading, setIsLoading] = useState(true)
   const [Mental, setMental] = useState<Mental[]>([])
   const [favorites, setFavorites] = useState<string[]>([])
+  const [healthData, setHealthData] = useState<{ steps: number; calories: number; distance: number } | null>(null)
+  const [quoteOfDay, setQuoteOfDay] = useState<{ text: string; author?: string } | null>(null)
+  const [userName, setUserName] = useState<string>("")
 
   // Définir toutes les fonctions de navigation en dehors des conditions
   const handleProfilePress = useCallback(() => {
@@ -239,6 +244,31 @@ export default function HomeScreen() {
       setDiets(dietsData || [])
       setFitnessPlans(fitnessData || [])
       setMental(mentalData || [])
+
+      // Fetch health data and quote in parallel
+      const today = new Date()
+      const [healthResult, quotesData] = await Promise.all([
+        healthConnectService.getHealthConnectData(today).catch(() => null),
+        getQuotes().catch(() => []),
+      ])
+
+      if (healthResult) {
+        setHealthData({
+          steps: healthResult.steps,
+          calories: healthResult.total_calories_burned,
+          distance: healthResult.distance,
+        })
+      }
+
+      if (quotesData && quotesData.length > 0) {
+        const randomIndex = Math.floor(Math.random() * quotesData.length)
+        const quoteItem = quotesData[randomIndex]
+        const quoteText =
+          quoteItem.text || quoteItem.quote || (quoteItem.attributes?.text) || (quoteItem.attributes?.quote) || ""
+        const quoteAuthor =
+          quoteItem.author || (quoteItem.attributes?.author) || ""
+        setQuoteOfDay({ text: quoteText, author: quoteAuthor })
+      }
 
       // Debug diet data structure
       if (DEBUG_IMAGES && dietsData && dietsData.length > 0) {
@@ -339,7 +369,6 @@ export default function HomeScreen() {
         documentId = (item as any).documentId || ""
         id = (item as any).id?.toString() || ""
 
-        // Add duration or calories as subtitle for fitness/mental
         if ("duration" in item && item.duration) {
           subtitle = `${item.duration} min`
         } else if ("calories_burned" in item && item.calories_burned) {
@@ -422,12 +451,8 @@ export default function HomeScreen() {
   const renderFeaturedCard = useCallback(
     (diet: PersonalizedDiet) => {
       if (!diet) return null
-
       const title = diet.attributes?.title
-
-      // Get image URL using helper function
       const imageUrl = getImageUrl(diet)
-
       return (
         <TouchableOpacity style={styles.featuredCard} onPress={() => navigation.navigate("Bot")}>
           {imageUrl ? (
@@ -439,11 +464,9 @@ export default function HomeScreen() {
           ) : (
             <View style={[styles.featuredCardImage, styles.placeholderImage]} />
           )}
-
           <View style={styles.featuredOverlay}>
             <View style={styles.featuredContent}>
               <Text style={styles.featuredTitle}>{title}</Text>
-
               <TouchableOpacity style={styles.featuredButton} onPress={() => navigation.navigate("Bot")}>
                 <Text style={styles.featuredButtonText}>Get Started</Text>
               </TouchableOpacity>
@@ -528,8 +551,138 @@ export default function HomeScreen() {
                 <Text style={styles.welcomeSubtitle}>Your Smart Well-Being Companion</Text>
               </View>
 
-              {/* Featured Diet Card */}
+              {/* Health Stats Banner */}
+              {healthData && (
+                <View style={styles.healthStatsContainer}>
+                  <View style={styles.healthStatCard}>
+                    <View style={[styles.healthStatIcon, { backgroundColor: "#E8F5E9" }]}>
+                      <Activity size={20} color="#2E7D32" />
+                    </View>
+                    <Text style={styles.healthStatValue}>{healthData.steps.toLocaleString()}</Text>
+                    <Text style={styles.healthStatLabel}>Steps</Text>
+                  </View>
+                  <View style={styles.healthStatDivider} />
+                  <View style={styles.healthStatCard}>
+                    <View style={[styles.healthStatIcon, { backgroundColor: "#FFF3E0" }]}>
+                      <Flame size={20} color="#E65100" />
+                    </View>
+                    <Text style={styles.healthStatValue}>{healthData.calories}</Text>
+                    <Text style={styles.healthStatLabel}>Calories</Text>
+                  </View>
+                  <View style={styles.healthStatDivider} />
+                  <View style={styles.healthStatCard}>
+                    <View style={[styles.healthStatIcon, { backgroundColor: "#E3F2FD" }]}>
+                      <Activity size={20} color="#1565C0" />
+                    </View>
+                    <Text style={styles.healthStatValue}>{healthData.distance.toFixed(1)}</Text>
+                    <Text style={styles.healthStatLabel}>KM</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Daily Quote */}
+              {quoteOfDay && quoteOfDay.text ? (
+                <View style={styles.quoteContainer}>
+                  <View style={styles.quoteIconWrapper}>
+                    <Text style={styles.quoteIconText}>"</Text>
+                  </View>
+                  <View style={styles.quoteContent}>
+                    <Text style={styles.quoteText} numberOfLines={2}>
+                      {quoteOfDay.text}
+                    </Text>
+                    {quoteOfDay.author ? (
+                      <Text style={styles.quoteAuthor}>— {quoteOfDay.author}</Text>
+                    ) : null}
+                  </View>
+                </View>
+              ) : null}
+
+              {/* Quick Actions */}
+              <View style={styles.quickActionsContainer}>
+                <View style={styles.quickActionsGrid}>
+                  <TouchableOpacity style={styles.quickActionCard} onPress={() => navigation.navigate("Fitness")}>
+                    <View style={[styles.quickActionIcon, { backgroundColor: "#E8F5E9" }]}>
+                      <Dumbbell size={24} color="#2E7D32" />
+                    </View>
+                    <Text style={styles.quickActionLabel}>Fitness</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickActionCard} onPress={() => navigation.navigate("Nutrition")}>
+                    <View style={[styles.quickActionIcon, { backgroundColor: "#FFF3E0" }]}>
+                      <ChefHat size={24} color="#E65100" />
+                    </View>
+                    <Text style={styles.quickActionLabel}>Nutrition</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickActionCard} onPress={() => navigation.navigate("Mental Health" as any)}>
+                    <View style={[styles.quickActionIcon, { backgroundColor: "#F3E5F5" }]}>
+                      <Brain size={24} color="#6A1B9A" />
+                    </View>
+                    <Text style={styles.quickActionLabel}>Mental</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={styles.quickActionCard} onPress={() => navigation.navigate("Quote")}>
+                    <View style={[styles.quickActionIcon, { backgroundColor: "#E3F2FD" }]}>
+                      <Zap size={24} color="#1565C0" />
+                    </View>
+                    <Text style={styles.quickActionLabel}>Quotes</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Today's Workout */}
+              {fitnessPlans && fitnessPlans.length > 0 && (
+                <View style={styles.todayWorkoutSection}>
+                  <View style={styles.sectionHeader}>
+                    <View style={styles.sectionTitleWrapper}>
+                      <Activity size={18} color={COLORS.text} />
+                      <Text style={[styles.sectionTitle, { marginLeft: 8 }]}>Today's Workout</Text>
+                    </View>
+                    <TouchableOpacity onPress={() => navigation.navigate("AllCategories")}>
+                      <Text style={styles.seeAllText}>View all</Text>
+                    </TouchableOpacity>
+                  </View>
+                  <TouchableOpacity
+                    style={styles.todayWorkoutCard}
+                    onPress={() => navigation.navigate("FitnessPlanDetail" as any, { planId: Number.parseInt(fitnessPlans[0].id.toString(), 10) })}
+                  >
+                    <Image
+                      source={{ uri: getImageUrl(fitnessPlans[0]) }}
+                      style={styles.todayWorkoutImage}
+                      defaultSource={require("../assets/images/cardio.jpg")}
+                    />
+                    <View style={styles.todayWorkoutOverlay}>
+                      <Text style={styles.todayWorkoutTitle}>{fitnessPlans[0].title}</Text>
+                      <View style={styles.todayWorkoutMeta}>
+                        <View style={styles.todayWorkoutMetaItem}>
+                          <Clock size={14} color="#fff" />
+                          <Text style={styles.todayWorkoutMetaText}> {fitnessPlans[0].duration} min</Text>
+                        </View>
+                        <View style={styles.todayWorkoutMetaItem}>
+                          <Flame size={14} color="#fff" />
+                          <Text style={styles.todayWorkoutMetaText}> {fitnessPlans[0].calories_burned} cal</Text>
+                        </View>
+                      </View>
+                    </View>
+                  </TouchableOpacity>
+                </View>
+              )}
+
+              {/* Featured Diet */}
               {diets && diets.length > 0 && <View style={styles.featuredSection}>{renderFeaturedCard(diets[0])}</View>}
+
+              {/* Recommendations */}
+              {diets && diets.length > 1 && (
+                <View style={styles.section}>
+                  {renderSectionHeader("Recommended For You")}
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
+                    <View style={{ flexDirection: "row" }}>
+                      {diets.slice(1).map((diet, index) => (
+                        <View key={index} style={styles.cardWrapper}>
+                          {renderCard(diet, "Bot", true, "small")}
+                        </View>
+                      ))}
+                    </View>
+                  </ScrollView>
+                </View>
+              )}
 
               {/* Categories Section */}
               <View style={styles.section}>
@@ -573,21 +726,6 @@ export default function HomeScreen() {
                 </ScrollView>
               </View>
 
-              {/* Recommended Section - if you have more diets */}
-              {diets && diets.length > 1 && (
-                <View style={styles.section}>
-                  {renderSectionHeader("Recommended For You")}
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
-                    <View style={{ flexDirection: "row" }}>
-                      {diets.slice(1).map((diet, index) => (
-                        <View key={index} style={styles.cardWrapper}>
-                          {renderCard(diet, "Bot", true, "small")}
-                        </View>
-                      ))}
-                    </View>
-                  </ScrollView>
-                </View>
-              )}
             </View>
           </ScrollView>
         )}
@@ -911,5 +1049,189 @@ const styles = StyleSheet.create({
     backgroundColor: COLORS.skeletonBackground,
     borderRadius: 4,
     marginTop: 5,
+  },
+
+  // Health Stats
+  healthStatsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginHorizontal: width * 0.05,
+    marginTop: 10,
+    marginBottom: 20,
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    elevation: 2,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+  },
+  healthStatCard: {
+    flex: 1,
+    alignItems: "center",
+  },
+  healthStatIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  healthStatDivider: {
+    width: 1,
+    height: 40,
+    backgroundColor: COLORS.border,
+    marginHorizontal: 8,
+  },
+  healthStatValue: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: COLORS.text,
+  },
+  healthStatLabel: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 2,
+  },
+
+  // Quote
+  quoteContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginHorizontal: width * 0.05,
+    marginBottom: 20,
+    backgroundColor: COLORS.backgroundAlt,
+    borderRadius: 16,
+    padding: 16,
+    borderLeftWidth: 4,
+    borderLeftColor: COLORS.primary,
+  },
+  quoteIconWrapper: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: COLORS.background,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  quoteIconText: {
+    fontSize: 24,
+    fontWeight: "700",
+    color: COLORS.primary,
+    lineHeight: 28,
+  },
+  quoteContent: {
+    flex: 1,
+  },
+  quoteText: {
+    fontSize: 14,
+    fontStyle: "italic",
+    color: COLORS.text,
+    lineHeight: 20,
+  },
+  quoteAuthor: {
+    fontSize: 12,
+    color: COLORS.textSecondary,
+    marginTop: 4,
+    textAlign: "right",
+  },
+
+  // Quick Actions
+  quickActionsContainer: {
+    marginHorizontal: width * 0.05,
+    marginBottom: 20,
+  },
+  quickActionsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+  },
+  quickActionCard: {
+    width: (width - 60) / 4,
+    alignItems: "center",
+    backgroundColor: COLORS.background,
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 8,
+    borderWidth: 1,
+    borderColor: COLORS.border,
+    elevation: 2,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 3,
+  },
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  quickActionLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: COLORS.text,
+    textAlign: "center",
+  },
+
+  // Today's Workout
+  todayWorkoutSection: {
+    marginBottom: 25,
+  },
+  sectionTitleWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  todayWorkoutCard: {
+    marginHorizontal: width * 0.05,
+    height: 180,
+    borderRadius: 20,
+    overflow: "hidden",
+    elevation: 4,
+    shadowColor: COLORS.primary,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 5,
+  },
+  todayWorkoutImage: {
+    width: "100%",
+    height: "100%",
+    resizeMode: "cover",
+  },
+  todayWorkoutOverlay: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    padding: 20,
+    backgroundColor: "rgba(0, 0, 0, 0.45)",
+  },
+  todayWorkoutTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: COLORS.textLight,
+    marginBottom: 8,
+  },
+  todayWorkoutMeta: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  todayWorkoutMetaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginRight: 20,
+  },
+  todayWorkoutMetaText: {
+    fontSize: 13,
+    color: "#eee",
+    fontWeight: "500",
   },
 })

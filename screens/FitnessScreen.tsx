@@ -41,7 +41,7 @@ type NavigationProp = NativeStackNavigationProp<RootStackParamList>
 async function getFitnessPlanById(id: string): Promise<FitnessPlan | null> {
   try {
     const plans = await getFitnessPlans()
-    return plans.find(plan => plan.id === id) || null
+    return plans.find(plan => plan.id.toString() === id) || null
   } catch (error) {
     console.error("Error fetching fitness plan by ID:", error)
     throw error
@@ -53,7 +53,7 @@ export default function FitnessDetail() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const route = useRoute<FitnessDetailScreenRouteProp>()
-  const { planId } = route.params // Get planId instead of category
+  const { planId } = route.params ?? { planId: "" }
   const navigation = useNavigation<NavigationProp>()
 
   const scrollY = new Animated.Value(0)

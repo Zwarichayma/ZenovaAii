@@ -2,7 +2,7 @@ import axios from "axios"
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 
-const API_URL = "http://172.20.10.13:1337/api"
+const API_URL = "http://192.168.1.7:1337/api"
 
 // Initialize Google Sign-In with your Web Client ID
 export const initGoogleSignIn = () => {
@@ -138,7 +138,7 @@ export const googleAuthService = {
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         throw new Error("Google Play Services not available")
       } else if (error.code === 10 || error.message === "DEVELOPER_ERROR") {
-        throw new Error("Configuration error resolved! If you still see this, please restart the app.")
+        throw new Error("DEVELOPER_ERROR: google-services.json is missing from android/app/. Download it from Firebase Console, add the SHA-1 fingerprint of your debug keystore, and rebuild the app.")
       }
 
       throw new Error(error.message || "Unknown Google Sign-In error")
