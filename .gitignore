@@ -35,3 +35,6 @@ yarn-error.*
 # typescript
 *.tsbuildinfo
 .env
+
+# local database / strapi tmp
+backend/apizenova/.tmp/
